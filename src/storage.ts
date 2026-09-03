@@ -121,4 +121,15 @@ export const storage = {
     const projects = loadProjects();
     saveProjects(projects.map((item) => item.id === id ? { ...item, presentation } : item));
   },
+  deleteProject: (id: string) => {
+    const projects = loadStoredProjects();
+    if (!projects.some((item) => item.id === id)) return false;
+    saveProjects(projects.filter((item) => item.id !== id));
+    if (localStorage.getItem(ACTIVE_PROJECT_KEY) === id) {
+      localStorage.removeItem(ACTIVE_PROJECT_KEY);
+      localStorage.removeItem(DRAFT_KEY);
+      localStorage.removeItem(RESULT_KEY);
+    }
+    return true;
+  },
 };

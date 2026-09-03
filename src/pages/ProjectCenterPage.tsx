@@ -1,5 +1,5 @@
-import { CopyOutlined, EditOutlined, FileTextOutlined, FolderOpenOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
-import { Button, Card, Empty, Input, message, Space, Table, Tag, Typography } from 'antd';
+import { CopyOutlined, DeleteOutlined, EditOutlined, FileTextOutlined, FolderOpenOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { Button, Card, Empty, Input, message, Popconfirm, Space, Table, Tag, Typography } from 'antd';
 import { useMemo, useState } from 'react';
 import { displayStaffingCount, gradeLabel } from '../calculation';
 import { storage } from '../storage';
@@ -32,6 +32,12 @@ export default function ProjectCenterPage({ onNew, onOpen, onEdit }: ProjectCent
     message.success(`已复制“${copy.result.project.projectName}”`);
   };
 
+  const remove = (id: string) => {
+    if (!storage.deleteProject(id)) return;
+    setProjects(storage.loadProjects());
+    message.success('项目已删除');
+  };
+
   const columns = [
     {
       title: '项目档案',
@@ -60,12 +66,22 @@ export default function ProjectCenterPage({ onNew, onOpen, onEdit }: ProjectCent
     {
       title: '操作',
       key: 'actions',
-      width: 250,
+      width: 310,
       render: (_: unknown, item: ProjectRecord) => (
         <Space size={2}>
           <Button type="link" icon={<FolderOpenOutlined />} onClick={() => onOpen(item.id)}>查看结果</Button>
           <Button type="text" icon={<EditOutlined />} onClick={() => onEdit(item.id)}>继续编辑</Button>
           <Button type="text" icon={<CopyOutlined />} onClick={() => duplicate(item.id)}>复制</Button>
+          <Popconfirm
+            title="删除这个项目？"
+            description="删除后无法恢复。"
+            okText="确认删除"
+            cancelText="取消"
+            okButtonProps={{ danger: true }}
+            onConfirm={() => remove(item.id)}
+          >
+            <Button type="text" danger icon={<DeleteOutlined />}>删除</Button>
+          </Popconfirm>
         </Space>
       ),
     },
@@ -102,7 +118,7 @@ export default function ProjectCenterPage({ onNew, onOpen, onEdit }: ProjectCent
             columns={columns}
             dataSource={filteredProjects}
             pagination={false}
-            scroll={{ x: 1300 }}
+            scroll={{ x: 1360 }}
             locale={{ emptyText: '没有匹配的项目' }}
           />
         ) : (

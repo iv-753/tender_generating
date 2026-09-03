@@ -63,4 +63,14 @@ describe('project storage', () => {
       generatedAt: '2026-09-03T10:00:00.000Z',
     });
   });
+
+  test('deletes a project and clears the active result when that project is open', () => {
+    const project = storage.saveCalculatedProject(result('待删除项目', '2026-09-03T08:00:00.000Z'));
+
+    expect(storage.deleteProject(project.id)).toBe(true);
+    expect(storage.loadProjects()).toEqual([]);
+    expect(storage.loadDraft()).toBeNull();
+    expect(storage.loadResult()).toBeNull();
+    expect(storage.getActiveProjectId()).toBeNull();
+  });
 });

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, expect, test, vi } from 'vitest';
 
 vi.mock('./workbookCalculator', () => ({ calculateProject: vi.fn() }));
@@ -83,6 +83,22 @@ test('lists saved projects and opens, edits, or duplicates a project', () => {
   fireEvent.click(screen.getAllByRole('button', { name: /继续编辑/ })[0]);
   expect(window.location.pathname).toBe('/project/new');
   expect(storage.loadDraft()?.projectName).toBe('滨江花园（副本）');
+});
+
+test('deletes a saved project only after confirmation', async () => {
+  storage.saveCalculatedProject(savedResult('临时测算项目', '2026-09-03T09:00:00.000Z', 520000));
+  window.history.replaceState({}, '', '/projects');
+  render(<App />);
+
+  const row = screen.getByRole('row', { name: /临时测算项目/ });
+  fireEvent.click(within(row).getByRole('button', { name: /删除/ }));
+  expect(screen.getByText('删除这个项目？')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: /取\s*消/ }));
+  expect(screen.getByText('临时测算项目')).toBeTruthy();
+
+  fireEvent.click(within(screen.getByRole('row', { name: /临时测算项目/ })).getByRole('button', { name: /删除/ }));
+  fireEvent.click(screen.getByRole('button', { name: '确认删除' }));
+  expect(await screen.findByText('还没有保存的项目')).toBeTruthy();
 });
 
 test('navigates to the result page without reloading', () => {
