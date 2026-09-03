@@ -1,10 +1,3 @@
-const COST_BAND_LABELS = {
-  high: '高成本档',
-  upper: '较高成本档',
-  standard: '标准成本档',
-  base: '基础成本档',
-};
-
 const ACTION_CODE = /^[A-Z]+-[A-Z]+-\d+\s+/;
 
 function formatNumber(value, maximumFractionDigits = 2) {
@@ -203,7 +196,7 @@ export function buildPresentationBindings(result, generatedAt = new Date()) {
       'field-project-2-2': formatNumber(garageTotalArea),
       'field-project-2-3': projectStage(project),
       'field-service-grade': `${project.serviceGrade}级`,
-      'field-cost-band': COST_BAND_LABELS[project.costBand] ?? project.costBand,
+      'field-cost-band': `${project.city.replace(/市$/, '')}地区基准`,
       'field-unit-price': unitPrice.toFixed(2),
       'field-annual-cost': (result.annualCost / 10000).toFixed(2),
       'field-headcount': String(Math.ceil(result.totalHeadcount)),

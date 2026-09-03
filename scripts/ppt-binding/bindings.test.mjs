@@ -77,6 +77,7 @@ test('生成完整项目与测算绑定', () => {
   assert.equal(bindings.named['project-name-field'], '增城示范花园');
   assert.equal(bindings.named['field-project-region-15'], '广东省广州市增城区');
   assert.equal(bindings.named['field-unit-price'], '1.49');
+  assert.equal(bindings.named['field-cost-band'], '广州地区基准');
   assert.equal(bindings.named['field-annual-cost'], '268.58');
   assert.equal(bindings.named['field-headcount'], '34');
   assert.equal(bindings.named['field-action-count'], '122');
