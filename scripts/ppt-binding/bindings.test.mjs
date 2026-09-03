@@ -82,14 +82,17 @@ test('生成完整项目与测算绑定', () => {
   assert.equal(bindings.named['field-headcount'], '34');
   assert.equal(bindings.named['field-action-count'], '122');
   assert.equal(bindings.named['field-project-1-0'], '12');
-  assert.equal(bindings.named['field-project-2-2'], '80,120.54');
+  assert.equal(bindings.named['field-total-area'], '252,481');
+  assert.equal(bindings.named['field-project-2-2'], '80,121');
   assert.equal(bindings.cards.length, 16);
   assert.deepEqual(bindings.cards[0], {
     title: '客户投诉处理',
     scope: '已收未住5%＋常住户数20%',
     frequency: '13分钟响应，48小时完成',
   });
-  assert.equal(bindings.cards[12].scope, '1.32万㎡');
+  assert.equal(bindings.cards[10].scope, '80,121㎡');
+  assert.equal(bindings.cards[12].scope, '13,177㎡');
+  assert.equal(bindings.cards[13].scope, '909株');
   assert.equal(bindings.cards[13].frequency, '乔木1次/年·灌木2次/年');
   assert.equal(bindings.cards[15].frequency, '草坪/地被2次/年\n乔灌木1次/年');
 });

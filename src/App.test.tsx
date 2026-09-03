@@ -198,6 +198,30 @@ test('does not expose the internal calculation-scope disclaimer on results', () 
   expect(screen.queryByText('CALCULATION RESULT / 122 ACTIONS')).toBeNull();
 });
 
+test('shows action quantities as rounded whole numbers on the result page', () => {
+  storage.saveResult({
+    ...savedResult('湖畔家园', '2026-09-03T08:00:00.000Z', 481800),
+    categories: [
+      { category: 'service', title: '服务', actionCount: 0, headcount: 0, annualCost: 0 },
+      { category: 'cleaning', title: '清洁', actionCount: 0, headcount: 0, annualCost: 0 },
+      { category: 'greening', title: '绿化', actionCount: 2, headcount: 0, annualCost: 0 },
+      { category: 'assistance', title: '客助', actionCount: 0, headcount: 0, annualCost: 0 },
+    ],
+    actions: [
+      { id: 'greening-1', category: 'greening', action: '草坪复绿', property: '基础', quantity: 9882.375, unit: '平方米', annualCost: 0 },
+      { id: 'greening-2', category: 'greening', action: '时花维护', property: '基础', unit: '平方米', annualCost: 0 },
+    ],
+  });
+  window.history.replaceState({}, '', '/project/result');
+  render(<App />);
+  fireEvent.click(screen.getByRole('tab', { name: /绿化/ }));
+
+  expect(screen.getByText('9,882 平方米')).toBeTruthy();
+  expect(screen.queryByText('9882.375 平方米')).toBeNull();
+  const missingQuantityRow = screen.getByRole('row', { name: /时花维护/ });
+  expect(missingQuantityRow.children[2]?.textContent).toBe('—');
+});
+
 test('generates a presentation with real stage feedback and exposes the download', async () => {
   storage.saveResult({
     version: 1,

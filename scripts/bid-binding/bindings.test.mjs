@@ -119,11 +119,11 @@ test('removes meaningless decimals from customer-facing quantities without chang
 
   const bindings = buildBidBindings(current);
 
-  assert.equal(bindings.named['总建筑面积'], '252,480');
-  assert.equal(bindings.named['车库面积'], '80,120');
-  assert.equal(bindings.actionRows.find((item) => item.id === 'cleaning-47').scope, '80,120平方米');
-  assert.equal(bindings.actionRows.find((item) => item.id === 'greening-48').scope, '908株');
-  assert.equal(bindings.staffingRows.find((item) => item.id === 'assistance-8').basis, '252,480平方米');
+  assert.equal(bindings.named['总建筑面积'], '252,481');
+  assert.equal(bindings.named['车库面积'], '80,121');
+  assert.equal(bindings.actionRows.find((item) => item.id === 'cleaning-47').scope, '80,121平方米');
+  assert.equal(bindings.actionRows.find((item) => item.id === 'greening-48').scope, '909株');
+  assert.equal(bindings.staffingRows.find((item) => item.id === 'assistance-8').basis, '252,481平方米');
   assert.equal(current.actions.find((item) => item.id === 'cleaning-47').quantity, 80120.54);
 });
 

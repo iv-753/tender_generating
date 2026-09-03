@@ -50,6 +50,14 @@ export function displayActionName(action: string) {
   return action.replace(/^[A-Z]+-[A-Z]+-\d+\s+/, '');
 }
 
+export function displayQuantity(value: unknown, unit?: string) {
+  if (value === undefined || value === null || value === '') return '—';
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '—';
+  const formatted = new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 0 }).format(numeric);
+  return unit ? `${formatted} ${unit}` : formatted;
+}
+
 export function displayStaffingCount(headcount: number) {
   return Math.ceil(headcount);
 }

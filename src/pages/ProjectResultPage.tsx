@@ -1,7 +1,7 @@
 import { ArrowLeftOutlined, FilePptOutlined, LoadingOutlined, SearchOutlined } from '@ant-design/icons';
 import { Button, Card, Empty, Input, Modal, Progress, Result, Space, Statistic, Steps, Table, Tabs, Typography } from 'antd';
 import { useMemo, useState } from 'react';
-import { COST_BAND_LABELS, displayActionName, displayStaffingCount, gradeLabel, showsActionHeadcount } from '../calculation';
+import { COST_BAND_LABELS, displayActionName, displayQuantity, displayStaffingCount, gradeLabel, showsActionHeadcount } from '../calculation';
 import { storage } from '../storage';
 import type { ActionCategory, ServiceActionResult } from '../types';
 
@@ -48,7 +48,7 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
   const columns = [
     { title: '动作', dataIndex: 'action', key: 'action', fixed: 'left' as const, width: 180, render: (value: string) => displayActionName(value) },
     { title: '属性', dataIndex: 'property', key: 'property', width: 120, render: show },
-    { title: '适用数量 / 依据', key: 'applicable', width: 180, render: (_: unknown, item: ServiceActionResult) => item.basis || [show(item.quantity), item.unit].filter((value) => value && value !== '—').join(' ') || '—' },
+    { title: '适用数量 / 依据', key: 'applicable', width: 180, render: (_: unknown, item: ServiceActionResult) => item.basis || displayQuantity(item.quantity, item.unit) },
     { title: '频次', dataIndex: 'frequency', key: 'frequency', width: 190, render: show },
     { title: '年频次', dataIndex: 'annualFrequency', key: 'annualFrequency', width: 90, render: (value: number) => value === undefined ? '—' : decimal.format(value) },
     { title: '年工时', dataIndex: 'annualHours', key: 'annualHours', width: 100, render: (value: number) => value === undefined ? '—' : decimal.format(value) },

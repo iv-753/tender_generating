@@ -7,6 +7,10 @@ function formatNumber(value, maximumFractionDigits = 2) {
   }).format(Number(value));
 }
 
+function formatWholeNumber(value) {
+  return formatNumber(Math.round(Number(value)), 0);
+}
+
 function cleanActionName(value) {
   return String(value ?? '').replace(ACTION_CODE, '').trim();
 }
@@ -33,9 +37,7 @@ function findAction(result, id) {
 }
 
 function compactArea(value) {
-  const numeric = Number(value);
-  if (numeric >= 10000) return `${(numeric / 10000).toFixed(2)}万㎡`;
-  return `${formatNumber(numeric)}㎡`;
+  return `${formatWholeNumber(value)}㎡`;
 }
 
 function projectStage(project) {
@@ -178,22 +180,22 @@ export function buildPresentationBindings(result, generatedAt = new Date()) {
       'proposal-date-field': dateLabel(generatedAt),
       'field-project-name-15': project.projectName,
       'field-project-region-15': project.region,
-      'field-total-area': formatNumber(project.totalBuildingArea),
-      'field-charge-area': formatNumber(project.residentialChargeArea),
-      'field-delivered': formatNumber(project.deliveredHouseholds, 0),
-      'field-handover': formatNumber(project.receivedHouseholds, 0),
-      'field-occupied': formatNumber(project.occupiedHouseholds, 0),
-      'field-project-0-0': formatNumber(project.perimeterEntrances),
-      'field-project-0-1': formatNumber(project.pavedRoadArea),
-      'field-project-0-2': formatNumber(project.greenArea),
+      'field-total-area': formatWholeNumber(project.totalBuildingArea),
+      'field-charge-area': formatWholeNumber(project.residentialChargeArea),
+      'field-delivered': formatWholeNumber(project.deliveredHouseholds),
+      'field-handover': formatWholeNumber(project.receivedHouseholds),
+      'field-occupied': formatWholeNumber(project.occupiedHouseholds),
+      'field-project-0-0': formatWholeNumber(project.perimeterEntrances),
+      'field-project-0-1': formatWholeNumber(project.pavedRoadArea),
+      'field-project-0-2': formatWholeNumber(project.greenArea),
       'field-project-0-3': `${formatNumber(project.lawnRatio * 100)}%`,
-      'field-project-1-0': formatNumber(totalBuildings, 0),
-      'field-project-1-1': formatNumber(project.buildings.length, 0),
-      'field-project-1-2': formatNumber(project.gatehouses, 0),
-      'field-project-1-3': formatNumber(totalLobbyArea),
-      'field-project-2-0': formatNumber(project.garageFloorArea),
-      'field-project-2-1': formatNumber(project.garageFloors, 0),
-      'field-project-2-2': formatNumber(garageTotalArea),
+      'field-project-1-0': formatWholeNumber(totalBuildings),
+      'field-project-1-1': formatWholeNumber(project.buildings.length),
+      'field-project-1-2': formatWholeNumber(project.gatehouses),
+      'field-project-1-3': formatWholeNumber(totalLobbyArea),
+      'field-project-2-0': formatWholeNumber(project.garageFloorArea),
+      'field-project-2-1': formatWholeNumber(project.garageFloors),
+      'field-project-2-2': formatWholeNumber(garageTotalArea),
       'field-project-2-3': projectStage(project),
       'field-service-grade': `${project.serviceGrade}级`,
       'field-cost-band': `${project.city.replace(/市$/, '')}地区基准`,

@@ -3,6 +3,7 @@ import {
   ACTION_COUNTS,
   COST_BAND_FACTORS,
   displayActionName,
+  displayQuantity,
   displayStaffingCount,
   gradeLabel,
   inferCostBand,
@@ -42,6 +43,12 @@ describe('property calculation rules', () => {
     expect(displayStaffingCount(0)).toBe(0);
     expect(displayStaffingCount(4.01)).toBe(5);
     expect(displayStaffingCount(5)).toBe(5);
+  });
+
+  test('shows customer-facing quantities as rounded whole numbers', () => {
+    expect(displayQuantity(9882.375, '平方米')).toBe('9,882 平方米');
+    expect(displayQuantity(908.72, '株')).toBe('909 株');
+    expect(displayQuantity(undefined, '平方米')).toBe('—');
   });
 
   test('shows per-action headcount only for dedicated assistance posts', () => {

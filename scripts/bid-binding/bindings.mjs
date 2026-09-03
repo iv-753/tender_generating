@@ -26,7 +26,7 @@ function formatNumber(value, maximumFractionDigits = 2) {
 }
 
 function formatWholeNumber(value) {
-  return formatNumber(Math.trunc(Number(value)), 0);
+  return formatNumber(Math.round(Number(value)), 0);
 }
 
 function formatQuantity(value, unit) {
