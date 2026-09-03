@@ -69,3 +69,17 @@ export interface CalculationResult {
   categories: CategorySummary[];
   actions: ServiceActionResult[];
 }
+
+export interface PresentationRecord {
+  fileName: string;
+  slides: number;
+  generatedAt: string;
+}
+
+export interface ProjectRecord {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  result: CalculationResult;
+  presentation?: PresentationRecord;
+}

@@ -37,6 +37,54 @@ afterEach(() => {
   localStorage.clear();
 });
 
+function savedResult(projectName: string, calculatedAt: string, annualCost: number) {
+  return {
+    version: 1 as const,
+    calculatedAt,
+    project: { ...EXAMPLE_PROJECT, projectName },
+    totalActionCount: 122,
+    totalHeadcount: 34,
+    annualCost,
+    categories: [
+      { category: 'service' as const, title: '服务', actionCount: 17, headcount: 5, annualCost: 1 },
+      { category: 'cleaning' as const, title: '清洁', actionCount: 48, headcount: 15, annualCost: 0 },
+      { category: 'greening' as const, title: '绿化', actionCount: 51, headcount: 3, annualCost: 0 },
+      { category: 'assistance' as const, title: '客助', actionCount: 6, headcount: 11, annualCost: 0 },
+    ],
+    actions: [],
+  };
+}
+
+test('uses the project center as the workspace home', () => {
+  window.history.replaceState({}, '', '/');
+  render(<App />);
+
+  expect(window.location.pathname).toBe('/projects');
+  expect(screen.getByRole('heading', { name: '项目中心' })).toBeTruthy();
+  expect(screen.getByText('还没有保存的项目')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: /新建项目/ }));
+  expect(window.location.pathname).toBe('/project/new');
+});
+
+test('lists saved projects and opens, edits, or duplicates a project', () => {
+  storage.saveCalculatedProject(savedResult('湖畔家园', '2026-09-03T08:00:00.000Z', 481800));
+  storage.startNewProject();
+  storage.saveCalculatedProject(savedResult('滨江花园', '2026-09-03T09:00:00.000Z', 520000));
+  window.history.replaceState({}, '', '/projects');
+  render(<App />);
+
+  expect(screen.getByText('湖畔家园')).toBeTruthy();
+  expect(screen.getByText('滨江花园')).toBeTruthy();
+  expect(screen.getByText('¥520,000')).toBeTruthy();
+
+  fireEvent.click(screen.getAllByRole('button', { name: /复制/ })[0]);
+  expect(screen.getByText('滨江花园（副本）')).toBeTruthy();
+
+  fireEvent.click(screen.getAllByRole('button', { name: /继续编辑/ })[0]);
+  expect(window.location.pathname).toBe('/project/new');
+  expect(storage.loadDraft()?.projectName).toBe('滨江花园（副本）');
+});
+
 test('navigates to the result page without reloading', () => {
   window.history.replaceState({}, '', '/project/new');
   render(<App />);

@@ -58,7 +58,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
       setCalculating(true);
       storage.saveDraft(values);
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-      storage.saveResult(await calculateProject(values));
+      storage.saveCalculatedProject(await calculateProject(values));
       onNavigate();
     } catch (reason) {
       const text = reason instanceof Error ? reason.message : '测算失败，请稍后重试';

@@ -1,12 +1,14 @@
-import { BarChartOutlined, FormOutlined } from '@ant-design/icons';
+import { AppstoreOutlined, BarChartOutlined, FormOutlined } from '@ant-design/icons';
 import { Layout, Menu, Typography } from 'antd';
 import { useEffect, useState } from 'react';
 import ProjectNewPage from './pages/ProjectNewPage';
+import ProjectCenterPage from './pages/ProjectCenterPage';
 import ProjectResultPage from './pages/ProjectResultPage';
+import { storage } from './storage';
 
 const { Header, Content } = Layout;
 
-const routes = ['/project/new', '/project/result'] as const;
+const routes = ['/projects', '/project/new', '/project/result'] as const;
 type AppPath = (typeof routes)[number];
 
 function resolvePath() {
@@ -14,8 +16,8 @@ function resolvePath() {
   if (routes.includes(path as (typeof routes)[number])) {
     return path;
   }
-  window.history.replaceState({}, '', '/project/new');
-  return '/project/new';
+  window.history.replaceState({}, '', '/projects');
+  return '/projects';
 }
 
 function navigate(path: AppPath) {
@@ -32,8 +34,21 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  const page =
-    path === '/project/result' ? (
+  const openProject = (id: string, destination: Extract<AppPath, '/project/new' | '/project/result'>) => {
+    if (storage.selectProject(id)) navigate(destination);
+  };
+  const startNewProject = () => {
+    storage.startNewProject();
+    navigate('/project/new');
+  };
+
+  const page = path === '/projects' ? (
+    <ProjectCenterPage
+      onNew={startNewProject}
+      onOpen={(id) => openProject(id, '/project/result')}
+      onEdit={(id) => openProject(id, '/project/new')}
+    />
+  ) : path === '/project/result' ? (
       <ProjectResultPage onNavigate={() => navigate('/project/new')} />
     ) : (
       <ProjectNewPage onNavigate={() => navigate('/project/result')} />
@@ -52,6 +67,21 @@ export default function App() {
           selectedKeys={[path]}
           items={[
             {
+              key: '/projects',
+              icon: <AppstoreOutlined />,
+              label: (
+                <a
+                  href="/projects"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    navigate('/projects');
+                  }}
+                >
+                  项目中心
+                </a>
+              ),
+            },
+            {
               key: '/project/new',
               icon: <FormOutlined />,
               label: (
@@ -59,7 +89,7 @@ export default function App() {
                   href="/project/new"
                   onClick={(event) => {
                     event.preventDefault();
-                    navigate('/project/new');
+                    startNewProject();
                   }}
                 >
                   新建测算

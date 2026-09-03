@@ -57,6 +57,21 @@ body { margin: 0; min-width: 320px; }
 .generation-progress .ant-steps-item-description { color: #75838d !important; font-size: 12px; }
 .generated-file { display: inline-flex; flex-direction: column; gap: 5px; color: #65737c; }
 .generated-file strong { color: #17324d; font-weight: 600; }
+.project-ledger { overflow: hidden; border: 1px solid #dbe4e8; border-radius: 2px; box-shadow: 0 14px 34px rgba(23,50,77,.07); }
+.project-ledger .ant-card-body { padding: 0; }
+.project-ledger-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 74px; padding: 16px 20px; border-bottom: 1px solid #dbe4e8; background: rgba(255,255,255,.96); }
+.project-ledger-toolbar .ant-input-affix-wrapper { width: 320px; }
+.ledger-summary { display: flex; align-items: center; gap: 11px; color: #52636d; }
+.ledger-summary strong { color: #17324d; font-size: 19px; }
+.ledger-icon { display: grid; width: 35px; height: 35px; border: 1px solid #8aa7b6; color: #2f7d73; place-items: center; }
+.project-ledger .ant-table-thead > tr > th { background: #edf3f5; color: #17324d; font-size: 12px; }
+.project-ledger .ant-table-tbody > tr > td { padding-block: 18px; }
+.project-ledger .ant-table-tbody > tr:hover > td:first-child { box-shadow: inset 3px 0 #2f7d73; }
+.project-identity { display: flex; flex-direction: column; gap: 4px; }
+.project-identity strong { color: #17324d; font-size: 15px; }
+.project-identity span { overflow: hidden; color: #75838d; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.project-cost { color: #17324d; font-variant-numeric: tabular-nums; }
+.project-empty { padding: 74px 20px 84px; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
@@ -79,6 +94,8 @@ body { margin: 0; min-width: 320px; }
   .metrics-grid { grid-template-columns: 1fr; }
   .table-toolbar .ant-input-affix-wrapper { width: 100%; }
   .category-summary { flex-wrap: wrap; gap: 8px 18px; }
+  .project-ledger-toolbar { align-items: stretch; flex-direction: column; }
+  .project-ledger-toolbar .ant-input-affix-wrapper { width: 100%; }
   .result-heading > .ant-space { width: 100%; }
   .result-heading > .ant-space .ant-space-item:last-child { flex: 1; }
   .result-heading > .ant-space .ant-space-item:last-child .ant-btn { width: 100%; }
