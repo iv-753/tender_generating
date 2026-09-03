@@ -47,6 +47,20 @@ body { margin: 0; min-width: 320px; }
 .category-summary strong { color: #2f7d73; }
 .result-table-card .ant-table-thead > tr > th { background: #edf3f5; color: #17324d; font-size: 12px; }
 .disclaimer { margin-top: 18px; }
+.generation-modal .ant-modal-content { border-top: 4px solid #2f7d73; border-radius: 3px; }
+.generation-modal .ant-modal-header { margin-bottom: 8px; }
+.generation-progress { padding: 8px 4px 2px; }
+.generation-progress > .ant-typography { margin-bottom: 14px; }
+.generation-progress .ant-progress { margin-bottom: 24px; }
+.generation-progress .ant-steps-item { min-height: 70px; }
+.generation-progress .ant-steps-item-title { color: #17324d !important; font-weight: 600; }
+.generation-progress .ant-steps-item-description { color: #75838d !important; font-size: 12px; }
+.generated-file { display: inline-flex; flex-direction: column; gap: 5px; color: #65737c; }
+.generated-file strong { color: #17324d; font-weight: 600; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+}
 
 @media (max-width: 1100px) {
   .input-workspace { grid-template-columns: 165px minmax(0, 1fr); }
@@ -65,4 +79,7 @@ body { margin: 0; min-width: 320px; }
   .metrics-grid { grid-template-columns: 1fr; }
   .table-toolbar .ant-input-affix-wrapper { width: 100%; }
   .category-summary { flex-wrap: wrap; gap: 8px 18px; }
+  .result-heading > .ant-space { width: 100%; }
+  .result-heading > .ant-space .ant-space-item:last-child { flex: 1; }
+  .result-heading > .ant-space .ant-space-item:last-child .ant-btn { width: 100%; }
 }

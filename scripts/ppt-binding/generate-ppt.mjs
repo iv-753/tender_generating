@@ -92,12 +92,14 @@ async function saveBlob(filePath, blob) {
   await fs.writeFile(filePath, new Uint8Array(await blob.arrayBuffer()));
 }
 
-export async function generatePresentation({ templatePath, result, outputPath, generatedAt, previewDir }) {
+export async function generatePresentation({ templatePath, result, outputPath, generatedAt, previewDir, onStage }) {
+  onStage?.('preparing');
+  const bindings = buildPresentationBindings(result, generatedAt);
+  onStage?.('binding');
   const { FileBlob, PresentationFile } = await loadArtifactTool();
   const deck = await PresentationFile.importPptx(await FileBlob.load(templatePath));
   if (deck.slides.items.length !== 24) throw new Error(`模板页数异常：${deck.slides.items.length}`);
 
-  const bindings = buildPresentationBindings(result, generatedAt);
   bindDeck(deck, bindings);
 
   if (previewDir) {
@@ -117,6 +119,7 @@ export async function generatePresentation({ templatePath, result, outputPath, g
     await fs.writeFile(path.join(previewDir, 'inspect.ndjson'), inspection.ndjson, 'utf8');
   }
 
+  onStage?.('exporting');
   const pptx = await PresentationFile.exportPptx(deck);
   await fs.mkdir(path.dirname(outputPath), { recursive: true });
   await pptx.save(outputPath);
@@ -133,6 +136,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     outputPath: path.resolve(args.output),
     generatedAt,
     previewDir: args['preview-dir'] ? path.resolve(args['preview-dir']) : undefined,
+    onStage: (stage) => process.stdout.write(`${JSON.stringify({ type: 'stage', stage })}\n`),
   });
-  process.stdout.write(`${JSON.stringify({ outputPath: output.outputPath, slides: output.slides })}\n`);
+  process.stdout.write(`${JSON.stringify({ type: 'complete', outputPath: output.outputPath, slides: output.slides })}\n`);
 }
