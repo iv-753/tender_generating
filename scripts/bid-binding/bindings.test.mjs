@@ -133,3 +133,15 @@ test('rejects incomplete calculation results instead of silently inserting defau
 
   assert.throws(() => buildBidBindings(current), /缺少测算动作 cleaning-12/);
 });
+
+test('marks services without a configured frequency as disabled', () => {
+  const current = result();
+  current.actions = current.actions.map((item) => item.id === 'service-5'
+    ? { ...item, frequency: '不设置', annualFrequency: 0 }
+    : item);
+
+  const bindings = buildBidBindings(current);
+
+  assert.equal(bindings.actionRows.find((item) => item.id === 'service-5').enabled, false);
+  assert.equal(bindings.actionRows.find((item) => item.id === 'service-6').enabled, true);
+});

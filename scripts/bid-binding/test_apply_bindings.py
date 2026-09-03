@@ -51,7 +51,7 @@ class ApplyBindingsTest(unittest.TestCase):
         bindings = {
             "named": {key: f"值-{key}" for key in named_keys},
             "actionRows": [
-                {"id": f"action-{index}", "expectedTitle": title, "scope": f"范围-{index}", "frequency": f"频次-{index}"}
+                {"id": f"action-{index}", "expectedTitle": title, "scope": f"范围-{index}", "frequency": f"频次-{index}", "enabled": index != 1}
                 for index, title in enumerate(action_titles, start=1)
             ],
             "staffingRows": [
@@ -62,16 +62,21 @@ class ApplyBindingsTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "result.docx"
+            template_row_count = sum(len(table.rows) for table in template.tables)
             apply_bindings(TEMPLATE, output, bindings)
             generated = Document(output)
+            generated_row_count = sum(len(table.rows) for table in generated.tables)
+            generated_cells = [cell.text for table in generated.tables for row in table.rows for cell in row.cells]
             all_text = "\n".join(
                 [paragraph.text for paragraph in generated.paragraphs]
                 + [cell.text for table in generated.tables for row in table.rows for cell in row.cells]
             )
             self.assertNotIn("{{", all_text)
-            self.assertIn("范围-1", all_text)
+            self.assertNotIn("范围-1", generated_cells)
+            self.assertIn("范围-2", generated_cells)
             self.assertIn(f"频次-{len(action_titles)}", all_text)
             self.assertIn(f"依据-{len(staffing_titles)}", all_text)
+            self.assertEqual(generated_row_count, template_row_count - 1)
             self.assertEqual(len(action_titles), 109)
             self.assertEqual(len(staffing_titles), 6)
 

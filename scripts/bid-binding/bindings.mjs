@@ -69,6 +69,12 @@ function actionScope(item) {
   return formatQuantity(item.quantity, item.unit);
 }
 
+function actionEnabled(item) {
+  const frequency = String(item.frequency ?? '').trim();
+  return !['', '-', '无', '不设置'].includes(frequency)
+    && (item.annualFrequency === undefined || Number(item.annualFrequency) > 0);
+}
+
 function percent(part, total) {
   if (!Number.isFinite(total) || total <= 0) return '0.0%';
   return `${((part / total) * 100).toFixed(1)}%`;
@@ -137,6 +143,7 @@ export function buildBidBindings(result, generatedAt = new Date(), supplemental 
         expectedTitle: actionTitle(item),
         scope: actionScope(item),
         frequency: String(item.frequency || '不设置').trim(),
+        enabled: actionEnabled(item),
       };
     }),
     staffingRows: STAFFING_ROW_IDS.map((id) => {
@@ -147,6 +154,7 @@ export function buildBidBindings(result, generatedAt = new Date(), supplemental 
         basis: formatQuantity(item.quantity, item.unit),
         standard: String(item.frequency || '不设置').trim(),
         headcount: String(Math.ceil(Number(item.headcount || 0))),
+        enabled: Number(item.headcount || 0) > 0,
       };
     }),
   };

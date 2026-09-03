@@ -110,6 +110,9 @@ def fill_repeated_rows(document: Document, bindings: dict) -> None:
             raise ValueError(
                 f"第{index}个动作标题不一致：模板“{texts[0]}”，映射“{item['expectedTitle']}”（{item['id']}）"
             )
+        if not item.get("enabled", True):
+            row._element.getparent().remove(row._element)
+            continue
         for cell in row.cells:
             replace_in_cell(cell, {"适用范围": item["scope"], "服务频次": item["frequency"]})
 
@@ -122,6 +125,9 @@ def fill_repeated_rows(document: Document, bindings: dict) -> None:
             raise ValueError(
                 f"第{index}个岗位标题不一致：模板“{texts[0]}”，映射“{item['expectedTitle']}”（{item['id']}）"
             )
+        if not item.get("enabled", True):
+            row._element.getparent().remove(row._element)
+            continue
         values = {"配置依据": item["basis"], "配置标准": item["standard"], "配置人数": item["headcount"]}
         for cell in row.cells:
             replace_in_cell(cell, values)
