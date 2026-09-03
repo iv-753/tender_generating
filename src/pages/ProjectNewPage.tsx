@@ -2,15 +2,26 @@ import { ArrowLeftOutlined, ArrowRightOutlined, DeleteOutlined, FileProtectOutli
 import { Alert, Button, Card, Col, Divider, Form, Input, InputNumber, message, Row, Select, Space, Spin, Steps, Typography } from 'antd';
 import { useMemo, useState } from 'react';
 import { COST_BAND_LABELS, gradeLabel, inferCostBand, validateProjectData } from '../calculation';
+import ExcelImportPanel from '../components/ExcelImportPanel';
 import { EXAMPLE_PROJECT } from '../exampleProject';
 import { storage } from '../storage';
-import type { BuildingTypeInput, CostBand, ProjectData, ServiceGrade } from '../types';
+import type { BuildingTypeInput, CostBand, ExcelRecognitionResult, ProjectData, ServiceGrade } from '../types';
 import { calculateProject } from '../workbookCalculator';
 
 type ProjectNewPageProps = { onNavigate: () => void };
 const steps = ['项目概况', '园林概况', '楼栋概况', '地库概况', '测算参数'];
 const emptyBuilding: BuildingTypeInput = { buildingCount: 0, lobbyElevatorCount: 0, stiltFloorArea: 0, totalFloors: 0, standardLobbyArea: 0, evacuationStairArea: 0, rooftopArea: 0 };
 const numberRules = [{ required: true, message: '请填写数值' }, { type: 'number' as const, min: 0, message: '不能小于 0' }];
+const fieldSteps: Record<string, number> = {
+  projectName: 0, region: 0, city: 0, totalBuildingArea: 0, residentialChargeArea: 0, deliveredHouseholds: 0, receivedHouseholds: 0, occupiedHouseholds: 0,
+  perimeterEntrances: 1, gatehouses: 1, pavedRoadArea: 1, greenArea: 1, lawnRatio: 1, seasonalFlowerArea: 1, winterProtectionArea: 1,
+  buildings: 2, garageFloorArea: 3, garageFloors: 3, serviceGrade: 4, costBand: 4,
+};
+
+function firstMissingStep(fields: string[]) {
+  const steps = fields.map((field) => fieldSteps[field.split('[')[0]]).filter((step) => step !== undefined);
+  return steps.length ? Math.min(...steps) : undefined;
+}
 
 function NumberField({ name, label, suffix }: { name: string | number | (string | number)[]; label: string; suffix?: string }) {
   return <Form.Item name={name} label={label} rules={numberRules}><InputNumber min={0} precision={2} addonAfter={suffix} style={{ width: '100%' }} /></Form.Item>;
@@ -63,12 +74,21 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
     }
   };
 
+  const applyRecognition = (result: ExcelRecognitionResult) => {
+    form.setFieldsValue(result.project as unknown as ProjectData);
+    const missingStep = firstMissingStep(result.missingFields);
+    if (missingStep !== undefined) setCurrentStep(missingStep);
+    setError('');
+    message.success(result.missingFields.length ? '识别结果已写入，请补充缺失字段' : '识别结果已写入，请核对后开始测算');
+  };
+
   return (
     <main className="workspace-page">
       <div className="page-heading blueprint-rule">
         <div><Typography.Title level={2}>新建物业测算项目</Typography.Title><Typography.Paragraph type="secondary">录入项目基础信息，生成服务方案、人员配置与成本测算。</Typography.Paragraph></div>
       </div>
       <Spin spinning={calculating} tip="正在生成测算结果，请稍候…" size="large">
+        <ExcelImportPanel onApply={applyRecognition} />
         <div className="input-workspace">
           <aside className="step-rail"><Typography.Text className="panel-kicker">录入进度</Typography.Text><Steps direction="vertical" current={currentStep} items={steps.map((title) => ({ title }))} onChange={setCurrentStep} /></aside>
           <Card className="form-panel" bordered={false}>

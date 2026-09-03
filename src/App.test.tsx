@@ -3,7 +3,9 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { afterEach, expect, test, vi } from 'vitest';
 
 vi.mock('./workbookCalculator', () => ({ calculateProject: vi.fn() }));
+vi.mock('./excelRecognition', () => ({ recognizeExcelFile: vi.fn() }));
 import App from './App';
+import { recognizeExcelFile } from './excelRecognition';
 import { EXAMPLE_PROJECT } from './exampleProject';
 import { storage } from './storage';
 
@@ -35,7 +37,34 @@ Object.defineProperty(window, 'matchMedia', {
 afterEach(() => {
   cleanup();
   localStorage.clear();
+  vi.mocked(recognizeExcelFile).mockReset();
 });
+
+const recognitionResult = {
+  version: 1 as const,
+  provider: 'qwen',
+  model: 'qwen3.7-max',
+  project: {
+    ...EXAMPLE_PROJECT,
+    projectName: '云麓华庭',
+    region: '浙江省杭州市余杭区',
+    city: '杭州',
+    serviceGrade: 'B' as const,
+    costBand: 'high' as const,
+    residentialChargeArea: 108000,
+    seasonalFlowerArea: null,
+  },
+  recognition: {
+    fields: {
+      projectName: { status: 'recognized' as const, confidence: 0.98, source: { sheet: '项目总览', cell: 'E5', raw: '云麓华庭' }, note: '' },
+      residentialChargeArea: { status: 'recognized' as const, confidence: 0.97, source: { sheet: '项目总览', cell: 'E8', raw: '10.8万㎡' }, note: '' },
+      seasonalFlowerArea: { status: 'missing' as const, confidence: 0, source: null, note: '原表未提供' },
+    },
+    buildings: [],
+  },
+  missingFields: ['seasonalFlowerArea'],
+  warnings: [],
+};
 
 function savedResult(projectName: string, calculatedAt: string, annualCost: number) {
   return {
@@ -186,6 +215,66 @@ test('does not expose the internal V1 coverage note on the project form', () => 
 
   expect(screen.queryByText('本版覆盖 122 项')).toBeNull();
   expect(screen.queryByText(/不是全国审计工资库/)).toBeNull();
+});
+
+test('imports an Excel workbook, reviews the result, and applies it only after confirmation', async () => {
+  vi.mocked(recognizeExcelFile).mockResolvedValue(recognitionResult);
+  window.history.replaceState({}, '', '/project/new');
+  render(<App />);
+
+  expect(screen.getByText('Excel 智能导入')).toBeTruthy();
+  const projectName = screen.getByLabelText('项目名称') as HTMLInputElement;
+  expect(projectName.value).toBe('增城示范花园');
+  const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]');
+  expect(fileInput).toBeTruthy();
+  fireEvent.change(fileInput!, { target: { files: [new File(['xlsx'], '项目资料.xlsx')] } });
+
+  const dialog = await screen.findByRole('dialog', { name: '识别结果确认' });
+  expect(screen.getByText('云麓华庭')).toBeTruthy();
+  expect(screen.getByText('108,000 ㎡')).toBeTruthy();
+  expect(dialog.textContent).toContain('1 项待补充');
+  expect(projectName.value).toBe('增城示范花园');
+
+  fireEvent.click(screen.getByRole('button', { name: '采用识别结果' }));
+  expect(projectName.value).toBe('云麓华庭');
+  const seasonalFlowerArea = screen.getByLabelText('时花面积') as HTMLInputElement;
+  expect(seasonalFlowerArea.value).toBe('');
+});
+
+test('shows a real waiting state while Excel recognition is running', async () => {
+  vi.mocked(recognizeExcelFile).mockReturnValue(new Promise(() => undefined));
+  window.history.replaceState({}, '', '/project/new');
+  render(<App />);
+
+  const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]');
+  fireEvent.change(fileInput!, { target: { files: [new File(['xlsx'], '项目资料.xlsx')] } });
+  expect(await screen.findByText('正在识别项目数据')).toBeTruthy();
+  expect(screen.getByText(/通常需要约 1 分钟/)).toBeTruthy();
+});
+
+test('keeps the form unchanged when the recognition result is cancelled', async () => {
+  vi.mocked(recognizeExcelFile).mockResolvedValue(recognitionResult);
+  window.history.replaceState({}, '', '/project/new');
+  render(<App />);
+
+  const projectName = screen.getByLabelText('项目名称') as HTMLInputElement;
+  const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]');
+  fireEvent.change(fileInput!, { target: { files: [new File(['xlsx'], '项目资料.xlsx')] } });
+  await screen.findByRole('dialog', { name: '识别结果确认' });
+  fireEvent.click(screen.getByRole('button', { name: /取\s*消/ }));
+  expect(projectName.value).toBe('增城示范花园');
+});
+
+test('keeps the form unchanged when Excel recognition fails', async () => {
+  vi.mocked(recognizeExcelFile).mockRejectedValue(new Error('AI服务暂不可用'));
+  window.history.replaceState({}, '', '/project/new');
+  render(<App />);
+
+  const projectName = screen.getByLabelText('项目名称') as HTMLInputElement;
+  const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]');
+  fireEvent.change(fileInput!, { target: { files: [new File(['xlsx'], '项目资料.xlsx')] } });
+  expect(await screen.findByText('AI服务暂不可用')).toBeTruthy();
+  expect(projectName.value).toBe('增城示范花园');
 });
 
 test('does not expose the internal calculation-scope disclaimer on results', () => {
