@@ -268,3 +268,47 @@ test('generates a presentation with real stage feedback and exposes the download
   expect(screen.getByText('共 24 页')).toBeTruthy();
   vi.unstubAllGlobals();
 });
+
+test('generates a bid document from the current result and exposes the download', async () => {
+  const current = savedResult('湖畔家园', '2026-09-03T08:00:00.000Z', 481800);
+  storage.saveResult(current);
+  let finishGeneration!: (response: Response) => void;
+  const generationResponse = new Promise<Response>((resolve) => { finishGeneration = resolve; });
+  const fetchMock = vi.fn()
+    .mockResolvedValueOnce(new Response(JSON.stringify({ jobId: 'job-2', status: 'running', stage: 'validating' }), { status: 202 }))
+    .mockReturnValueOnce(generationResponse);
+  vi.stubGlobal('fetch', fetchMock);
+  window.history.replaceState({}, '', '/project/result');
+  render(<App />);
+
+  fireEvent.click(screen.getByRole('button', { name: /生成投标标书/ }));
+
+  expect(await screen.findByText('正在生成投标标书')).toBeTruthy();
+  expect(screen.getByText('校验测算数据')).toBeTruthy();
+  expect(screen.getByText('整理服务方案')).toBeTruthy();
+  expect(screen.getByText('套用标书模板')).toBeTruthy();
+  expect(screen.getByText('导出标书文件')).toBeTruthy();
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+  expect(fetchMock.mock.calls[0][0]).toBe('/api/bid/jobs');
+  expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body)).project.projectName).toBe('湖畔家园');
+  await act(async () => {
+    finishGeneration(new Response(JSON.stringify({ jobId: 'job-2', status: 'complete', stage: 'complete', fileName: '湖畔家园-投标标书.docx', actionCount: 108, downloadUrl: '/api/bid/jobs/job-2/download' }), { status: 200 }));
+  });
+  expect(await screen.findByText('投标标书已生成')).toBeTruthy();
+  const download = screen.getByText('下载标书').closest('a');
+  expect(download?.getAttribute('href')).toBe('/api/bid/jobs/job-2/download');
+  expect(screen.getByText('湖畔家园-投标标书.docx')).toBeTruthy();
+  vi.unstubAllGlobals();
+});
+
+test('shows a readable bid generation error', async () => {
+  storage.saveResult(savedResult('湖畔家园', '2026-09-03T08:00:00.000Z', 481800));
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: '标书模板校验失败' }), { status: 400 })));
+  window.history.replaceState({}, '', '/project/result');
+  render(<App />);
+
+  fireEvent.click(screen.getByRole('button', { name: /生成投标标书/ }));
+
+  expect(await screen.findByText('标书模板校验失败')).toBeTruthy();
+  vi.unstubAllGlobals();
+});
