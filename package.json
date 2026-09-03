@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "serve": "node --no-warnings --experimental-wasm-modules server.mjs",
     "typecheck": "tsc -b --pretty false",
-    "test": "vitest run src && node --test scripts/ppt-binding/bindings.test.mjs scripts/bid-binding/bindings.test.mjs scripts/bid-binding/generate-bid.test.mjs scripts/bid-binding/server-api.test.mjs",
+    "test": "vitest run src && node --test scripts/ppt-binding/bindings.test.mjs scripts/bid-binding/bindings.test.mjs scripts/bid-binding/generate-bid.test.mjs scripts/bid-binding/server-api.test.mjs && node --no-warnings --experimental-wasm-modules --test scripts/excel-import-fixtures.test.mjs",
     "verify:model": "node --no-warnings --experimental-wasm-modules scripts/verify-workbook.mjs"
   },
   "dependencies": {
