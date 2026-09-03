@@ -13,6 +13,8 @@ const MODEL = resolve(ROOT, '..', '动态成本分析模型.xlsx');
 const PRESENTATION_TEMPLATE = resolve(ROOT, '..', '物业路演PPT_完整24页_v1.pptx');
 const PRESENTATION_OUTPUT = resolve(ROOT, '..', 'output');
 const PRESENTATION_GENERATOR = resolve(ROOT, 'scripts', 'ppt-binding', 'generate-ppt.mjs');
+const BID_TEMPLATE = resolve(ROOT, '..', 'output', 'bid-template', '安序物业_住宅物业服务投标文件_双括号动态母版_清理版.docx');
+const BID_GENERATOR = resolve(ROOT, 'scripts', 'bid-binding', 'generate-bid.mjs');
 const HOST = '127.0.0.1';
 const PORT = Number(process.env.PORT || 4173);
 const ACTION_COUNTS = { service: 17, cleaning: 48, greening: 51, assistance: 6 };
@@ -22,6 +24,7 @@ const GRADE_COLUMNS = { A: 5, B: 7, C: 9, D: 11 };
 const ASSISTANCE_ROWS = [4, 5, 7, 8, 9, 10];
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon' };
 const presentationJobs = new Map();
+const bidJobs = new Map();
 
 await init();
 const modelBytes = await readFile(MODEL);
@@ -147,10 +150,23 @@ function publicPresentationJob(job) {
   };
 }
 
+function publicBidJob(job) {
+  return {
+    jobId: job.jobId,
+    status: job.status,
+    stage: job.stage,
+    fileName: job.fileName,
+    actionCount: job.actionCount,
+    downloadUrl: job.status === 'complete' ? `/api/bid/jobs/${job.jobId}/download` : undefined,
+    error: job.error,
+  };
+}
+
 function presentationValidationError(result) {
   if (!result || typeof result !== 'object') return '测算结果无效';
   if (!text(result.project?.projectName).trim()) return '测算结果缺少项目名称';
   if (result.totalActionCount !== 122 || !Array.isArray(result.actions) || result.actions.length !== 122) return '服务动作数据不完整，请重新测算';
+  if (!Array.isArray(result.categories) || !['service', 'cleaning', 'greening', 'assistance'].every((category) => result.categories.some((item) => item.category === category))) return '服务分类数据不完整，请重新测算';
   return undefined;
 }
 
@@ -215,12 +231,80 @@ function startPresentationJob(job, result) {
   });
 }
 
+function startBidJob(job, result) {
+  queueMicrotask(async () => {
+    const resultPath = resolve(PRESENTATION_OUTPUT, `.${job.jobId}.bid.json`);
+    try {
+      await mkdir(PRESENTATION_OUTPUT, { recursive: true });
+      await writeFile(resultPath, JSON.stringify(result), 'utf8');
+      job.stage = 'preparing';
+      const child = spawn(process.env.RUNTIME_NODE || process.execPath, [
+        BID_GENERATOR,
+        '--template', BID_TEMPLATE,
+        '--result', resultPath,
+        '--output', job.outputPath,
+      ], { cwd: ROOT, env: process.env, windowsHide: true });
+      let stdout = '';
+      let stderr = '';
+      child.stdout.setEncoding('utf8');
+      child.stderr.setEncoding('utf8');
+      child.stdout.on('data', (chunk) => {
+        stdout += chunk;
+        const lines = stdout.split(/\r?\n/);
+        stdout = lines.pop() ?? '';
+        for (const line of lines) {
+          try {
+            const event = JSON.parse(line);
+            if (event.type === 'stage' && ['preparing', 'binding', 'exporting'].includes(event.stage)) job.stage = event.stage;
+            if (event.type === 'complete') job.actionCount = event.actionCount;
+          } catch {
+            // Ignore non-protocol output from the document runtime.
+          }
+        }
+      });
+      child.stderr.on('data', (chunk) => { stderr += chunk; });
+      child.on('error', (error) => {
+        job.status = 'error';
+        job.error = error.message;
+      });
+      child.on('close', async (code) => {
+        await unlink(resultPath).catch(() => undefined);
+        if (code === 0 && job.status !== 'error') {
+          job.status = 'complete';
+          job.stage = 'complete';
+        } else if (job.status !== 'error') {
+          job.status = 'error';
+          job.error = stderr.trim().split(/\r?\n/).at(-1) || '标书生成失败';
+        }
+      });
+    } catch (error) {
+      await unlink(resultPath).catch(() => undefined);
+      job.status = 'error';
+      job.error = error instanceof Error ? error.message : '标书生成失败';
+    }
+  });
+}
+
 async function downloadPresentation(response, job) {
   if (!job || job.status !== 'complete') return json(response, 404, { error: '文件尚未生成或已失效' });
   const fileStat = await stat(job.outputPath);
   const encoded = encodeURIComponent(job.fileName);
   response.writeHead(200, {
     'Content-Type': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'Content-Length': fileStat.size,
+    'Content-Disposition': `attachment; filename*=UTF-8''${encoded}`,
+    'Cache-Control': 'private, no-store',
+    'X-Content-Type-Options': 'nosniff',
+  });
+  createReadStream(job.outputPath).pipe(response);
+}
+
+async function downloadBidDocument(response, job) {
+  if (!job || job.status !== 'complete') return json(response, 404, { error: '文件尚未生成或已失效' });
+  const fileStat = await stat(job.outputPath);
+  const encoded = encodeURIComponent(job.fileName);
+  response.writeHead(200, {
+    'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'Content-Length': fileStat.size,
     'Content-Disposition': `attachment; filename*=UTF-8''${encoded}`,
     'Cache-Control': 'private, no-store',
@@ -279,6 +363,19 @@ const server = createServer(async (request, response) => {
       startPresentationJob(job, result);
       return json(response, 202, publicPresentationJob(job));
     }
+    if (url.pathname === '/api/bid/jobs') {
+      if (request.method !== 'POST') return json(response, 405, { error: '仅支持 POST 请求' });
+      const result = await readJson(request);
+      const validationError = presentationValidationError(result);
+      if (validationError) return json(response, 400, { error: validationError });
+      const jobId = randomUUID();
+      const fileName = `${safeFileName(result.project.projectName)}-投标标书.docx`;
+      const job = { jobId, status: 'running', stage: 'validating', fileName, actionCount: undefined, outputPath: resolve(PRESENTATION_OUTPUT, `${jobId}-${fileName}`), error: undefined };
+      bidJobs.set(jobId, job);
+      if (bidJobs.size > 30) bidJobs.delete(bidJobs.keys().next().value);
+      startBidJob(job, result);
+      return json(response, 202, publicBidJob(job));
+    }
     const presentationMatch = url.pathname.match(/^\/api\/presentation\/jobs\/([0-9a-f-]+)(\/download)?$/i);
     if (presentationMatch) {
       const job = presentationJobs.get(presentationMatch[1]);
@@ -289,6 +386,17 @@ const server = createServer(async (request, response) => {
       if (request.method !== 'GET') return json(response, 405, { error: '仅支持 GET 请求' });
       if (!job) return json(response, 404, { error: '生成任务不存在或已失效' });
       return json(response, 200, publicPresentationJob(job));
+    }
+    const bidMatch = url.pathname.match(/^\/api\/bid\/jobs\/([0-9a-f-]+)(\/download)?$/i);
+    if (bidMatch) {
+      const job = bidJobs.get(bidMatch[1]);
+      if (bidMatch[2]) {
+        if (request.method !== 'GET') return json(response, 405, { error: '仅支持 GET 请求' });
+        return downloadBidDocument(response, job);
+      }
+      if (request.method !== 'GET') return json(response, 405, { error: '仅支持 GET 请求' });
+      if (!job) return json(response, 404, { error: '生成任务不存在或已失效' });
+      return json(response, 200, publicBidJob(job));
     }
     if (url.pathname.startsWith('/api/')) return json(response, 404, { error: '接口不存在' });
     if (request.method !== 'GET' && request.method !== 'HEAD') return json(response, 405, { error: '请求方法不支持' });
