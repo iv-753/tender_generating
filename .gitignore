@@ -3,6 +3,8 @@
 /.vite/
 *.tsbuildinfo
 *.log
+__pycache__/
+*.pyc
 
 # Confidential local-only models. Never commit or publish them.
 /public/models/*.xlsx
