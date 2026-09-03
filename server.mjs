@@ -6,6 +6,8 @@ import { spawn } from 'node:child_process';
 import { dirname, extname, isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import init, { Workbook } from 'formualizer';
+import { loadRecognitionConfig } from './scripts/excel-recognition/config.mjs';
+import { recognizeExcel } from './scripts/excel-recognition/recognize-excel.mjs';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const DIST = resolve(ROOT, 'dist');
@@ -324,6 +326,23 @@ async function readJson(request) {
   return JSON.parse(Buffer.concat(chunks).toString('utf8'));
 }
 
+async function readBody(request, maxBytes) {
+  const declaredLength = Number(request.headers['content-length'] || 0);
+  if (declaredLength > maxBytes) throw new Error('上传文件不能超过 10MB');
+  const chunks = [];
+  let length = 0;
+  for await (const chunk of request) {
+    length += chunk.length;
+    if (length > maxBytes) throw new Error('上传文件不能超过 10MB');
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
+}
+
+function isXlsx(bytes) {
+  return bytes.length >= 4 && bytes[0] === 0x50 && bytes[1] === 0x4b;
+}
+
 async function serveStatic(request, response, pathname) {
   const decoded = decodeURIComponent(pathname);
   const requested = resolve(DIST, `.${decoded === '/' ? '/index.html' : decoded}`);
@@ -349,6 +368,18 @@ const server = createServer(async (request, response) => {
       const validationError = validate(project);
       if (validationError) return json(response, 400, { error: validationError });
       return json(response, 200, calculate(project));
+    }
+    if (url.pathname === '/api/excel/recognize') {
+      if (request.method !== 'POST') return json(response, 405, { error: '仅支持 POST 请求' });
+      const encodedName = text(request.headers['x-file-name']);
+      let fileName = '';
+      try { fileName = decodeURIComponent(encodedName); } catch { return json(response, 400, { error: '文件名无效' }); }
+      if (!fileName.toLowerCase().endsWith('.xlsx')) return json(response, 400, { error: '目前仅支持 .xlsx 文件' });
+      let bytes;
+      try { bytes = await readBody(request, 10_000_000); } catch (error) { return json(response, 413, { error: error.message }); }
+      if (!isXlsx(bytes)) return json(response, 400, { error: '文件不是有效的 .xlsx 工作簿' });
+      const config = await loadRecognitionConfig({ projectRoot: resolve(ROOT, '..') });
+      return json(response, 200, await recognizeExcel(bytes, { config }));
     }
     if (url.pathname === '/api/presentation/jobs') {
       if (request.method !== 'POST') return json(response, 405, { error: '仅支持 POST 请求' });
