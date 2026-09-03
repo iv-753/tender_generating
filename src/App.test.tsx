@@ -208,7 +208,7 @@ test('shows action quantities as rounded whole numbers on the result page', () =
       { category: 'assistance', title: '客助', actionCount: 0, headcount: 0, annualCost: 0 },
     ],
     actions: [
-      { id: 'greening-1', category: 'greening', action: '草坪复绿', property: '基础', quantity: 9882.375, unit: '平方米', annualCost: 0 },
+      { id: 'greening-1', category: 'greening', action: '草坪复绿', property: '基础', quantity: 9882.375, unit: '平方米', annualFrequency: 104.4, annualHours: 9307.05, annualCost: 0 },
       { id: 'greening-2', category: 'greening', action: '时花维护', property: '基础', unit: '平方米', annualCost: 0 },
     ],
   });
@@ -218,6 +218,9 @@ test('shows action quantities as rounded whole numbers on the result page', () =
 
   expect(screen.getByText('9,882 平方米')).toBeTruthy();
   expect(screen.queryByText('9882.375 平方米')).toBeNull();
+  const roundedMetricsRow = screen.getByRole('row', { name: /草坪复绿/ });
+  expect(roundedMetricsRow.children[4]?.textContent).toBe('104');
+  expect(roundedMetricsRow.children[5]?.textContent).toBe('9,307');
   const missingQuantityRow = screen.getByRole('row', { name: /时花维护/ });
   expect(missingQuantityRow.children[2]?.textContent).toBe('—');
 });

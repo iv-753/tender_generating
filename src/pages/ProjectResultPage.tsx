@@ -8,7 +8,6 @@ import type { ActionCategory, ServiceActionResult } from '../types';
 type ProjectResultPageProps = { onNavigate: () => void };
 const categoryOrder: ActionCategory[] = ['service', 'cleaning', 'greening', 'assistance'];
 const currency = new Intl.NumberFormat('zh-CN', { style: 'currency', currency: 'CNY', maximumFractionDigits: 0 });
-const decimal = new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 2 });
 const generationStages = [
   { key: 'validating', title: '校验项目数据', description: '确认项目资料与测算结果完整' },
   { key: 'preparing', title: '整理服务方案', description: '提取项目指标与重点服务动作' },
@@ -50,8 +49,8 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
     { title: '属性', dataIndex: 'property', key: 'property', width: 120, render: show },
     { title: '适用数量 / 依据', key: 'applicable', width: 180, render: (_: unknown, item: ServiceActionResult) => item.basis || displayQuantity(item.quantity, item.unit) },
     { title: '频次', dataIndex: 'frequency', key: 'frequency', width: 190, render: show },
-    { title: '年频次', dataIndex: 'annualFrequency', key: 'annualFrequency', width: 90, render: (value: number) => value === undefined ? '—' : decimal.format(value) },
-    { title: '年工时', dataIndex: 'annualHours', key: 'annualHours', width: 100, render: (value: number) => value === undefined ? '—' : decimal.format(value) },
+    { title: '年频次', dataIndex: 'annualFrequency', key: 'annualFrequency', width: 90, render: (value: number) => displayQuantity(value) },
+    { title: '年工时', dataIndex: 'annualHours', key: 'annualHours', width: 100, render: (value: number) => displayQuantity(value) },
     ...(showsActionHeadcount(category) ? [{ title: '配置人数', dataIndex: 'headcount', key: 'headcount', width: 100, render: (value: number) => value === undefined ? '—' : displayStaffingCount(value) }] : []),
     { title: '年成本', dataIndex: 'annualCost', key: 'annualCost', width: 130, align: 'right' as const, render: (value: number) => currency.format(value) },
   ];
