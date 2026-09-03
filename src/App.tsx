@@ -7,6 +7,7 @@ import ProjectResultPage from './pages/ProjectResultPage';
 const { Header, Content } = Layout;
 
 const routes = ['/project/new', '/project/result'] as const;
+type AppPath = (typeof routes)[number];
 
 function resolvePath() {
   const path = window.location.pathname;
@@ -15,6 +16,11 @@ function resolvePath() {
   }
   window.history.replaceState({}, '', '/project/new');
   return '/project/new';
+}
+
+function navigate(path: AppPath) {
+  window.history.pushState({}, '', path);
+  window.dispatchEvent(new PopStateEvent('popstate'));
 }
 
 export default function App() {
@@ -27,7 +33,11 @@ export default function App() {
   }, []);
 
   const page =
-    path === '/project/result' ? <ProjectResultPage /> : <ProjectNewPage />;
+    path === '/project/result' ? (
+      <ProjectResultPage onNavigate={() => navigate('/project/new')} />
+    ) : (
+      <ProjectNewPage onNavigate={() => navigate('/project/result')} />
+    );
 
   return (
     <Layout className="app-shell">
@@ -44,12 +54,32 @@ export default function App() {
             {
               key: '/project/new',
               icon: <FormOutlined />,
-              label: <a href="/project/new">项目信息</a>,
+              label: (
+                <a
+                  href="/project/new"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    navigate('/project/new');
+                  }}
+                >
+                  项目信息
+                </a>
+              ),
             },
             {
               key: '/project/result',
               icon: <BarChartOutlined />,
-              label: <a href="/project/result">测算结果</a>,
+              label: (
+                <a
+                  href="/project/result"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    navigate('/project/result');
+                  }}
+                >
+                  测算结果
+                </a>
+              ),
             },
           ]}
         />
