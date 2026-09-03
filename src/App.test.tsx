@@ -66,6 +66,57 @@ test('uses the project center as the workspace home', () => {
   expect(window.location.pathname).toBe('/project/new');
 });
 
+test('uses enterprise modules as the global navigation', () => {
+  window.history.replaceState({}, '', '/projects');
+  render(<App />);
+
+  expect(screen.getByRole('link', { name: /项目中心/ })).toBeTruthy();
+  expect(screen.getByRole('link', { name: /企业资料/ })).toBeTruthy();
+  expect(screen.getByRole('link', { name: /模板管理/ })).toBeTruthy();
+  expect(screen.getByRole('link', { name: /系统设置/ })).toBeTruthy();
+  expect(screen.queryByRole('link', { name: /新建测算/ })).toBeNull();
+});
+
+test('opens a project workspace with five business views', () => {
+  const project = storage.saveCalculatedProject(savedResult('湖畔家园', '2026-09-03T08:00:00.000Z', 481800));
+  storage.selectProject(project.id);
+  window.history.replaceState({}, '', '/project/overview');
+  render(<App />);
+
+  expect(screen.getByRole('heading', { name: '湖畔家园' })).toBeTruthy();
+  for (const name of ['项目概览', '测算结果', '路演PPT', '投标标书', '生成记录']) {
+    expect(screen.getByRole('link', { name })).toBeTruthy();
+  }
+});
+
+test('saves company profile for reuse', async () => {
+  window.history.replaceState({}, '', '/company');
+  render(<App />);
+
+  fireEvent.change(screen.getByLabelText('企业名称'), { target: { value: '安序物业' } });
+  fireEvent.change(screen.getByLabelText('统一社会信用代码'), { target: { value: '91440000TEST' } });
+  fireEvent.change(screen.getByLabelText('法定代表人'), { target: { value: '张三' } });
+  fireEvent.change(screen.getByLabelText('注册地址'), { target: { value: '广东省广州市' } });
+  fireEvent.change(screen.getByLabelText('联系人'), { target: { value: '李经理' } });
+  fireEvent.change(screen.getByLabelText('联系电话'), { target: { value: '13800000000' } });
+  fireEvent.click(screen.getByRole('button', { name: /保存企业资料/ }));
+
+  await waitFor(() => expect(storage.loadCompanyProfile()?.companyName).toBe('安序物业'));
+});
+
+test.each([
+  ['/templates', '模板管理'],
+  ['/settings', '系统设置'],
+  ['/project/presentation', '路演PPT'],
+  ['/project/bid', '投标标书'],
+  ['/project/history', '生成记录'],
+])('renders the %s workspace', (path, title) => {
+  storage.saveCalculatedProject(savedResult('湖畔家园', '2026-09-03T08:00:00.000Z', 481800));
+  window.history.replaceState({}, '', path);
+  render(<App />);
+  expect(screen.getByRole('heading', { name: title })).toBeTruthy();
+});
+
 test('lists saved projects and opens, edits, or duplicates a project', () => {
   storage.saveCalculatedProject(savedResult('湖畔家园', '2026-09-03T08:00:00.000Z', 481800));
   storage.startNewProject();
@@ -101,14 +152,15 @@ test('deletes a saved project only after confirmation', async () => {
   expect(await screen.findByText('还没有保存的项目')).toBeTruthy();
 });
 
-test('navigates to the result page without reloading', () => {
-  window.history.replaceState({}, '', '/project/new');
+test('navigates inside a project without reloading', () => {
+  storage.saveCalculatedProject(savedResult('湖畔家园', '2026-09-03T08:00:00.000Z', 481800));
+  window.history.replaceState({}, '', '/project/overview');
   render(<App />);
 
-  fireEvent.click(screen.getByRole('link', { name: /测算结果/ }));
+  fireEvent.click(screen.getByRole('link', { name: '测算结果' }));
 
   expect(window.location.pathname).toBe('/project/result');
-  expect(screen.getByText('暂无测算结果')).toBeTruthy();
+  expect(screen.getByRole('heading', { name: '湖畔家园' })).toBeTruthy();
 });
 
 test('does not expose the internal V1 coverage note on the project form', () => {

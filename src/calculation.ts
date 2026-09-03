@@ -15,10 +15,10 @@ export const COST_BAND_FACTORS: Record<CostBand, number> = {
 };
 
 export const COST_BAND_LABELS: Record<CostBand, string> = {
-  high: '高成本档（1.2）',
-  upper: '较高成本档（1.1）',
-  standard: '标准成本档（1.0）',
-  base: '基础成本档（0.9）',
+  high: '高成本城市',
+  upper: '较高成本城市',
+  standard: '标准成本城市',
+  base: '基础成本城市',
 };
 
 const GRADE_LABELS: Record<ServiceGrade, string> = {

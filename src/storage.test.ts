@@ -20,6 +20,15 @@ function result(projectName: string, calculatedAt: string, annualCost = 481800):
 afterEach(() => localStorage.clear());
 
 describe('project storage', () => {
+  test('saves reusable company profile data', () => {
+    const profile = {
+      companyName: '安序物业', socialCreditCode: '91440000TEST', legalRepresentative: '张三',
+      registeredAddress: '广东省广州市', contactName: '李经理', contactPhone: '13800000000', companyProfile: '专注住宅物业服务。',
+    };
+    storage.saveCompanyProfile(profile);
+    expect(storage.loadCompanyProfile()).toEqual(profile);
+  });
+
   test('creates a project record and updates the same active project after recalculation', () => {
     const first = storage.saveCalculatedProject(result('滨江花园', '2026-09-03T08:00:00.000Z'));
     const updated = storage.saveCalculatedProject(result('滨江花园二期', '2026-09-03T09:00:00.000Z', 520000));

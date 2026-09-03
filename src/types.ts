@@ -83,3 +83,13 @@ export interface ProjectRecord {
   result: CalculationResult;
   presentation?: PresentationRecord;
 }
+
+export interface CompanyProfile {
+  companyName: string;
+  socialCreditCode: string;
+  legalRepresentative: string;
+  registeredAddress: string;
+  contactName: string;
+  contactPhone: string;
+  companyProfile: string;
+}

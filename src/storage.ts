@@ -1,9 +1,10 @@
-import type { CalculationResult, PresentationRecord, ProjectData, ProjectRecord } from './types';
+import type { CalculationResult, CompanyProfile, PresentationRecord, ProjectData, ProjectRecord } from './types';
 
 const DRAFT_KEY = 'property-calculator:draft:v1';
 const RESULT_KEY = 'property-calculator:result:v1';
 const PROJECTS_KEY = 'property-calculator:projects:v1';
 const ACTIVE_PROJECT_KEY = 'property-calculator:active-project:v1';
+const COMPANY_PROFILE_KEY = 'property-calculator:company-profile:v1';
 
 interface StoredValue<T> {
   version: 1;
@@ -83,6 +84,12 @@ export const storage = {
   loadResult: () => load<CalculationResult>(RESULT_KEY),
   saveResult: (data: CalculationResult) => save(RESULT_KEY, data),
   loadProjects,
+  loadActiveProject: () => {
+    const activeId = localStorage.getItem(ACTIVE_PROJECT_KEY);
+    return loadProjects().find((item) => item.id === activeId) ?? null;
+  },
+  loadCompanyProfile: () => load<CompanyProfile>(COMPANY_PROFILE_KEY),
+  saveCompanyProfile: (data: CompanyProfile) => save(COMPANY_PROFILE_KEY, data),
   saveCalculatedProject,
   getActiveProjectId: () => localStorage.getItem(ACTIVE_PROJECT_KEY),
   startNewProject: () => {

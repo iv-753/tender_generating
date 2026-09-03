@@ -69,7 +69,7 @@ export default function ProjectCenterPage({ onNew, onOpen, onEdit }: ProjectCent
       width: 310,
       render: (_: unknown, item: ProjectRecord) => (
         <Space size={2}>
-          <Button type="link" icon={<FolderOpenOutlined />} onClick={() => onOpen(item.id)}>查看结果</Button>
+          <Button type="link" icon={<FolderOpenOutlined />} onClick={() => onOpen(item.id)}>进入项目</Button>
           <Button type="text" icon={<EditOutlined />} onClick={() => onEdit(item.id)}>继续编辑</Button>
           <Button type="text" icon={<CopyOutlined />} onClick={() => duplicate(item.id)}>复制</Button>
           <Popconfirm

@@ -72,7 +72,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
   return (
     <main className="workspace-page">
       <div className="page-heading blueprint-rule">
-        <div><Typography.Text className="eyebrow">PROPERTY COSTING / V1</Typography.Text><Typography.Title level={2}>新建物业测算项目</Typography.Title><Typography.Paragraph type="secondary">录入项目边界，调用本地模型生成 122 项服务动作测算。</Typography.Paragraph></div>
+        <div><Typography.Text className="eyebrow">PROJECT COSTING</Typography.Text><Typography.Title level={2}>新建物业测算项目</Typography.Title><Typography.Paragraph type="secondary">录入项目基础信息，生成服务方案、人员配置与成本测算。</Typography.Paragraph></div>
         <div className="status-chip"><span />模型就绪</div>
       </div>
       <Spin spinning={calculating} tip="正在浏览器内重算模型，请稍候…" size="large">
