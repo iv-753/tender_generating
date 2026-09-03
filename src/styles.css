@@ -1,0 +1,64 @@
+:root {
+  font-family:
+    Inter, "PingFang SC", "Microsoft YaHei", system-ui, -apple-system,
+    sans-serif;
+  color: #15202b;
+  background: #f4f7f8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+.app-shell {
+  min-height: 100vh;
+  background: #f4f7f8;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  min-height: 64px;
+  padding-inline: 32px;
+  background: #17324d;
+}
+
+.brand.ant-typography {
+  flex: 0 0 auto;
+  margin: 0;
+  color: #fff;
+  font-size: 20px;
+}
+
+.main-menu {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+}
+
+.app-content {
+  width: min(1120px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 40px 0;
+}
+
+@media (max-width: 640px) {
+  .app-header {
+    height: auto;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 16px;
+  }
+
+  .app-content {
+    width: calc(100% - 32px);
+    padding: 24px 0;
+  }
+}
