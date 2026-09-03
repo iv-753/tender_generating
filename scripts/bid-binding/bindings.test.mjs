@@ -102,6 +102,31 @@ test('uses the supplied calculation result rather than fixed demo values', () =>
   assert.equal(bindings.staffingRows[0].headcount, '5');
 });
 
+test('removes meaningless decimals from customer-facing quantities without changing source values', () => {
+  const current = result();
+  current.project = {
+    ...current.project,
+    totalBuildingArea: 252480.75,
+    garageFloorArea: 40060.27,
+    garageFloors: 2,
+  };
+  current.actions = current.actions.map((item) => {
+    if (item.id === 'cleaning-47') return { ...item, quantity: 80120.54, unit: '平方米' };
+    if (item.id === 'greening-48') return { ...item, quantity: 908.72, unit: '株' };
+    if (item.id === 'assistance-8') return { ...item, quantity: 252480.75, unit: 'm2' };
+    return item;
+  });
+
+  const bindings = buildBidBindings(current);
+
+  assert.equal(bindings.named['总建筑面积'], '252,480');
+  assert.equal(bindings.named['车库面积'], '80,120');
+  assert.equal(bindings.actionRows.find((item) => item.id === 'cleaning-47').scope, '80,120平方米');
+  assert.equal(bindings.actionRows.find((item) => item.id === 'greening-48').scope, '908株');
+  assert.equal(bindings.staffingRows.find((item) => item.id === 'assistance-8').basis, '252,480平方米');
+  assert.equal(current.actions.find((item) => item.id === 'cleaning-47').quantity, 80120.54);
+});
+
 test('rejects incomplete calculation results instead of silently inserting defaults', () => {
   const current = result();
   current.actions = current.actions.filter((item) => item.id !== 'cleaning-12');

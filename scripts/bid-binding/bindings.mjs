@@ -25,10 +25,14 @@ function formatNumber(value, maximumFractionDigits = 2) {
   }).format(Number(value));
 }
 
+function formatWholeNumber(value) {
+  return formatNumber(Math.trunc(Number(value)), 0);
+}
+
 function formatQuantity(value, unit) {
   if (value === undefined || value === null || value === '') return '—';
   const normalizedUnit = String(unit ?? '').trim().toLowerCase() === 'm2' ? '平方米' : String(unit ?? '').trim();
-  return `${formatNumber(value)}${normalizedUnit}`;
+  return `${formatWholeNumber(value)}${normalizedUnit}`;
 }
 
 function dateLabel(date) {
@@ -96,16 +100,16 @@ export function buildBidBindings(result, generatedAt = new Date(), supplemental 
     '物业类型': supplemental.propertyType,
     '项目负责人': supplemental.projectManager,
     '服务期限': supplemental.servicePeriod,
-    '总建筑面积': formatNumber(project.totalBuildingArea),
-    '计费面积': formatNumber(project.residentialChargeArea),
-    '总户数': formatNumber(project.deliveredHouseholds, 0),
-    '已交付户数': formatNumber(project.deliveredHouseholds, 0),
-    '常住户数': formatNumber(project.occupiedHouseholds, 0),
-    '楼栋数量': formatNumber(totalBuildings, 0),
-    '出入口数量': formatNumber(project.gatehouses, 0),
-    '绿化面积': formatNumber(project.greenArea),
-    '车库面积': formatNumber(garageArea),
-    '绿化养护面积': formatNumber(project.greenArea),
+    '总建筑面积': formatWholeNumber(project.totalBuildingArea),
+    '计费面积': formatWholeNumber(project.residentialChargeArea),
+    '总户数': formatWholeNumber(project.deliveredHouseholds),
+    '已交付户数': formatWholeNumber(project.deliveredHouseholds),
+    '常住户数': formatWholeNumber(project.occupiedHouseholds),
+    '楼栋数量': formatWholeNumber(totalBuildings),
+    '出入口数量': formatWholeNumber(project.gatehouses),
+    '绿化面积': formatWholeNumber(project.greenArea),
+    '车库面积': formatWholeNumber(garageArea),
+    '绿化养护面积': formatWholeNumber(project.greenArea),
     '年度运营成本': (result.annualCost / 10000).toFixed(2),
     '综合单价': unitPrice.toFixed(2),
     '客户服务人数': String(Math.ceil(service.headcount)),
