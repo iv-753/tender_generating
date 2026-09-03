@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "tsc -b && vite build",
+    "serve": "node --no-warnings --experimental-wasm-modules server.mjs",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
     "verify:model": "node --no-warnings --experimental-wasm-modules scripts/verify-workbook.mjs"

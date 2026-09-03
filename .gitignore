@@ -4,5 +4,7 @@
 *.tsbuildinfo
 *.log
 
-# Confidential local-only model. Never commit or publish it.
-/public/models/property-cost-model.xlsx
+# Confidential local-only models. Never commit or publish them.
+/public/models/*.xlsx
+/.chrome-qa/
+/.qa-*.png

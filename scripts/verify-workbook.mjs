@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 
 import init, { Workbook } from 'formualizer';
 
-const modelUrl = new URL('../public/models/property-cost-model.xlsx', import.meta.url);
+const modelUrl = new URL('../../动态成本分析模型.xlsx', import.meta.url);
 const expectedSheets = ['总-汇总表', '服务', '清洁', '绿化', '客助'];
 const actionRows = {
   '服务': Array.from({ length: 17 }, (_, index) => index + 5),

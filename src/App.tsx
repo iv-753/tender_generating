@@ -43,7 +43,7 @@ export default function App() {
     <Layout className="app-shell">
       <Header className="app-header">
         <Typography.Title className="brand" level={3}>
-          物业服务智能测算
+          物业测算工作台
         </Typography.Title>
         <Menu
           className="main-menu"
@@ -62,7 +62,7 @@ export default function App() {
                     navigate('/project/new');
                   }}
                 >
-                  项目信息
+                  新建测算
                 </a>
               ),
             },

@@ -1,0 +1,43 @@
+import type { ProjectData } from './types';
+
+export const EXAMPLE_PROJECT: ProjectData = {
+  projectName: '增城示范花园',
+  region: '广东省广州市增城区',
+  city: '广州',
+  serviceGrade: 'C',
+  costBand: 'upper',
+  totalBuildingArea: 252480.75,
+  residentialChargeArea: 149904,
+  deliveredHouseholds: 2256,
+  receivedHouseholds: 1608,
+  occupiedHouseholds: 1200,
+  perimeterEntrances: 500,
+  gatehouses: 2,
+  pavedRoadArea: 26896,
+  greenArea: 26353,
+  lawnRatio: 0.5,
+  seasonalFlowerArea: 0,
+  winterProtectionArea: 0,
+  buildings: [
+    {
+      buildingCount: 8,
+      lobbyElevatorCount: 53.28,
+      stiltFloorArea: 260,
+      totalFloors: 232,
+      standardLobbyArea: 37.82,
+      evacuationStairArea: 17.62,
+      rooftopArea: 400,
+    },
+    {
+      buildingCount: 4,
+      lobbyElevatorCount: 64,
+      stiltFloorArea: 178,
+      totalFloors: 152,
+      standardLobbyArea: 44,
+      evacuationStairArea: 17,
+      rooftopArea: 450,
+    },
+  ],
+  garageFloorArea: 40060.27,
+  garageFloors: 2,
+};
