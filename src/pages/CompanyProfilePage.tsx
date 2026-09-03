@@ -13,8 +13,8 @@ export default function CompanyProfilePage() {
   };
 
   return <main className="workspace-page">
-    <div className="page-heading blueprint-rule"><div><Typography.Text className="eyebrow">COMPANY PROFILE</Typography.Text><Typography.Title level={2}>企业资料</Typography.Title><Typography.Paragraph type="secondary">统一维护路演材料与投标文件复用的企业信息。</Typography.Paragraph></div><div className="status-chip"><span />本地保存</div></div>
-    <Card className="enterprise-card" bordered={false} title={<span><BankOutlined /> 企业基本信息</span>} extra={<Typography.Text type="secondary">用于材料自动填充</Typography.Text>}>
+    <div className="page-heading blueprint-rule"><div><Typography.Title level={2}>企业资料</Typography.Title><Typography.Paragraph type="secondary">统一维护路演材料与投标文件复用的企业信息。</Typography.Paragraph></div></div>
+    <Card className="enterprise-card" bordered={false} title={<span><BankOutlined /> 企业基本信息</span>} extra={<Typography.Text type="secondary">用于项目方案生成</Typography.Text>}>
       <Form<CompanyProfile> form={form} layout="vertical" initialValues={storage.loadCompanyProfile() ?? EMPTY_PROFILE} onFinish={save}>
         <Row gutter={18}>
           <Col xs={24} md={12}><Form.Item name="companyName" label="企业名称" rules={[{ required: true, message: '请填写企业名称' }]}><Input /></Form.Item></Col>

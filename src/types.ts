@@ -76,12 +76,20 @@ export interface PresentationRecord {
   generatedAt: string;
 }
 
+export interface BidDocumentRecord {
+  fileName: string;
+  actionCount: number;
+  downloadUrl: string;
+  generatedAt: string;
+}
+
 export interface ProjectRecord {
   id: string;
   createdAt: string;
   updatedAt: string;
   result: CalculationResult;
   presentation?: PresentationRecord;
+  bidDocument?: BidDocumentRecord;
 }
 
 export interface CompanyProfile {

@@ -55,12 +55,10 @@ export default function ProjectCenterPage({ onNew, onOpen, onEdit }: ProjectCent
     { title: '配置人数', key: 'staffing', width: 100, align: 'right' as const, render: (_: unknown, item: ProjectRecord) => `${displayStaffingCount(item.result.totalHeadcount)} 人` },
     { title: '年成本', key: 'cost', width: 130, align: 'right' as const, render: (_: unknown, item: ProjectRecord) => <strong className="project-cost">{currency.format(item.result.annualCost)}</strong> },
     {
-      title: '路演材料',
-      key: 'presentation',
-      width: 130,
-      render: (_: unknown, item: ProjectRecord) => item.presentation
-        ? <Tag color="success">已生成 · {item.presentation.slides}页</Tag>
-        : <Tag>待生成</Tag>,
+      title: '交付成果',
+      key: 'deliverables',
+      width: 190,
+      render: (_: unknown, item: ProjectRecord) => <Space size={4} wrap><Tag color={item.presentation ? 'success' : 'default'}>路演 {item.presentation ? '已生成' : '待生成'}</Tag><Tag color={item.bidDocument ? 'success' : 'default'}>标书 {item.bidDocument ? '已生成' : '待生成'}</Tag></Space>,
     },
     { title: '最近更新', key: 'updatedAt', width: 130, render: (_: unknown, item: ProjectRecord) => dateTime.format(new Date(item.updatedAt)) },
     {
@@ -91,9 +89,8 @@ export default function ProjectCenterPage({ onNew, onOpen, onEdit }: ProjectCent
     <main className="workspace-page project-center-page">
       <div className="page-heading blueprint-rule">
         <div>
-          <Typography.Text className="eyebrow">PROJECT ARCHIVE</Typography.Text>
           <Typography.Title level={2}>项目中心</Typography.Title>
-          <Typography.Paragraph type="secondary">集中管理项目测算与路演材料。</Typography.Paragraph>
+          <Typography.Paragraph type="secondary">集中管理项目测算、方案编制与交付成果。</Typography.Paragraph>
         </div>
         <Button type="primary" size="large" icon={<PlusOutlined />} onClick={onNew}>新建项目</Button>
       </div>

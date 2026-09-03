@@ -28,12 +28,6 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
   const draft = useMemo(() => storage.loadDraft() ?? EXAMPLE_PROJECT, []);
   const watched = Form.useWatch([], form) as Partial<ProjectData> | undefined;
 
-  const fillExample = () => {
-    form.setFieldsValue(structuredClone(EXAMPLE_PROJECT));
-    setError('');
-    message.success('已填入当前模型示例数据');
-  };
-
   const getValidProject = async () => {
     const values = await form.validateFields();
     const errors = validateProjectData(values);
@@ -45,7 +39,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
     try {
       const values = await getValidProject();
       storage.saveDraft(values);
-      message.success('草稿已保存到当前浏览器');
+      message.success('草稿已保存');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : '请检查输入');
     }
@@ -72,10 +66,9 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
   return (
     <main className="workspace-page">
       <div className="page-heading blueprint-rule">
-        <div><Typography.Text className="eyebrow">PROJECT COSTING</Typography.Text><Typography.Title level={2}>新建物业测算项目</Typography.Title><Typography.Paragraph type="secondary">录入项目基础信息，生成服务方案、人员配置与成本测算。</Typography.Paragraph></div>
-        <div className="status-chip"><span />模型就绪</div>
+        <div><Typography.Title level={2}>新建物业测算项目</Typography.Title><Typography.Paragraph type="secondary">录入项目基础信息，生成服务方案、人员配置与成本测算。</Typography.Paragraph></div>
       </div>
-      <Spin spinning={calculating} tip="正在浏览器内重算模型，请稍候…" size="large">
+      <Spin spinning={calculating} tip="正在生成测算结果，请稍候…" size="large">
         <div className="input-workspace">
           <aside className="step-rail"><Typography.Text className="panel-kicker">录入进度</Typography.Text><Steps direction="vertical" current={currentStep} items={steps.map((title) => ({ title }))} onChange={setCurrentStep} /></aside>
           <Card className="form-panel" bordered={false}>
@@ -119,7 +112,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
                 <Form.Item name="costBand" label="城市成本档位" rules={[{ required: true, message: '未知城市必须手动选择成本档位' }]}><Select placeholder="未知城市请手动选择" options={(Object.keys(COST_BAND_LABELS) as CostBand[]).map((value) => ({ value, label: COST_BAND_LABELS[value] }))} /></Form.Item>
               </section>
               <Divider />
-              <div className="form-footer"><Space><Button icon={<ArrowLeftOutlined />} disabled={currentStep === 0} onClick={() => setCurrentStep((value) => value - 1)}>上一步</Button><Button disabled={currentStep === 4} onClick={() => setCurrentStep((value) => value + 1)}>下一步 <ArrowRightOutlined /></Button></Space><Space wrap><Button onClick={fillExample}>填入示例数据</Button><Button onClick={saveDraft}>保存草稿</Button><Button type="primary" loading={calculating} onClick={startCalculation}>开始测算</Button></Space></div>
+              <div className="form-footer"><Space><Button icon={<ArrowLeftOutlined />} disabled={currentStep === 0} onClick={() => setCurrentStep((value) => value - 1)}>上一步</Button><Button disabled={currentStep === 4} onClick={() => setCurrentStep((value) => value + 1)}>下一步 <ArrowRightOutlined /></Button></Space><Space wrap><Button onClick={saveDraft}>保存草稿</Button><Button type="primary" loading={calculating} onClick={startCalculation}>开始测算</Button></Space></div>
             </Form>
           </Card>
           <aside className="profile-panel"><div className="profile-icon"><FileProtectOutlined /></div><Typography.Text className="panel-kicker">实时项目档案</Typography.Text><Typography.Title level={4}>{watched?.projectName || '未命名项目'}</Typography.Title><Typography.Text type="secondary">{watched?.region || '等待录入地区'}</Typography.Text><Divider /><dl className="profile-list"><div><dt>服务等级</dt><dd>{watched?.serviceGrade ? gradeLabel(watched.serviceGrade) : '—'}</dd></div><div><dt>成本档位</dt><dd>{watched?.costBand ? COST_BAND_LABELS[watched.costBand] : '待选择'}</dd></div><div><dt>总建筑面积</dt><dd>{profileNumber(watched?.totalBuildingArea)} ㎡</dd></div><div><dt>楼栋类型</dt><dd>{watched?.buildings?.length ?? 0} 类</dd></div><div><dt>常住户数</dt><dd>{profileNumber(watched?.occupiedHouseholds)} 户</dd></div></dl></aside>

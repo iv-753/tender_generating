@@ -1,4 +1,4 @@
-import type { CalculationResult, CompanyProfile, PresentationRecord, ProjectData, ProjectRecord } from './types';
+import type { BidDocumentRecord, CalculationResult, CompanyProfile, PresentationRecord, ProjectData, ProjectRecord } from './types';
 
 const DRAFT_KEY = 'property-calculator:draft:v1';
 const RESULT_KEY = 'property-calculator:result:v1';
@@ -127,6 +127,10 @@ export const storage = {
   markPresentationGenerated: (id: string, presentation: PresentationRecord) => {
     const projects = loadProjects();
     saveProjects(projects.map((item) => item.id === id ? { ...item, presentation } : item));
+  },
+  markBidDocumentGenerated: (id: string, bidDocument: BidDocumentRecord) => {
+    const projects = loadProjects();
+    saveProjects(projects.map((item) => item.id === id ? { ...item, bidDocument, updatedAt: bidDocument.generatedAt } : item));
   },
   deleteProject: (id: string) => {
     const projects = loadStoredProjects();

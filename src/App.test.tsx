@@ -72,8 +72,9 @@ test('uses enterprise modules as the global navigation', () => {
 
   expect(screen.getByRole('link', { name: /项目中心/ })).toBeTruthy();
   expect(screen.getByRole('link', { name: /企业资料/ })).toBeTruthy();
-  expect(screen.getByRole('link', { name: /模板管理/ })).toBeTruthy();
-  expect(screen.getByRole('link', { name: /系统设置/ })).toBeTruthy();
+  expect(screen.getByRole('link', { name: /方案资产/ })).toBeTruthy();
+  expect(screen.getByRole('link', { name: /管理中心/ })).toBeTruthy();
+  expect(screen.queryByText('企业内网')).toBeNull();
   expect(screen.queryByRole('link', { name: /新建测算/ })).toBeNull();
 });
 
@@ -105,8 +106,8 @@ test('saves company profile for reuse', async () => {
 });
 
 test.each([
-  ['/templates', '模板管理'],
-  ['/settings', '系统设置'],
+  ['/templates', '方案资产'],
+  ['/settings', '管理中心'],
   ['/project/presentation', '路演PPT'],
   ['/project/bid', '投标标书'],
   ['/project/history', '生成记录'],
@@ -115,6 +116,22 @@ test.each([
   window.history.replaceState({}, '', path);
   render(<App />);
   expect(screen.getByRole('heading', { name: title })).toBeTruthy();
+});
+
+test.each([
+  ['/projects', 'PROJECT ARCHIVE'],
+  ['/company', 'COMPANY PROFILE'],
+  ['/templates', 'TEMPLATE LIBRARY'],
+  ['/settings', 'SYSTEM'],
+  ['/project/new', '模型就绪'],
+  ['/project/overview', 'PROJECT WORKSPACE'],
+  ['/project/bid', '标准模板待校验'],
+  ['/project/history', 'ACTIVITY LOG'],
+])('does not expose implementation copy on %s', (path, copy) => {
+  storage.saveCalculatedProject(savedResult('湖畔家园', '2026-09-03T08:00:00.000Z', 481800));
+  window.history.replaceState({}, '', path);
+  render(<App />);
+  expect(screen.queryByText(copy)).toBeNull();
 });
 
 test('lists saved projects and opens, edits, or duplicates a project', () => {
@@ -255,7 +272,7 @@ test('generates a presentation with real stage feedback and exposes the download
   expect(await screen.findByText('正在生成路演PPT')).toBeTruthy();
   expect(screen.getByText('校验项目数据')).toBeTruthy();
   expect(screen.getByText('整理服务方案')).toBeTruthy();
-  expect(screen.getByText('套用路演模板')).toBeTruthy();
+  expect(screen.getByText('编排路演内容')).toBeTruthy();
   expect(screen.getByText('导出演示文件')).toBeTruthy();
   await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
   await act(async () => {
@@ -284,10 +301,10 @@ test('generates a bid document from the current result and exposes the download'
   fireEvent.click(screen.getByRole('button', { name: /生成投标标书/ }));
 
   expect(await screen.findByText('正在生成投标标书')).toBeTruthy();
-  expect(screen.getByText('校验测算数据')).toBeTruthy();
+  expect(screen.getByText('分析项目数据')).toBeTruthy();
   expect(screen.getByText('整理服务方案')).toBeTruthy();
-  expect(screen.getByText('套用标书模板')).toBeTruthy();
-  expect(screen.getByText('导出标书文件')).toBeTruthy();
+  expect(screen.getByText('编排投标内容')).toBeTruthy();
+  expect(screen.getByText('生成投标文件')).toBeTruthy();
   await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
   expect(fetchMock.mock.calls[0][0]).toBe('/api/bid/jobs');
   expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body)).project.projectName).toBe('湖畔家园');
@@ -301,6 +318,24 @@ test('generates a bid document from the current result and exposes the download'
   vi.unstubAllGlobals();
 });
 
+test('generates and records a bid document from the bid workspace', async () => {
+  const current = savedResult('湖畔家园', '2026-09-03T08:00:00.000Z', 481800);
+  const project = storage.saveCalculatedProject(current);
+  const fetchMock = vi.fn()
+    .mockResolvedValueOnce(new Response(JSON.stringify({ jobId: 'job-3', status: 'running', stage: 'validating' }), { status: 202 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ jobId: 'job-3', status: 'complete', stage: 'complete', fileName: '湖畔家园-投标标书.docx', actionCount: 108, downloadUrl: '/api/bid/jobs/job-3/download' }), { status: 200 }));
+  vi.stubGlobal('fetch', fetchMock);
+  window.history.replaceState({}, '', '/project/bid');
+  render(<App />);
+
+  fireEvent.click(screen.getByRole('button', { name: /生成投标标书/ }));
+  expect(await screen.findByText('正在生成投标标书')).toBeTruthy();
+  expect(await screen.findByText('投标标书已生成')).toBeTruthy();
+  expect(screen.getAllByText('下载标书').some((item) => item.closest('a')?.getAttribute('href') === '/api/bid/jobs/job-3/download')).toBe(true);
+  expect(storage.loadProjects().find((item) => item.id === project.id)?.bidDocument?.fileName).toBe('湖畔家园-投标标书.docx');
+  vi.unstubAllGlobals();
+});
+
 test('shows a readable bid generation error', async () => {
   storage.saveResult(savedResult('湖畔家园', '2026-09-03T08:00:00.000Z', 481800));
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: '标书模板校验失败' }), { status: 400 })));
@@ -309,6 +344,7 @@ test('shows a readable bid generation error', async () => {
 
   fireEvent.click(screen.getByRole('button', { name: /生成投标标书/ }));
 
-  expect(await screen.findByText('标书模板校验失败')).toBeTruthy();
+  expect(await screen.findByText('投标文件生成失败，请检查项目资料后重试')).toBeTruthy();
+  expect(screen.queryByText('标书模板校验失败')).toBeNull();
   vi.unstubAllGlobals();
 });

@@ -73,6 +73,15 @@ describe('project storage', () => {
     });
   });
 
+  test('records bid document generation metadata', () => {
+    const project = storage.saveCalculatedProject(result('云山府', '2026-09-03T08:00:00.000Z'));
+    storage.markBidDocumentGenerated(project.id, {
+      fileName: '云山府-投标标书.docx', actionCount: 108,
+      downloadUrl: '/api/bid/jobs/job-1/download', generatedAt: '2026-09-03T10:00:00.000Z',
+    });
+    expect(storage.loadProjects()[0].bidDocument?.fileName).toBe('云山府-投标标书.docx');
+  });
+
   test('deletes a project and clears the active result when that project is open', () => {
     const project = storage.saveCalculatedProject(result('待删除项目', '2026-09-03T08:00:00.000Z'));
 
