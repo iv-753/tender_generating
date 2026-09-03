@@ -1,5 +1,5 @@
 import { ArrowLeftOutlined, SearchOutlined } from '@ant-design/icons';
-import { Button, Card, Empty, Input, Statistic, Table, Tabs, Tag, Typography } from 'antd';
+import { Button, Card, Empty, Input, Statistic, Table, Tabs, Typography } from 'antd';
 import { useMemo, useState } from 'react';
 import { COST_BAND_LABELS, displayActionName, displayStaffingCount, gradeLabel, showsActionHeadcount } from '../calculation';
 import { storage } from '../storage';
@@ -25,6 +25,8 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
   const keyword = query.trim().toLowerCase();
   const actions = result.actions.filter((item) => item.category === category && (!keyword || [item.action, item.property, item.basis, item.frequency].some((value) => String(value ?? '').toLowerCase().includes(keyword))));
   const totalStaffingCount = result.categories.reduce((sum, item) => sum + displayStaffingCount(item.headcount), 0);
+  const rawServiceCostPerSqmMonth = result.annualCost / result.project.residentialChargeArea / 12;
+  const serviceCostPerSqmMonth = Math.round((rawServiceCostPerSqmMonth + Number.EPSILON) * 100) / 100;
   const columns = [
     { title: '动作', dataIndex: 'action', key: 'action', fixed: 'left' as const, width: 180, render: (value: string) => displayActionName(value) },
     { title: '属性', dataIndex: 'property', key: 'property', width: 120, render: show },
@@ -38,8 +40,8 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
 
   return (
     <main className="workspace-page">
-      <div className="result-heading blueprint-rule"><div><Typography.Text className="eyebrow">CALCULATION RESULT / 122 ACTIONS</Typography.Text><Typography.Title level={2}>{result.project.projectName}</Typography.Title><Typography.Paragraph type="secondary">{result.project.region} · {gradeLabel(result.project.serviceGrade)} · {COST_BAND_LABELS[result.project.costBand]}</Typography.Paragraph></div><Button icon={<ArrowLeftOutlined />} onClick={onNavigate}>返回修改</Button></div>
-      <section className="metrics-grid"><Card><Statistic title="动作总数" value={result.totalActionCount} suffix="项" /></Card><Card><Statistic title="配置总人数" value={totalStaffingCount} precision={0} suffix="人" /></Card><Card className="cost-card"><Statistic title="年成本" value={result.annualCost} precision={0} prefix="¥" /></Card><Card><Typography.Text type="secondary">四类覆盖</Typography.Text><div className="category-chips">{result.categories.map((item) => <Tag key={item.category}>{item.title} {item.actionCount}</Tag>)}</div></Card></section>
+      <div className="result-heading blueprint-rule"><div><Typography.Text className="eyebrow">CALCULATION RESULT</Typography.Text><Typography.Title level={2}>{result.project.projectName}</Typography.Title><Typography.Paragraph type="secondary">{result.project.region} · {gradeLabel(result.project.serviceGrade)} · {COST_BAND_LABELS[result.project.costBand]}</Typography.Paragraph></div><Button icon={<ArrowLeftOutlined />} onClick={onNavigate}>返回修改</Button></div>
+      <section className="metrics-grid"><Card><Statistic title="动作总数" value={result.totalActionCount} suffix="项" /></Card><Card><Statistic title="配置总人数" value={totalStaffingCount} precision={0} suffix="人" /></Card><Card className="cost-card"><Statistic title="年成本" value={result.annualCost} precision={0} prefix="¥" /></Card><Card><Statistic title="服务成本单价" value={serviceCostPerSqmMonth} precision={2} suffix="元/㎡·月" /></Card></section>
       <Card className="result-table-card" bordered={false}>
         <div className="table-toolbar"><Tabs activeKey={category} onChange={(key) => setCategory(key as ActionCategory)} items={categoryOrder.map((key) => { const item = result.categories.find((entry) => entry.category === key)!; return { key, label: `${item.title} ${item.actionCount}` }; })} /><Input allowClear prefix={<SearchOutlined />} placeholder="搜索动作、属性、依据或频次" value={query} onChange={(event) => setQuery(event.target.value)} /></div>
         <div className="category-summary"><span>{summary.title}共 <strong>{summary.actionCount}</strong> 项</span><span>配置 <strong>{displayStaffingCount(summary.headcount)}</strong> 人</span><span>年成本 <strong>{currency.format(summary.annualCost)}</strong></span></div>

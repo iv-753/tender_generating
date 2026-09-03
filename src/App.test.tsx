@@ -62,7 +62,7 @@ test('does not expose the internal calculation-scope disclaimer on results', () 
     project: EXAMPLE_PROJECT,
     totalActionCount: 122,
     totalHeadcount: 34,
-    annualCost: 1,
+    annualCost: 481800,
     categories: [
       { category: 'service', title: '服务', actionCount: 17, headcount: 5, annualCost: 1 },
       { category: 'cleaning', title: '清洁', actionCount: 48, headcount: 15, annualCost: 0 },
@@ -76,4 +76,8 @@ test('does not expose the internal calculation-scope disclaimer on results', () 
 
   expect(screen.queryByText('测算范围说明')).toBeNull();
   expect(screen.queryByText(/不是全国审计工资库/)).toBeNull();
+  expect(screen.queryByText('四类覆盖')).toBeNull();
+  const unitCostCard = screen.getByText('服务成本单价').closest('.ant-card');
+  expect(unitCostCard?.textContent).toContain('0.27元/㎡·月');
+  expect(screen.queryByText('CALCULATION RESULT / 122 ACTIONS')).toBeNull();
 });
