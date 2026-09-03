@@ -34,6 +34,33 @@ export interface ProjectData {
   garageFloors: number;
 }
 
+export type RecognizedBuildingData = { [Field in keyof BuildingTypeInput]: BuildingTypeInput[Field] | null };
+export type RecognizedProjectData = {
+  [Field in Exclude<keyof ProjectData, 'buildings'>]: ProjectData[Field] | null;
+} & { buildings: RecognizedBuildingData[] };
+
+export type RecognitionStatus = 'recognized' | 'needs_confirmation' | 'missing' | 'derived';
+
+export interface RecognitionEvidence {
+  status: RecognitionStatus;
+  confidence: number;
+  source: { sheet: string; cell: string; raw: unknown } | null;
+  note: string;
+}
+
+export interface ExcelRecognitionResult {
+  version: 1;
+  provider: string;
+  model: string;
+  project: RecognizedProjectData;
+  recognition: {
+    fields: Record<string, RecognitionEvidence>;
+    buildings: Array<{ label: string; fields: Record<string, RecognitionEvidence> }>;
+  };
+  missingFields: string[];
+  warnings: string[];
+}
+
 export type ActionCategory = 'service' | 'cleaning' | 'greening' | 'assistance';
 
 export interface ServiceActionResult {
