@@ -2,8 +2,11 @@ import { describe, expect, test } from 'vitest';
 import {
   ACTION_COUNTS,
   COST_BAND_FACTORS,
+  displayActionName,
+  displayStaffingCount,
   gradeLabel,
   inferCostBand,
+  showsActionHeadcount,
   validateProjectData,
 } from './calculation';
 import { EXAMPLE_PROJECT } from './exampleProject';
@@ -27,6 +30,25 @@ describe('property calculation rules', () => {
   test('locks the result inventory to exactly 122 actions', () => {
     expect(ACTION_COUNTS).toEqual({ service: 17, cleaning: 48, greening: 51, assistance: 6 });
     expect(Object.values(ACTION_COUNTS).reduce((sum, count) => sum + count, 0)).toBe(122);
+  });
+
+  test('hides internal service codes from action names', () => {
+    expect(displayActionName('A-FW-57 车行相关业务办理')).toBe('车行相关业务办理');
+    expect(displayActionName('B-LH-02 园林出入口广场草坪打孔')).toBe('园林出入口广场草坪打孔');
+    expect(displayActionName('企微客户信息处理')).toBe('企微客户信息处理');
+  });
+
+  test('shows staffing as whole people only', () => {
+    expect(displayStaffingCount(0)).toBe(0);
+    expect(displayStaffingCount(4.01)).toBe(5);
+    expect(displayStaffingCount(5)).toBe(5);
+  });
+
+  test('shows per-action headcount only for dedicated assistance posts', () => {
+    expect(showsActionHeadcount('assistance')).toBe(true);
+    expect(showsActionHeadcount('service')).toBe(false);
+    expect(showsActionHeadcount('cleaning')).toBe(false);
+    expect(showsActionHeadcount('greening')).toBe(false);
   });
 
   test('accepts the workbook example and rejects delivery-order violations', () => {

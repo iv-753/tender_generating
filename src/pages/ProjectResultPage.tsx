@@ -1,7 +1,7 @@
 import { ArrowLeftOutlined, SearchOutlined } from '@ant-design/icons';
-import { Alert, Button, Card, Empty, Input, Statistic, Table, Tabs, Tag, Typography } from 'antd';
+import { Button, Card, Empty, Input, Statistic, Table, Tabs, Tag, Typography } from 'antd';
 import { useMemo, useState } from 'react';
-import { COST_BAND_LABELS, gradeLabel } from '../calculation';
+import { COST_BAND_LABELS, displayActionName, displayStaffingCount, gradeLabel, showsActionHeadcount } from '../calculation';
 import { storage } from '../storage';
 import type { ActionCategory, ServiceActionResult } from '../types';
 
@@ -24,28 +24,27 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
   const summary = result.categories.find((item) => item.category === category)!;
   const keyword = query.trim().toLowerCase();
   const actions = result.actions.filter((item) => item.category === category && (!keyword || [item.action, item.property, item.basis, item.frequency].some((value) => String(value ?? '').toLowerCase().includes(keyword))));
+  const totalStaffingCount = result.categories.reduce((sum, item) => sum + displayStaffingCount(item.headcount), 0);
   const columns = [
-    { title: '动作', dataIndex: 'action', key: 'action', fixed: 'left' as const, width: 180, render: show },
+    { title: '动作', dataIndex: 'action', key: 'action', fixed: 'left' as const, width: 180, render: (value: string) => displayActionName(value) },
     { title: '属性', dataIndex: 'property', key: 'property', width: 120, render: show },
     { title: '适用数量 / 依据', key: 'applicable', width: 180, render: (_: unknown, item: ServiceActionResult) => item.basis || [show(item.quantity), item.unit].filter((value) => value && value !== '—').join(' ') || '—' },
     { title: '频次', dataIndex: 'frequency', key: 'frequency', width: 190, render: show },
     { title: '年频次', dataIndex: 'annualFrequency', key: 'annualFrequency', width: 90, render: (value: number) => value === undefined ? '—' : decimal.format(value) },
     { title: '年工时', dataIndex: 'annualHours', key: 'annualHours', width: 100, render: (value: number) => value === undefined ? '—' : decimal.format(value) },
-    { title: '配置人数', dataIndex: 'headcount', key: 'headcount', width: 100, render: (value: number) => value === undefined ? '—' : decimal.format(value) },
+    ...(showsActionHeadcount(category) ? [{ title: '配置人数', dataIndex: 'headcount', key: 'headcount', width: 100, render: (value: number) => value === undefined ? '—' : displayStaffingCount(value) }] : []),
     { title: '年成本', dataIndex: 'annualCost', key: 'annualCost', width: 130, align: 'right' as const, render: (value: number) => currency.format(value) },
   ];
 
   return (
     <main className="workspace-page">
       <div className="result-heading blueprint-rule"><div><Typography.Text className="eyebrow">CALCULATION RESULT / 122 ACTIONS</Typography.Text><Typography.Title level={2}>{result.project.projectName}</Typography.Title><Typography.Paragraph type="secondary">{result.project.region} · {gradeLabel(result.project.serviceGrade)} · {COST_BAND_LABELS[result.project.costBand]}</Typography.Paragraph></div><Button icon={<ArrowLeftOutlined />} onClick={onNavigate}>返回修改</Button></div>
-      <Alert className="result-warning" type="warning" showIcon message="城市成本档位仅使用第一版演示系数，不是全国审计工资库。" />
-      <section className="metrics-grid"><Card><Statistic title="动作总数" value={result.totalActionCount} suffix="项" /></Card><Card><Statistic title="配置总人数" value={result.totalHeadcount} precision={2} suffix="人" /></Card><Card className="cost-card"><Statistic title="年成本" value={result.annualCost} precision={0} prefix="¥" /></Card><Card><Typography.Text type="secondary">四类覆盖</Typography.Text><div className="category-chips">{result.categories.map((item) => <Tag key={item.category}>{item.title} {item.actionCount}</Tag>)}</div></Card></section>
+      <section className="metrics-grid"><Card><Statistic title="动作总数" value={result.totalActionCount} suffix="项" /></Card><Card><Statistic title="配置总人数" value={totalStaffingCount} precision={0} suffix="人" /></Card><Card className="cost-card"><Statistic title="年成本" value={result.annualCost} precision={0} prefix="¥" /></Card><Card><Typography.Text type="secondary">四类覆盖</Typography.Text><div className="category-chips">{result.categories.map((item) => <Tag key={item.category}>{item.title} {item.actionCount}</Tag>)}</div></Card></section>
       <Card className="result-table-card" bordered={false}>
         <div className="table-toolbar"><Tabs activeKey={category} onChange={(key) => setCategory(key as ActionCategory)} items={categoryOrder.map((key) => { const item = result.categories.find((entry) => entry.category === key)!; return { key, label: `${item.title} ${item.actionCount}` }; })} /><Input allowClear prefix={<SearchOutlined />} placeholder="搜索动作、属性、依据或频次" value={query} onChange={(event) => setQuery(event.target.value)} /></div>
-        <div className="category-summary"><span>{summary.title}共 <strong>{summary.actionCount}</strong> 项</span><span>配置 <strong>{decimal.format(summary.headcount)}</strong> 人</span><span>年成本 <strong>{currency.format(summary.annualCost)}</strong></span></div>
+        <div className="category-summary"><span>{summary.title}共 <strong>{summary.actionCount}</strong> 项</span><span>配置 <strong>{displayStaffingCount(summary.headcount)}</strong> 人</span><span>年成本 <strong>{currency.format(summary.annualCost)}</strong></span></div>
         <Table<ServiceActionResult> rowKey="id" size="middle" columns={columns} dataSource={actions} pagination={{ pageSize: 12, showSizeChanger: false, showTotal: (total) => `共 ${total} 项` }} scroll={{ x: 1100 }} locale={{ emptyText: '没有匹配的动作' }} />
       </Card>
-      <Alert className="disclaimer" type="info" showIcon message="测算范围说明" description="仅覆盖 122 项，不含工程、四害、管理及完整物业管理费。" />
     </main>
   );
 }

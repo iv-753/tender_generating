@@ -1,4 +1,4 @@
-import type { CostBand, ProjectData, ServiceGrade } from './types';
+import type { ActionCategory, CostBand, ProjectData, ServiceGrade } from './types';
 
 export const ACTION_COUNTS = {
   service: 17,
@@ -44,6 +44,18 @@ const CITY_BANDS: Record<CostBand, string[]> = {
 
 export function gradeLabel(grade: ServiceGrade) {
   return GRADE_LABELS[grade];
+}
+
+export function displayActionName(action: string) {
+  return action.replace(/^[A-Z]+-[A-Z]+-\d+\s+/, '');
+}
+
+export function displayStaffingCount(headcount: number) {
+  return Math.ceil(headcount);
+}
+
+export function showsActionHeadcount(category: ActionCategory) {
+  return category === 'assistance';
 }
 
 export function inferCostBand(city: string): CostBand | undefined {
