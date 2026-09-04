@@ -375,6 +375,28 @@ test('generates a presentation with real stage feedback and exposes the download
   vi.unstubAllGlobals();
 });
 
+test('accepts an immediately completed serverless presentation job', async () => {
+  const current = savedResult('湖畔家园', '2026-09-03T08:00:00.000Z', 481800);
+  const project = storage.saveCalculatedProject(current);
+  const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+    jobId: 'job-serverless',
+    status: 'complete',
+    stage: 'complete',
+    fileName: '湖畔家园-路演方案.pptx',
+    slides: 24,
+    downloadUrl: 'https://private.example/signed',
+  }), { status: 200 }));
+  vi.stubGlobal('fetch', fetchMock);
+  window.history.replaceState({}, '', '/project/result');
+  render(<App />);
+
+  fireEvent.click(screen.getByRole('button', { name: /生成路演PPT/ }));
+  expect(await screen.findByText('路演PPT已生成')).toBeTruthy();
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+  expect(storage.loadProjects().find((item) => item.id === project.id)?.presentation?.fileName).toBe('湖畔家园-路演方案.pptx');
+  vi.unstubAllGlobals();
+});
+
 test('generates a bid document from the current result and exposes the download', async () => {
   const current = savedResult('湖畔家园', '2026-09-03T08:00:00.000Z', 481800);
   storage.saveResult(current);

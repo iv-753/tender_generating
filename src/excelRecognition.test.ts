@@ -36,8 +36,8 @@ test('uploads xlsx bytes and returns the recognition payload', async () => {
 test('rejects unsupported or oversized files before upload', async () => {
   await expect(recognizeExcelFile(new File(['text'], '资料.xls'))).rejects.toThrow('仅支持 .xlsx 文件');
   const oversized = new File(['x'], '资料.xlsx');
-  Object.defineProperty(oversized, 'size', { value: 10_000_001 });
-  await expect(recognizeExcelFile(oversized)).rejects.toThrow('文件不能超过 10MB');
+  Object.defineProperty(oversized, 'size', { value: 4_000_001 });
+  await expect(recognizeExcelFile(oversized)).rejects.toThrow('文件不能超过 4MB');
 });
 
 test('surfaces the server error without exposing an invalid payload', async () => {

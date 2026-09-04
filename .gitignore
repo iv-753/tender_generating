@@ -1,6 +1,8 @@
 /node_modules/
 /dist/
 /.vite/
+/.vercel/
+/.vercel-test-output/
 *.tsbuildinfo
 *.log
 __pycache__/

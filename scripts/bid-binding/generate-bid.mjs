@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { bindBidTemplate } from './apply-bindings.mjs';
 import { buildBidBindings } from './bindings.mjs';
 
-export async function generateBidDocument({ templatePath, result, outputPath, generatedAt = new Date(), onStage }) {
+export async function generateBidDocumentBytes({ templatePath, result, generatedAt = new Date(), onStage }) {
   onStage?.('preparing');
   const bindings = buildBidBindings(result, generatedAt, {
     propertyType: '住宅物业',
@@ -13,11 +13,16 @@ export async function generateBidDocument({ templatePath, result, outputPath, ge
     servicePeriod: '以招标文件约定为准',
   });
   onStage?.('binding');
-  const output = await bindBidTemplate(path.resolve(templatePath), bindings);
+  const bytes = await bindBidTemplate(path.resolve(templatePath), bindings);
   onStage?.('exporting');
+  return { bytes, actionCount: bindings.actionRows.filter((item) => item.enabled).length };
+}
+
+export async function generateBidDocument({ templatePath, result, outputPath, generatedAt = new Date(), onStage }) {
+  const output = await generateBidDocumentBytes({ templatePath, result, generatedAt, onStage });
   await fs.mkdir(path.dirname(outputPath), { recursive: true });
-  await fs.writeFile(outputPath, output);
-  return { outputPath, actionCount: bindings.actionRows.filter((item) => item.enabled).length };
+  await fs.writeFile(outputPath, output.bytes);
+  return { outputPath, actionCount: output.actionCount };
 }
 
 function parseArgs(argv) {

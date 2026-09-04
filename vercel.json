@@ -1,0 +1,25 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "outputDirectory": "dist",
+  "fluid": true,
+  "functions": {
+    "api/calculate.mjs": {
+      "maxDuration": 60
+    },
+    "api/excel/recognize.mjs": {
+      "maxDuration": 300
+    },
+    "api/presentation/jobs.mjs": {
+      "maxDuration": 300,
+      "includeFiles": "templates/物业路演PPT_完整24页_v1.pptx"
+    },
+    "api/bid/jobs.mjs": {
+      "maxDuration": 300,
+      "includeFiles": "templates/安序物业_住宅物业服务投标文件_双括号动态母版_清理版.docx"
+    }
+  },
+  "rewrites": [
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
+}

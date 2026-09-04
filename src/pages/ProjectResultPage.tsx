@@ -76,15 +76,15 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
         latest = await response.json() as GenerationJob;
         if (!response.ok) throw new Error(latest.error || '无法获取生成进度');
         setGeneration(latest);
-        if (latest.status === 'complete' && latest.fileName && latest.slides) {
-          const projectId = storage.getActiveProjectId();
-          if (projectId) storage.markPresentationGenerated(projectId, {
-            fileName: latest.fileName,
-            slides: latest.slides,
-            generatedAt: new Date().toISOString(),
-          });
-        }
         if (latest.status === 'running') await new Promise((resolve) => window.setTimeout(resolve, 500));
+      }
+      if (latest.status === 'complete' && latest.fileName && latest.slides) {
+        const projectId = storage.getActiveProjectId();
+        if (projectId) storage.markPresentationGenerated(projectId, {
+          fileName: latest.fileName,
+          slides: latest.slides,
+          generatedAt: new Date().toISOString(),
+        });
       }
     } catch (error) {
       setGeneration((current) => ({ ...current, status: 'error', error: error instanceof Error ? error.message : 'PPT生成失败' }));

@@ -93,7 +93,7 @@ export async function loadTemplateDeck(templatePath) {
   return loadPresentation(await fs.readFile(templatePath));
 }
 
-export async function generatePresentation({ templatePath, result, outputPath, generatedAt, onStage }) {
+export async function generatePresentationBytes({ templatePath, result, generatedAt, onStage }) {
   onStage?.('preparing');
   const bindings = buildPresentationBindings(result, generatedAt);
   onStage?.('binding');
@@ -107,9 +107,14 @@ export async function generatePresentation({ templatePath, result, outputPath, g
   if (validationErrors.length) throw new Error(`PPT结构校验失败：${validationErrors[0].message}`);
 
   onStage?.('exporting');
+  return { bytes: Buffer.from(await savePresentation(deck)), slides: slideCount, bindings };
+}
+
+export async function generatePresentation({ templatePath, result, outputPath, generatedAt, onStage }) {
+  const output = await generatePresentationBytes({ templatePath, result, generatedAt, onStage });
   await fs.mkdir(path.dirname(outputPath), { recursive: true });
-  await fs.writeFile(outputPath, await savePresentation(deck));
-  return { outputPath, slides: slideCount, bindings };
+  await fs.writeFile(outputPath, output.bytes);
+  return { outputPath, slides: output.slides, bindings: output.bindings };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
