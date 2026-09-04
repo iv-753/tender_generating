@@ -11,6 +11,9 @@ importers:
       '@ant-design/icons':
         specifier: ^6.3.0
         version: 6.3.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@office-kit/pptx':
+        specifier: 0.12.0
+        version: 0.12.0
       antd:
         specifier: ^6.6.0
         version: 6.6.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -534,6 +537,10 @@ packages:
     engines: {node: ^22.20 || ^24.12 || >=25}
     cpu: [x64]
     os: [linux]
+
+  '@office-kit/pptx@0.12.0':
+    resolution: {integrity: sha512-HGrU+V8KdicGfAWkWKinvOEAJrYL0AE5StMDT9+hZHPB1/K+v3Oa+7HRab4YNx8kWSzo0W/uVJVP5YP/bFcvVw==}
+    engines: {node: '>=22.18.0'}
 
   '@rc-component/async-validator@6.0.0':
     resolution: {integrity: sha512-D3AGQwdyE58gmvx6waVSXJ80JGO+IY5L2O8HDnSOex7JNlzB3GuN/4hyHNTdhy2qtOhkpbIjmeAN3tL993wKbA==}
@@ -1214,6 +1221,9 @@ packages:
     peerDependenciesMeta:
       picomatch:
         optional: true
+
+  fflate@0.8.3:
+    resolution: {integrity: sha512-tbZNuJrLwGUp3zshBtdy4W+ORxZuIh8a5ilyIEQDC5rY1f3U20JMry0Ll3WBzU58EZKsEuJFXhb5gwv8CsPvgA==}
 
   form-data@4.0.6:
     resolution: {integrity: sha512-vKatAh4SlVfgbv+YtmhiRjhEMJsYpsG1Y2rMQtR+SVSbytsSD1YGzDIcrAJmdFec88u/+VoGmxnl+80gL1tRCQ==}
@@ -2030,6 +2040,10 @@ snapshots:
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     optional: true
 
+  '@office-kit/pptx@0.12.0':
+    dependencies:
+      fflate: 0.8.3
+
   '@rc-component/async-validator@6.0.0':
     dependencies:
       '@babel/runtime': 7.29.7
@@ -2808,6 +2822,8 @@ snapshots:
   fdir@6.5.0(picomatch@4.0.7):
     optionalDependencies:
       picomatch: 4.0.7
+
+  fflate@0.8.3: {}
 
   form-data@4.0.6:
     dependencies:
