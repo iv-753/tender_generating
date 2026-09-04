@@ -10,7 +10,8 @@ import JSZip from 'jszip';
 import { generateBidDocument } from './generate-bid.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '..', '..', '..');
-const TEMPLATE = path.join(ROOT, 'output', 'bid-template', '安序物业_住宅物业服务投标文件_双括号动态母版_清理版.docx');
+const WEB_ROOT = path.resolve(import.meta.dirname, '..', '..');
+const TEMPLATE = path.join(WEB_ROOT, 'templates', '安序物业_住宅物业服务投标文件_双括号动态母版_清理版.docx');
 const RESULT = path.join(ROOT, 'tmp', 'bid-binding-v1', 'demo-result.json');
 test('generates a complete Word bid from the current calculation result', async () => {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'bid-generator-'));

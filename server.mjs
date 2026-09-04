@@ -12,10 +12,10 @@ import { recognizeExcel } from './scripts/excel-recognition/recognize-excel.mjs'
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const DIST = resolve(ROOT, 'dist');
 const MODEL = resolve(ROOT, '..', '动态成本分析模型.xlsx');
-const PRESENTATION_TEMPLATE = resolve(ROOT, '..', '物业路演PPT_完整24页_v1.pptx');
+const PRESENTATION_TEMPLATE = resolve(ROOT, 'templates', '物业路演PPT_完整24页_v1.pptx');
 const PRESENTATION_OUTPUT = resolve(ROOT, '..', 'output');
 const PRESENTATION_GENERATOR = resolve(ROOT, 'scripts', 'ppt-binding', 'generate-ppt.mjs');
-const BID_TEMPLATE = resolve(ROOT, '..', 'output', 'bid-template', '安序物业_住宅物业服务投标文件_双括号动态母版_清理版.docx');
+const BID_TEMPLATE = resolve(ROOT, 'templates', '安序物业_住宅物业服务投标文件_双括号动态母版_清理版.docx');
 const BID_GENERATOR = resolve(ROOT, 'scripts', 'bid-binding', 'generate-bid.mjs');
 const HOST = '127.0.0.1';
 const PORT = Number(process.env.PORT || 4173);
