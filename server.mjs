@@ -11,7 +11,6 @@ import { recognizeExcel } from './scripts/excel-recognition/recognize-excel.mjs'
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const DIST = resolve(ROOT, 'dist');
-const MODEL = resolve(ROOT, '..', '动态成本分析模型.xlsx');
 const PRESENTATION_TEMPLATE = resolve(ROOT, 'templates', '物业路演PPT_完整24页_v1.pptx');
 const PRESENTATION_OUTPUT = resolve(ROOT, '..', 'output');
 const PRESENTATION_GENERATOR = resolve(ROOT, 'scripts', 'ppt-binding', 'generate-ppt.mjs');
@@ -23,8 +22,7 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; cha
 const presentationJobs = new Map();
 const bidJobs = new Map();
 
-const modelBytes = await readFile(MODEL);
-const calculate = await createCalculator(modelBytes);
+const calculate = createCalculator();
 
 function text(value) {
   return value === null || value === undefined || value === '' ? '' : String(value);

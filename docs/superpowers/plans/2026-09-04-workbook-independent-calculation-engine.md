@@ -163,7 +163,6 @@ git commit -m "feat: calculate property costs without Excel"
 - Modify: `api/_vercel-api.test.mjs`
 - Delete: `api/_lib/model-loader.mjs`
 - Modify: `package.json`
-- Modify: `pnpm-lock.yaml`
 - Modify: `vercel.json`
 - Modify: `SECURITY-NOTE.md`
 
@@ -183,7 +182,7 @@ Create the calculator at module startup without `await`, bytes, Blob, or filesys
 
 - [ ] **Step 4: Remove runtime model infrastructure**
 
-Delete `api/_lib/model-loader.mjs`, remove its Vercel configuration, move `formualizer` from `dependencies` to `devDependencies` because only the parity oracle and `verify:model` use it, and update the lockfile with the bundled pnpm runtime.
+Delete `api/_lib/model-loader.mjs` and remove its Vercel configuration. Keep `formualizer` available only because the separate customer-uploaded Excel recognition feature still imports it; verify that neither production calculation entry imports it.
 
 - [ ] **Step 5: Run endpoint, type, and build checks**
 
@@ -200,7 +199,7 @@ Expected: all PASS and `dist` contains no workbook/model loader.
 - [ ] **Step 6: Commit production wiring**
 
 ```bash
-git add server.mjs api/calculate.mjs api/_vercel-api.test.mjs package.json pnpm-lock.yaml vercel.json SECURITY-NOTE.md
+git add server.mjs api/calculate.mjs api/_vercel-api.test.mjs vercel.json SECURITY-NOTE.md
 git rm api/_lib/model-loader.mjs
 git commit -m "refactor: remove Excel from production calculation"
 ```

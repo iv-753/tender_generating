@@ -6,17 +6,15 @@ import test from 'node:test';
 import { createCalculateHandler } from './calculate.mjs';
 import { createExcelRecognitionHandler } from './excel/recognize.mjs';
 import { createGenerationHandler } from './_lib/generation-handler.mjs';
-import { loadCostModelBytes } from './_lib/model-loader.mjs';
 import { createPrivateArtifactStore } from './_lib/blob-store.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 const RESULT_FIXTURE = path.resolve(ROOT, '..', 'tmp', 'bid-binding-v1', 'demo-result.json');
 
-test('Vercel calculation endpoint loads the private model lazily and returns a result', async () => {
-  let loads = 0;
+test('Vercel calculation endpoint calls the pure calculator without loading a model', async () => {
+  let calls = 0;
   const handler = createCalculateHandler({
-    loadModelBytes: async () => { loads += 1; return Buffer.from('model'); },
-    createCalculator: async () => (project) => ({ project, totalActionCount: 122 }),
+    calculate: (project) => { calls += 1; return { project, totalActionCount: 122 }; },
     validate: () => undefined,
   });
   const project = { projectName: '演示项目' };
@@ -27,7 +25,7 @@ test('Vercel calculation endpoint loads the private model lazily and returns a r
   }));
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { project, totalActionCount: 122 });
-  assert.equal(loads, 1);
+  assert.equal(calls, 1);
 });
 
 test('Vercel Excel endpoint rejects non-xlsx input before AI recognition', async () => {
@@ -69,11 +67,14 @@ test('Vercel document endpoint finishes in one invocation and returns a private 
   assert.match(stored[0].pathname, /\/增城示范花园-路演方案\.pptx$/);
 });
 
-test('production model loader never falls back to a repository file', async () => {
-  await assert.rejects(
-    loadCostModelBytes({ env: { VERCEL: '1' }, getBlob: async () => null }),
-    /成本测算模型尚未配置/,
-  );
+test('production calculation source has no workbook model loading path', async () => {
+  const sources = await Promise.all([
+    readFile(path.resolve(ROOT, 'api', 'calculate.mjs'), 'utf8'),
+    readFile(path.resolve(ROOT, 'server.mjs'), 'utf8'),
+  ]);
+  for (const source of sources) {
+    assert.doesNotMatch(source, /model-loader|动态成本分析模型\.xlsx|loadCostModelBytes/);
+  }
 });
 
 test('artifact storage uses private Blob and a time-limited download URL', async () => {
