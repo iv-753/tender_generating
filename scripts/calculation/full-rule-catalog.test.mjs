@@ -181,6 +181,7 @@ test('默认测试链显式执行跨平台迁移解析测试', async () => {
   const runnerUrl = new URL('./migration/run-tests.mjs', import.meta.url);
   const packageDocument = JSON.parse(await readFile(packageUrl, 'utf8'));
   assert.ok(packageDocument.scripts.test.startsWith('npm run test:migration && '));
+  assert.match(packageDocument.scripts.test, /scripts\/calculation\/advanced-parameters\.test\.mjs/);
   assert.equal(
     packageDocument.scripts['test:migration'],
     'node scripts/calculation/migration/run-tests.mjs',

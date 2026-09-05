@@ -38,4 +38,6 @@ test('derives landscape and building quantities with the workbook equations', ()
   assert.equal(metrics.rooftopFloorArea, 65);
   assert.equal(metrics.rooftopWallArea, 65);
   assert.equal(metrics.garageTotalArea, 1000);
+  assert.equal(metrics.buildingCount, 9);
+  assert.equal(metrics.buildingEvacuationStairArea, 2 * 5 + 3 * 6 + 4 * 7);
 });

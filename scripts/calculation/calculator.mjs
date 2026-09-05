@@ -1,9 +1,13 @@
 import { calculateProject } from './engine.mjs';
 import { validateCityCostBand } from './city-catalog.mjs';
+import { ADVANCED_PARAMETER_DEFINITIONS } from './rules/advanced-parameter-definitions.mjs';
 import { COST_BAND_FACTORS, GRADE_LABELS } from './rules/constants.mjs';
 
 const text = (value) => value === null || value === undefined || value === '' ? '' : String(value);
 const number = (value) => typeof value === 'number' && Number.isFinite(value) ? value : Number(value) || 0;
+const advancedParametersByKey = new Map(
+  ADVANCED_PARAMETER_DEFINITIONS.map((definition) => [definition.key, definition]),
+);
 
 export function validateProject(project) {
   if (!project || typeof project !== 'object') return '项目数据无效';
@@ -18,6 +22,19 @@ export function validateProject(project) {
   if (!Array.isArray(project.buildings) || project.buildings.length < 1 || project.buildings.length > 5) return '楼栋类型必须为 1—5 类';
   const numbers = [project.totalBuildingArea, project.residentialChargeArea, project.deliveredHouseholds, project.receivedHouseholds, project.occupiedHouseholds, project.perimeterEntrances, project.gatehouses, project.pavedRoadArea, project.greenArea, project.lawnRatio, project.seasonalFlowerArea, project.winterProtectionArea, project.garageFloorArea, project.garageFloors, ...project.buildings.flatMap((item) => Object.values(item))];
   if (numbers.some((value) => typeof value !== 'number' || !Number.isFinite(value) || value < 0)) return '所有数值必须为非负数';
+  const overrides = project.advancedParameterOverrides === undefined
+    ? {}
+    : project.advancedParameterOverrides;
+  if (overrides === null || typeof overrides !== 'object' || Array.isArray(overrides)) {
+    return '高级参数覆盖必须为对象';
+  }
+  for (const [key, value] of Object.entries(overrides)) {
+    const definition = advancedParametersByKey.get(key);
+    if (!definition) return `高级参数不存在：${key}`;
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+      return `${definition.label}必须为非负数`;
+    }
+  }
 }
 
 export function createCalculator() {

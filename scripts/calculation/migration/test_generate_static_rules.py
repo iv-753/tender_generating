@@ -67,6 +67,12 @@ class StrictParsingTests(unittest.TestCase):
         self.assertIn("function deepFreeze", source)
         self.assertIn("export const RULES = deepFreeze", source)
 
+    def test_advanced_parameter_module_source_preserves_hand_maintained_default_rules(self):
+        source = MODULE.advanced_parameter_module_source([{"key": "example", "defaultRule": {}}])
+        self.assertIn("advanced-parameter-default-rules.mjs", source)
+        self.assertIn("ADVANCED_PARAMETER_DEFAULT_RULES[definition.key]", source)
+        self.assertIn("高级参数默认规则存在未知编号", source)
+
     def test_engineering_rule_rejects_each_missing_required_cached_number(self):
         formula_values = {
             (5, 1): "A-SS-50 动作",

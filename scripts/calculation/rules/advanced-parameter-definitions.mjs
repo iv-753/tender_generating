@@ -1,4 +1,6 @@
 // Generated once from the audited internal workbook; production never reads it.
+import { ADVANCED_PARAMETER_DEFAULT_RULES } from './advanced-parameter-default-rules.mjs';
+
 function deepFreeze(value) {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {
     for (const nested of Object.values(value)) deepFreeze(nested);
@@ -7,7 +9,7 @@ function deepFreeze(value) {
   return value;
 }
 
-export const ADVANCED_PARAMETER_DEFINITIONS = deepFreeze([
+const GENERATED_ADVANCED_PARAMETER_DEFINITIONS = [
   {
     "key": "pest.treatmentArea",
     "label": "四害消杀面积",
@@ -1958,4 +1960,18 @@ export const ADVANCED_PARAMETER_DEFINITIONS = deepFreeze([
       "engineering-routine-232"
     ]
   }
-]);
+];
+
+const generatedKeys = new Set(GENERATED_ADVANCED_PARAMETER_DEFINITIONS.map(({ key }) => key));
+const unknownDefaultRuleKeys = Object.keys(ADVANCED_PARAMETER_DEFAULT_RULES)
+  .filter((key) => !generatedKeys.has(key));
+if (unknownDefaultRuleKeys.length > 0) {
+  throw new Error(`高级参数默认规则存在未知编号：${unknownDefaultRuleKeys.join('、')}`);
+}
+
+export const ADVANCED_PARAMETER_DEFINITIONS = deepFreeze(
+  GENERATED_ADVANCED_PARAMETER_DEFINITIONS.map((definition) => ({
+    ...definition,
+    defaultRule: ADVANCED_PARAMETER_DEFAULT_RULES[definition.key] ?? definition.defaultRule,
+  })),
+);

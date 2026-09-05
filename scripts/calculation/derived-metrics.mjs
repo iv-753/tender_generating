@@ -19,6 +19,11 @@ export function deriveMetrics(project) {
   const standardLobbyFloorArea = total(buildings, (item) => item.totalFloors * item.standardLobbyArea);
   const stairFloorArea = total(buildings, (item, index) => (item.totalFloors + (index < 2 ? 5 : 0)) * item.evacuationStairArea);
   const rooftopFloorArea = total(buildings, (item) => item.rooftopArea * item.buildingCount);
+  const buildingCount = total(buildings, (item) => item.buildingCount);
+  const buildingEvacuationStairArea = total(
+    buildings,
+    (item) => item.evacuationStairArea * item.buildingCount,
+  );
 
   return {
     ...project,
@@ -47,5 +52,7 @@ export function deriveMetrics(project) {
     rooftopFloorArea,
     rooftopWallArea: rooftopFloorArea,
     garageTotalArea: project.garageFloorArea * project.garageFloors,
+    buildingCount,
+    buildingEvacuationStairArea,
   };
 }

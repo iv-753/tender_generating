@@ -183,6 +183,34 @@ def write_module(name: str, export_name: str, rows: list[dict]) -> None:
     )
 
 
+def advanced_parameter_module_source(rows: list[dict]) -> str:
+    serialized = json.dumps(rows, ensure_ascii=False, indent=2)
+    return (
+        "// Generated once from the audited internal workbook; production never reads it.\n"
+        "import { ADVANCED_PARAMETER_DEFAULT_RULES } from './advanced-parameter-default-rules.mjs';\n\n"
+        "function deepFreeze(value) {\n"
+        "  if (value && typeof value === 'object' && !Object.isFrozen(value)) {\n"
+        "    for (const nested of Object.values(value)) deepFreeze(nested);\n"
+        "    Object.freeze(value);\n"
+        "  }\n"
+        "  return value;\n"
+        "}\n\n"
+        f"const GENERATED_ADVANCED_PARAMETER_DEFINITIONS = {serialized};\n\n"
+        "const generatedKeys = new Set(GENERATED_ADVANCED_PARAMETER_DEFINITIONS.map(({ key }) => key));\n"
+        "const unknownDefaultRuleKeys = Object.keys(ADVANCED_PARAMETER_DEFAULT_RULES)\n"
+        "  .filter((key) => !generatedKeys.has(key));\n"
+        "if (unknownDefaultRuleKeys.length > 0) {\n"
+        "  throw new Error(`高级参数默认规则存在未知编号：${unknownDefaultRuleKeys.join('、')}`);\n"
+        "}\n\n"
+        "export const ADVANCED_PARAMETER_DEFINITIONS = deepFreeze(\n"
+        "  GENERATED_ADVANCED_PARAMETER_DEFINITIONS.map((definition) => ({\n"
+        "    ...definition,\n"
+        "    defaultRule: ADVANCED_PARAMETER_DEFAULT_RULES[definition.key] ?? definition.defaultRule,\n"
+        "  })),\n"
+        ");\n"
+    )
+
+
 def multiplier(formula: str) -> float:
     if not isinstance(formula, str):
         raise ValueError(f"无法读取公式倍率：{formula!r}")
@@ -559,8 +587,8 @@ def main(workbook: Path) -> None:
     definitions = advanced_parameter_definitions(
         [*pest_rules, *outsourced_rules, *routine_rules], mapping,
     )
-    write_module(
-        "advanced-parameter-definitions.mjs", "ADVANCED_PARAMETER_DEFINITIONS", definitions,
+    (OUTPUT / "advanced-parameter-definitions.mjs").write_text(
+        advanced_parameter_module_source(definitions), encoding="utf-8", newline="\n",
     )
     print(
         f"generated rules: {len(pest_rules)} / {len(outsourced_rules)} / {len(routine_rules)}; "
