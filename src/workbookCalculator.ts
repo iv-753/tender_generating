@@ -1,4 +1,4 @@
-import type { CalculationResult, ProjectData } from './types';
+import type { AdvancedParameterSnapshot, CalculationResult, ProjectData } from './types';
 
 export async function calculateProject(project: ProjectData): Promise<CalculationResult> {
   const response = await fetch('/api/calculate', {
@@ -12,4 +12,10 @@ export async function calculateProject(project: ProjectData): Promise<Calculatio
   }
   if (!payload || !('totalActionCount' in payload)) throw new Error('测算服务返回了无效结果');
   return payload;
+}
+
+export async function previewAdvancedParameters(project: ProjectData): Promise<AdvancedParameterSnapshot[]> {
+  const result = await calculateProject(project);
+  if (result.version !== 2) throw new Error('当前测算服务暂不支持高级参数');
+  return result.advancedParameters;
 }

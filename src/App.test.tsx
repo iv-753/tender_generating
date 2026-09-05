@@ -2,12 +2,13 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, expect, test, vi } from 'vitest';
 
-vi.mock('./workbookCalculator', () => ({ calculateProject: vi.fn() }));
+vi.mock('./workbookCalculator', () => ({ calculateProject: vi.fn(), previewAdvancedParameters: vi.fn() }));
 vi.mock('./excelRecognition', () => ({ recognizeExcelFile: vi.fn() }));
 import App from './App';
 import { recognizeExcelFile } from './excelRecognition';
 import { EXAMPLE_PROJECT } from './exampleProject';
 import { storage } from './storage';
+import { calculateProject, previewAdvancedParameters } from './workbookCalculator';
 
 class ResizeObserverMock {
   observe() {}
@@ -38,6 +39,8 @@ afterEach(() => {
   cleanup();
   localStorage.clear();
   vi.mocked(recognizeExcelFile).mockReset();
+  vi.mocked(calculateProject).mockReset();
+  vi.mocked(previewAdvancedParameters).mockReset();
 });
 
 const recognitionResult = {
@@ -86,6 +89,12 @@ function savedResult(projectName: string, calculatedAt: string, annualCost: numb
   };
 }
 
+function clickButtonText(name: string) {
+  const button = [...document.querySelectorAll('button')].find((item) => item.textContent?.replace(/\s/g, '') === name);
+  if (!button) throw new Error(`找不到按钮：${name}`);
+  fireEvent.click(button);
+}
+
 test('uses the project center as the workspace home', () => {
   window.history.replaceState({}, '', '/');
   render(<App />);
@@ -120,6 +129,41 @@ test('uses province and city selectors with an adjacent cost override', () => {
   fireEvent.click(screen.getByText('测算参数'));
   expect(screen.getByText(/系统建议：高成本城市/)).toBeTruthy();
   expect(screen.getByText(/当前采用：较高成本城市.*已手动调整/)).toBeTruthy();
+});
+
+test('previews advanced parameters without saving or leaving the new-project page', async () => {
+  vi.mocked(previewAdvancedParameters).mockResolvedValue([{
+    key: 'basement.fireShutterCount', label: '地下停车区防火卷帘数量', group: 'basement', unit: '个', defaultValue: 252, value: 252, source: 'template', affectedActionIds: ['engineering-routine-6'],
+  }]);
+  window.history.replaceState({}, '', '/project/new');
+  render(<App />);
+
+  clickButtonText('高级参数（可选，系统已估算）');
+
+  await waitFor(() => expect(document.querySelector('.advanced-parameters-drawer')).toBeTruthy());
+  expect(previewAdvancedParameters).toHaveBeenCalledWith(expect.objectContaining({ projectName: EXAMPLE_PROJECT.projectName }));
+  expect(storage.loadProjects()).toHaveLength(0);
+  expect(storage.loadDraft()).toBeNull();
+  expect(window.location.pathname).toBe('/project/new');
+});
+
+test('includes advanced parameter overrides in the formal calculation', async () => {
+  vi.mocked(previewAdvancedParameters).mockResolvedValue([{
+    key: 'basement.fireShutterCount', label: '地下停车区防火卷帘数量', group: 'basement', unit: '个', defaultValue: 252, value: 252, source: 'template', affectedActionIds: ['engineering-routine-6'],
+  }]);
+  vi.mocked(calculateProject).mockImplementation(async (project) => ({ ...savedResult(project.projectName, '2026-09-05T00:00:00.000Z', 1), project }));
+  window.history.replaceState({}, '', '/project/new');
+  render(<App />);
+  clickButtonText('高级参数（可选，系统已估算）');
+  await waitFor(() => expect(document.querySelector('.advanced-parameters-drawer')).toBeTruthy());
+  fireEvent.click(screen.getByText('地下空间'));
+  fireEvent.change(screen.getByLabelText('地下停车区防火卷帘数量'), { target: { value: '300' } });
+  clickButtonText('完成');
+
+  clickButtonText('开始测算');
+
+  await waitFor(() => expect(calculateProject).toHaveBeenCalledWith(expect.objectContaining({ advancedParameterOverrides: { 'basement.fireShutterCount': 300 } })));
+  await waitFor(() => expect(window.location.pathname).toBe('/project/result'));
 });
 
 test('opens a project workspace with five business views', () => {
