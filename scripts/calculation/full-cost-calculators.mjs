@@ -15,6 +15,7 @@ import {
 
 const GRADES = new Set(['A', 'B', 'C', 'D']);
 const PEST_WORKDAYS_PER_STAFF_YEAR = 12 * 30;
+const INTEGER_SNAP_TOLERANCE = 1e-12;
 const MANAGEMENT_ROLES = Object.freeze([
   Object.freeze({ title: '项目经理', monthlyRate: 18000, headcount: 1 }),
   Object.freeze({ title: '管家主任', monthlyRate: 10000, headcount: 1 }),
@@ -27,6 +28,12 @@ function finiteNonNegative(value, label) {
     throw new Error(`${label}必须为有限非负数`);
   }
   return value;
+}
+
+function ceilWithTolerance(value) {
+  const nearestInteger = Math.round(value);
+  const tolerance = INTEGER_SNAP_TOLERANCE * Math.max(1, Math.abs(value));
+  return Math.ceil(Math.abs(value - nearestInteger) <= tolerance ? nearestInteger : value);
 }
 
 function requiredGradeValue(values, grade, label) {
@@ -51,17 +58,12 @@ function workloadAction(rule, category, grade, quantity, hourlyRate, options = {
     `${rule.id}.annualFrequency`,
   );
   const sourceUnitHours = requiredGradeValue(rule.unitHours, grade, `${rule.id}.unitHours`);
-  const unitHoursScale = finiteNonNegative(
-    options.unitHoursScale ?? 1,
-    `${rule.id}.unitHoursScale`,
+  const allocationRatio = finiteNonNegative(
+    options.allocationRatio ?? 1,
+    `${rule.id}.allocationRatio`,
   );
-  const unitHoursDivisor = options.unitHoursDivisor === undefined
-    ? undefined
-    : finiteNonNegative(options.unitHoursDivisor, `${rule.id}.unitHoursDivisor`);
   const unitHours = finiteNonNegative(
-    unitHoursDivisor === undefined
-      ? sourceUnitHours * unitHoursScale
-      : sourceUnitHours / unitHoursDivisor,
+    sourceUnitHours * allocationRatio,
     `${rule.id}.effectiveUnitHours`,
   );
   const rate = finiteNonNegative(hourlyRate, `${rule.id}.hourlyRate`);
@@ -87,7 +89,7 @@ function workloadAction(rule, category, grade, quantity, hourlyRate, options = {
     ...(options.sharedWorkloadGroup === undefined ? {} : {
       sourceSharedUnitHours: sourceUnitHours,
       sharedWorkloadGroup: options.sharedWorkloadGroup,
-      allocationRatio: unitHoursScale,
+      allocationRatio,
     }),
   };
 }
@@ -120,7 +122,7 @@ function engineeringSummary(category, title, actions, monthlyRate, costFactor) {
     annualHours / ENGINEERING_ANNUAL_CAPACITY_HOURS,
     `${category}.workloadEquivalentHeadcount`,
   );
-  const headcount = Math.ceil(workloadEquivalentHeadcount);
+  const headcount = ceilWithTolerance(workloadEquivalentHeadcount);
   return {
     category,
     title,
@@ -151,8 +153,7 @@ function calculatePest(grade, parameters, costFactor) {
     () => PEST_WORKDAY_RATE / WORKDAY_HOURS,
     costFactor,
     {
-      unitHoursScale: allocationRatio,
-      unitHoursDivisor: PEST_CONTROL_RULES.length,
+      allocationRatio,
       sharedWorkloadGroup: 'pest-control',
     },
   );

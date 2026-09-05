@@ -51,7 +51,7 @@ test('定义以工作簿 upper 档为基准的完整模型成本常量', () => {
   assert.equal(MANAGEMENT_BUDGET_FACTOR, 1.06);
   assert.equal(PEST_WORKDAY_RATE, 600);
   assert.equal(ENGINEERING_MONTHLY_CAPACITY_HOURS, 30 * 8);
-  assert.equal(ENGINEERING_ANNUAL_CAPACITY_HOURS, 12 * 30 * 8);
+  assert.equal(ENGINEERING_ANNUAL_CAPACITY_HOURS, 12 * ENGINEERING_MONTHLY_CAPACITY_HOURS);
 });
 
 test('计算 7 项四害、95 项工程委外、228 项工程常规及 4 个管理岗位', () => {
@@ -99,6 +99,17 @@ test('工程动作与分类严格使用工时、系统月薪、统一预算月�
     expectedOutsourcedHours * (outsourcedRule.monthlyRate / 30 / 8),
     '工程委外动作工作量成本',
   );
+  for (const [id, monthlyRate] of [
+    ['engineering-outsourced-8', 7600],
+    ['engineering-outsourced-66', 7000],
+  ]) {
+    const action = outsourced.actions.find((item) => item.id === id);
+    closeTo(
+      action.annualCost,
+      action.annualHours * (monthlyRate / 30 / 8),
+      `${id}系统费率`,
+    );
+  }
   assert.equal(routineAction.unitHours, routineRule.unitHours.C);
   closeTo(routineAction.annualHours, routineAction.quantity * routineAction.unitHours
     * routineAction.annualFrequency, '工程常规年工时');
@@ -148,7 +159,7 @@ test('四害将 Excel 合并区域的一份共享工作量等额分摊到 7 行�
     assert.equal(action.sharedWorkloadGroup, 'pest-control');
     assert.equal(action.allocationRatio, 1 / 7);
     assert.equal(action.sourceSharedUnitHours, rule.unitHours.C);
-    assert.equal(action.unitHours, rule.unitHours.C / 7);
+    closeTo(action.unitHours, rule.unitHours.C / 7, `${action.id}有效单位工时`);
     closeTo(
       action.annualHours,
       action.quantity * action.unitHours * action.annualFrequency,
@@ -190,6 +201,29 @@ test('四害共享数量为零时 7 行分摊工作量和分类成本同时归�
   assert.equal(pest.summary.annualHours, 0);
   assert.equal(pest.summary.workloadAnnualCost, 0);
   assert.equal(pest.summary.annualCost, 0);
+});
+
+test('工程等效人数的浮点尾差吸附整数但真实超额仍向上取整', () => {
+  const defaults = parameterValues(resolveAdvancedParameters(baseProject));
+  const parameters = Object.fromEntries(Object.keys(defaults).map((key) => [key, 0]));
+  const exactLength = 1038.9610389610389;
+  parameters['grounds.securityAudioLineLength'] = exactLength;
+  const exact = group(
+    calculateFullCostModules(baseProject, parameters),
+    'engineeringOutsourced',
+  ).summary;
+  closeTo(exact.workloadEquivalentHeadcount, 1, '浮点尾差等效人数');
+  assert.equal(exact.headcount, 1);
+  assert.equal(exact.annualCost, 108000);
+
+  parameters['grounds.securityAudioLineLength'] = exactLength * (1 + 2e-12);
+  const exceeded = group(
+    calculateFullCostModules(baseProject, parameters),
+    'engineeringOutsourced',
+  ).summary;
+  assert.ok(exceeded.workloadEquivalentHeadcount > 1);
+  assert.equal(exceeded.headcount, 2);
+  assert.equal(exceeded.annualCost, 216000);
 });
 
 test('管理成本使用四岗位工资、1.06 附加比例及城市相对因子', () => {
