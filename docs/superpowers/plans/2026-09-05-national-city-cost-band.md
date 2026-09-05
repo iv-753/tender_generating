@@ -50,25 +50,21 @@ Expected: FAIL，提示 `src/data/city-cost-bands.json` 不存在。
 
 - [ ] **Step 3: 创建一次性目录生成器**
 
-生成器固定使用行政区划数据提交 `c49d495b40ac73eb1a66f6eeae5f8fd10696f035`，排除省直辖县级条目，把四个直辖市的“市辖区”规范为同名城市。`HIGH` 固定为北上广深；`UPPER` 收录天津、重庆及高人工成本强二线城市；`STANDARD` 收录其余省会和经济较强地级市；其他城市默认为基础档。
+项目保存行政区划数据提交 `c49d495b40ac73eb1a66f6eeae5f8fd10696f035` 的 `provinces.json` 与 `cities.json` 原始快照，生成器离线读取，排除省直辖县级条目，把四个直辖市的“市辖区”规范为同名城市。`HIGH` 固定为北上广深；`UPPER` 收录天津、重庆及高人工成本强二线城市；`STANDARD` 收录其余省会和经济较强地级市；其他城市默认为基础档。
 
 ```js
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
 const revision = 'c49d495b40ac73eb1a66f6eeae5f8fd10696f035';
-const raw = `https://raw.githubusercontent.com/modood/Administrative-divisions-of-China/${revision}/dist`;
 const HIGH = new Set(['北京市', '上海市', '广州市', '深圳市']);
 const UPPER = new Set(['天津市', '重庆市', '杭州市', '南京市', '苏州市', '无锡市', '宁波市', '厦门市', '福州市', '青岛市', '济南市', '珠海市', '佛山市', '东莞市', '成都市', '武汉市', '长沙市', '郑州市', '西安市', '合肥市']);
 const STANDARD = new Set(['石家庄市', '太原市', '呼和浩特市', '沈阳市', '大连市', '长春市', '哈尔滨市', '南昌市', '南宁市', '海口市', '三亚市', '贵阳市', '昆明市', '拉萨市', '兰州市', '西宁市', '银川市', '乌鲁木齐市', '常州市', '南通市', '扬州市', '镇江市', '泰州市', '嘉兴市', '湖州市', '绍兴市', '温州市', '金华市', '泉州市', '漳州市', '烟台市', '潍坊市', '威海市', '临沂市', '洛阳市', '宜昌市', '襄阳市', '株洲市', '岳阳市', '中山市', '惠州市', '江门市', '湛江市', '绵阳市', '德阳市', '宜宾市', '遵义市']);
 const excludedCodes = new Set(['4190', '4290', '4690', '5002', '6590']);
 const municipalityNames = new Map([['1101', '北京市'], ['1201', '天津市'], ['3101', '上海市'], ['5001', '重庆市']]);
-const getJson = async (name) => {
-  const response = await fetch(`${raw}/${name}.json`);
-  if (!response.ok) throw new Error(`${name}: HTTP ${response.status}`);
-  return response.json();
-};
-const [provinces, rawCities] = await Promise.all([getJson('provinces'), getJson('cities')]);
+const readSource = async (name) => JSON.parse(await readFile(new URL(`./source/${name}.json`, import.meta.url), 'utf8'));
+const provinces = await readSource('provinces');
+const rawCities = await readSource('cities');
 const bandFor = (name) => HIGH.has(name) ? 'high' : UPPER.has(name) ? 'upper' : STANDARD.has(name) ? 'standard' : 'base';
 const cities = rawCities
   .filter((city) => !excludedCodes.has(city.code))
