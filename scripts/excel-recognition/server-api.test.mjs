@@ -78,8 +78,9 @@ test('recognizes an uploaded Excel workbook through the provider-neutral API', a
   const result = await response.json();
   assert.equal(result.provider, 'local');
   assert.equal(result.project.projectName, '云麓华庭');
-  assert.equal(result.project.city, '杭州');
-  assert.equal(result.project.costBand, 'high');
+  assert.equal(result.project.region, '浙江省');
+  assert.equal(result.project.city, '杭州市');
+  assert.equal(result.project.costBand, 'upper');
   assert.equal(result.project.residentialChargeArea, 108000);
   assert.equal(result.project.seasonalFlowerArea, null);
   assert.ok(result.missingFields.includes('seasonalFlowerArea'));

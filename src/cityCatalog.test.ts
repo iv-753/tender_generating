@@ -19,6 +19,7 @@ test('exposes all mainland provinces and their prefecture-level locations', () =
 test('recommends Guangzhou as high and only permits a one-band adjustment', () => {
   expect(CITY_CATALOG_VERSION).toBe('2025-wage-2026-09');
   expect(getCityRecommendation('广东省', '广州市')).toBe('high');
+  expect(getCityRecommendation('湖南省', '广州市')).toBeUndefined();
   expect(allowedCostBands('high')).toEqual(['high', 'upper']);
   expect(allowedCostBands('upper')).toEqual(['high', 'upper', 'standard']);
   expect(allowedCostBands('standard')).toEqual(['upper', 'standard', 'base']);

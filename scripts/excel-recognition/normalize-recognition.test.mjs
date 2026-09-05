@@ -38,7 +38,8 @@ test('normalizes units, derives city cost band, and never fills a missing field'
   const result = normalizeRecognition(workbook, mapping, { provider: 'local', model: 'fixture-model' });
 
   assert.deepEqual(result.project, {
-    projectName: '云麓华庭', region: '浙江省杭州市余杭区', city: '杭州', serviceGrade: 'B', costBand: 'high',
+    projectName: '云麓华庭', region: '浙江省', city: '杭州市', serviceGrade: 'B', costBand: 'upper',
+    recommendedCostBand: 'upper', costBandSourceVersion: '2025-wage-2026-09',
     totalBuildingArea: 158000, residentialChargeArea: 108000, deliveredHouseholds: 1260,
     receivedHouseholds: 930, occupiedHouseholds: 715, perimeterEntrances: 380, gatehouses: 2,
     pavedRoadArea: 17500, greenArea: 18500, lawnRatio: 0.35, seasonalFlowerArea: null,
@@ -68,8 +69,10 @@ test('converts a numeric percentage and rejects a hallucinated source cell', asy
 
   assert.equal(result.project.lawnRatio, 0.42);
   assert.equal(result.project.serviceGrade, 'A');
-  assert.equal(result.project.city, '深圳');
+  assert.equal(result.project.region, '广东省');
+  assert.equal(result.project.city, '深圳市');
   assert.equal(result.project.costBand, 'high');
+  assert.equal(result.project.recommendedCostBand, 'high');
   assert.equal(result.project.seasonalFlowerArea, null);
   assert.equal(result.recognition.fields.seasonalFlowerArea.status, 'missing');
 });

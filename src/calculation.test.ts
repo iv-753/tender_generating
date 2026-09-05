@@ -67,6 +67,6 @@ describe('property calculation rules', () => {
       }),
     ).toContain('常住户数不能大于已收楼户数');
     expect(validateProjectData({ ...EXAMPLE_PROJECT, costBand: 'standard' }))
-      .toContain('城市成本档位只能在系统建议的相邻一级内调整');
+      .toContain('城市成本档位只能上下调整一级');
   });
 });

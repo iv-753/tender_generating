@@ -1,4 +1,5 @@
 import { calculateProject } from './engine.mjs';
+import { validateCityCostBand } from './city-catalog.mjs';
 import { COST_BAND_FACTORS, GRADE_LABELS } from './rules/constants.mjs';
 
 const text = (value) => value === null || value === undefined || value === '' ? '' : String(value);
@@ -9,6 +10,8 @@ export function validateProject(project) {
   if (!text(project.projectName).trim()) return '请填写项目名称';
   if (!text(project.region).trim() || !text(project.city).trim()) return '请填写项目地区和城市';
   if (!GRADE_LABELS[project.serviceGrade] || !COST_BAND_FACTORS[project.costBand]) return '测算参数无效';
+  const cityValidationError = validateCityCostBand(project);
+  if (cityValidationError) return cityValidationError;
   if (number(project.occupiedHouseholds) > number(project.receivedHouseholds)) return '常住户数不能大于已收楼户数';
   if (number(project.receivedHouseholds) > number(project.deliveredHouseholds)) return '已收楼户数不能大于已交付户数';
   if (number(project.lawnRatio) < 0 || number(project.lawnRatio) > 1) return '草坪比例必须在 0%—100% 之间';

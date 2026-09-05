@@ -32,6 +32,7 @@ function findLocation(region?: string, city?: string) {
   const explicitProvince = findProvince(region);
   const explicitCity = findCityInProvince(explicitProvince, city);
   if (explicitProvince && explicitCity) return { province: explicitProvince, city: explicitCity };
+  if (explicitProvince) return undefined;
   if (!city?.trim()) return undefined;
   const normalized = withoutCitySuffix(city);
   for (const province of provinces) {

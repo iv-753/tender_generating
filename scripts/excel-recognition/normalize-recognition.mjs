@@ -1,11 +1,5 @@
 import { BUILDING_FIELD_DEFINITIONS, FIELD_DEFINITIONS } from './schema.mjs';
-
-const CITY_BANDS = {
-  high: ['北京', '上海', '深圳', '杭州'],
-  upper: ['广州', '苏州', '南京', '成都', '武汉'],
-  standard: ['东莞', '佛山', '长沙', '重庆', '昆山'],
-  base: ['肇庆', '云浮'],
-};
+import { CITY_CATALOG_VERSION, normalizeCityLocation } from '../calculation/city-catalog.mjs';
 
 function parseChineseInteger(value) {
   const digit = { 零: 0, 一: 1, 二: 2, 两: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
@@ -57,11 +51,6 @@ function normalizeValue(raw, type) {
   return value || null;
 }
 
-function inferCostBand(city) {
-  if (!city) return null;
-  return Object.entries(CITY_BANDS).find(([, cities]) => cities.includes(city))?.[0] ?? null;
-}
-
 function resolveField(workbook, reference, type) {
   const sheet = typeof reference?.sheet === 'string' ? reference.sheet.trim() : '';
   const cell = typeof reference?.cell === 'string' ? reference.cell.trim().toUpperCase() : '';
@@ -93,7 +82,14 @@ export function normalizeRecognition(workbook, mapping, { provider, model } = {}
     if (value === null) missingFields.push(field);
   }
 
-  project.costBand = inferCostBand(project.city);
+  const location = normalizeCityLocation(project.region, project.city);
+  if (location) {
+    project.region = location.region;
+    project.city = location.city;
+    project.recommendedCostBand = location.recommendedCostBand;
+    project.costBandSourceVersion = CITY_CATALOG_VERSION;
+  }
+  project.costBand = location?.recommendedCostBand ?? null;
   fieldEvidence.costBand = {
     status: project.costBand ? 'derived' : 'missing',
     confidence: project.costBand ? 1 : 0,
