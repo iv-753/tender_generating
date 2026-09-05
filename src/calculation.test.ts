@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vitest';
 import { CATEGORY_CONFIG, CATEGORY_TITLES, STANDARD_ACTION_COUNT } from '../scripts/calculation/category-config.mjs';
 import {
   ACTION_COUNTS,
+  CATEGORY_ORDER,
   COST_BAND_FACTORS,
   displayActionName,
   displayQuantity,
@@ -31,6 +32,15 @@ describe('property calculation rules', () => {
   });
 
   test('locks the complete category configuration to exactly 452 standard actions', () => {
+    expect(CATEGORY_ORDER).toEqual([
+      'service',
+      'cleaning',
+      'greening',
+      'assistance',
+      'pestControl',
+      'engineeringOutsourced',
+      'engineeringRoutine',
+    ]);
     expect(CATEGORY_CONFIG).toEqual([
       { category: 'service', title: '服务', expectedCount: 17, costModel: 'rounded-service-staffing' },
       { category: 'cleaning', title: '清洁', expectedCount: 48, costModel: 'rounded-daily-staffing' },

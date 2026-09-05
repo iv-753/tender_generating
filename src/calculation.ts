@@ -11,6 +11,16 @@ export const ACTION_COUNTS = {
   engineeringRoutine: 228,
 } as const;
 
+export const CATEGORY_ORDER: ActionCategory[] = [
+  'service',
+  'cleaning',
+  'greening',
+  'assistance',
+  'pestControl',
+  'engineeringOutsourced',
+  'engineeringRoutine',
+];
+
 export const COST_BAND_FACTORS: Record<CostBand, number> = {
   high: 1.2,
   upper: 1.1,

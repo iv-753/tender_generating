@@ -1,18 +1,21 @@
 import { ArrowLeftOutlined, CloseOutlined, EditOutlined, FilePptOutlined, InfoCircleOutlined, LoadingOutlined, ReloadOutlined, SaveOutlined, SearchOutlined } from '@ant-design/icons';
-import { Alert, Button, Card, Empty, Input, Modal, Progress, Result, Space, Statistic, Steps, Table, Tabs, Tooltip, Typography } from 'antd';
+import { Alert, Button, Card, Checkbox, Empty, Input, Modal, Progress, Result, Space, Statistic, Steps, Table, Tabs, Tooltip, Typography } from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { calculateAdjustedProject } from '../adjustedCalculator';
 import ActionEditor from '../components/ActionEditor';
 import BidGenerationButton from '../components/BidGenerationButton';
-import { COST_BAND_LABELS, displayActionName, displayQuantity, displayStaffingCount, gradeLabel, showsActionHeadcount } from '../calculation';
+import { CATEGORY_ORDER, COST_BAND_LABELS, displayActionName, displayQuantity, displayStaffingCount, gradeLabel, showsActionHeadcount } from '../calculation';
 import { formatProjectLocation } from '../cityCatalog';
 import { storage } from '../storage';
 import type { ActionCategory, CalculationAdjustments, CalculationResult, CategorySummary, ServiceActionResult } from '../types';
 
 type ProjectResultPageProps = { onNavigate: () => void };
-const categoryOrder: ActionCategory[] = ['service', 'cleaning', 'greening', 'assistance'];
+const categoryOrder = CATEGORY_ORDER;
 const currency = new Intl.NumberFormat('zh-CN', { style: 'currency', currency: 'CNY', maximumFractionDigits: 0 });
+const workloadCurrency = new Intl.NumberFormat('zh-CN', { style: 'currency', currency: 'CNY', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const wholeNumber = new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 0 });
+const decimalNumber = new Intl.NumberFormat('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const EMPTY_ADJUSTMENTS: CalculationAdjustments = { version: 1, overrides: {}, customActions: [] };
 const generationStages = [
   { key: 'validating', title: '校验项目数据', description: '确认项目资料与测算结果完整' },
@@ -44,6 +47,24 @@ function hasAdjustments(value: CalculationAdjustments) {
   return Object.keys(value.overrides).length > 0 || value.customActions.length > 0;
 }
 
+function hasWorkloadOrCost(item: ServiceActionResult) {
+  return Number(item.annualHours ?? 0) > 0
+    || Number(item.headcount ?? 0) > 0
+    || Number(item.annualCost ?? 0) > 0;
+}
+
+function isAdjustedAction(item: ServiceActionResult, adjustments: CalculationAdjustments) {
+  return item.source === 'custom' || item.enabled === false || Object.hasOwn(adjustments.overrides, item.id);
+}
+
+function isDisabledOrCustom(item: ServiceActionResult) {
+  return item.enabled === false || item.source === 'custom';
+}
+
+function hasSharedWorkloadGroup(item: ServiceActionResult) {
+  return Boolean((item as ServiceActionResult & { sharedWorkloadGroup?: string }).sharedWorkloadGroup);
+}
+
 function categoryWorkloadHeadcount(summary: CategorySummary, actions: ServiceActionResult[]) {
   if (summary.workloadEquivalentHeadcount !== undefined) return summary.workloadEquivalentHeadcount;
   const active = actions.filter((item) => item.category === summary.category && item.enabled !== false);
@@ -66,6 +87,10 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
   const recalculationSequence = useRef(0);
   const [category, setCategory] = useState<ActionCategory>('service');
   const [query, setQuery] = useState('');
+  const [showZeroValues, setShowZeroValues] = useState(false);
+  const [adjustedOnly, setAdjustedOnly] = useState(false);
+  const [disabledOrCustomOnly, setDisabledOrCustomOnly] = useState(false);
+  const [page, setPage] = useState(1);
   const [generationOpen, setGenerationOpen] = useState(false);
   const [generation, setGeneration] = useState<GenerationJob>({ status: 'idle', stage: 'validating' });
 
@@ -91,11 +116,23 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
   if (!savedResult || !previewResult) return <main className="workspace-page"><Card><Empty description="暂无测算结果"><Button type="primary" onClick={onNavigate}>返回填写项目</Button></Empty></Card></main>;
 
   const result = previewResult;
+  const availableCategories = categoryOrder.filter((key) => result.categories.some((item) => item.category === key));
   const summary = result.categories.find((item) => item.category === category)!;
   const keyword = query.trim().toLowerCase();
   const categoryActions = result.actions.filter((item) => item.category === category);
-  const actions = categoryActions.filter((item) => (editing || item.enabled !== false) && (!keyword || [item.action, item.property, item.basis, item.frequency].some((value) => String(value ?? '').toLowerCase().includes(keyword))));
-  const totalStaffingCount = result.categories.reduce((sum, item) => sum + displayStaffingCount(item.headcount), 0);
+  const actions = categoryActions.filter((item) => {
+    if (keyword && ![item.action, item.property, item.basis, item.frequency].some((value) => String(value ?? '').toLowerCase().includes(keyword))) return false;
+    if (disabledOrCustomOnly) return isDisabledOrCustom(item);
+    if (adjustedOnly) return isAdjustedAction(item, draftAdjustments);
+    if (item.enabled === false) return false;
+    return showZeroValues || hasWorkloadOrCost(item);
+  });
+  const standardActionCount = result.version === 2 ? result.standardActionCount : result.totalActionCount;
+  const activeActionCount = result.version === 2 ? result.activeActionCount : result.actions.filter((item) => item.enabled !== false).length;
+  const customActionCount = result.actions.filter((item) => item.source === 'custom').length;
+  const activeStandardActionCount = result.actions.filter((item) => item.source !== 'custom' && item.enabled !== false).length;
+  const disabledActionCount = Math.max(0, standardActionCount - activeStandardActionCount);
+  const totalStaffingCount = displayStaffingCount(result.totalHeadcount);
   const rawServiceCostPerSqmMonth = result.project.residentialChargeArea > 0 ? result.annualCost / result.project.residentialChargeArea / 12 : null;
   const serviceCostPerSqmMonth = rawServiceCostPerSqmMonth === null ? null : Math.round((rawServiceCostPerSqmMonth + Number.EPSILON) * 100) / 100;
   const currentWorkloadCost = workloadCost(result);
@@ -108,14 +145,17 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
     { title: '属性', dataIndex: 'property', key: 'property', width: 120, render: show },
     { title: '适用数量 / 依据', key: 'applicable', width: 180, render: (_: unknown, item: ServiceActionResult) => item.basis || displayQuantity(item.quantity, item.unit) },
     { title: '频次', dataIndex: 'frequency', key: 'frequency', width: 190, render: show },
-    { title: '年频次', dataIndex: 'annualFrequency', key: 'annualFrequency', width: 90, render: (value: number) => displayQuantity(value) },
-    { title: '年工时', dataIndex: 'annualHours', key: 'annualHours', width: 100, render: (value: number) => displayQuantity(value) },
-    ...(showsActionHeadcount(category) ? [{ title: '配置人数', dataIndex: 'headcount', key: 'headcount', width: 100, render: (value: number) => value === undefined ? '—' : displayStaffingCount(value) }] : []),
+    ...(showsActionHeadcount(category)
+      ? [{ title: '配置人数', dataIndex: 'headcount', key: 'headcount', width: 100, render: (value: number) => value === undefined ? '—' : displayStaffingCount(value) }]
+      : [
+          { title: '年频次', dataIndex: 'annualFrequency', key: 'annualFrequency', width: 90, render: (value: number | undefined) => value === undefined ? '—' : wholeNumber.format(value) },
+          { title: '年工时', dataIndex: 'annualHours', key: 'annualHours', width: 100, render: (value: number | undefined) => value === undefined ? '—' : decimalNumber.format(value) },
+        ]),
     {
       title: explainedTitle(category === 'assistance' ? '年岗位成本' : '年工作量成本', category === 'assistance'
         ? '本项配置人数按对应岗位人工单价折算。'
         : '本项年工时按对应人工单价折算，修改年频次或年工时后立即变化。'),
-      dataIndex: 'annualCost', key: 'annualCost', width: 150, align: 'right' as const, render: (value: number) => currency.format(value),
+      dataIndex: 'annualCost', key: 'annualCost', width: 150, align: 'right' as const, render: (value: number) => category === 'assistance' ? currency.format(value) : workloadCurrency.format(value),
     },
   ];
 
@@ -200,11 +240,12 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
         </>}
       </Space></div>
       <section className="metrics-grid">
-        <Card><Statistic title="动作总数" value={result.totalActionCount} suffix="项" /></Card>
+        <Card className="action-library-card"><Statistic title="标准动作库" value={standardActionCount} suffix="项" /><small>当前启用 {activeActionCount} 项{disabledActionCount > 0 ? ` · 停用 ${disabledActionCount} 项` : ''}{customActionCount > 0 ? ` · 自定义 ${customActionCount} 项` : ''}</small></Card>
         <Card><Statistic title="配置总人数" value={totalStaffingCount} precision={0} suffix="人" /></Card>
-        <Card className="cost-card"><Statistic title={explainedTitle('项目年度用工预算', '汇总工作量后按完整岗位人数向上取整，小幅调整时预算可能暂时不变。')} value={result.annualCost} precision={0} prefix="¥" /></Card>
+        <Card className="cost-card"><Statistic title={explainedTitle('项目年度用工预算', '汇总工作量后按完整岗位人数向上取整，小幅调整时预算可能暂时不变。')} value={result.annualCost} formatter={(value) => wholeNumber.format(Number(value))} prefix="¥" /></Card>
         <Card><Statistic title={explainedTitle('服务成本单价', '项目年度用工预算除以住宅收费面积和12个月。')} value={serviceCostPerSqmMonth ?? '—'} precision={serviceCostPerSqmMonth === null ? undefined : 2} suffix={serviceCostPerSqmMonth === null ? undefined : '元/㎡·月'} /></Card>
       </section>
+      {result.version === 2 && <Card className="management-cost-card" size="small"><div><strong>管理人员成本</strong><small>单独计入项目总人数和年度用工预算</small></div><span><strong>{displayStaffingCount(result.management.headcount)}人</strong><small>配置人数</small></span><span><strong>{currency.format(result.management.annualCost)}</strong><small>年度成本</small></span></Card>}
       <div className="workload-cost-strip">
         <div><strong>工作量折算成本</strong><Tooltip title="全部有效动作的年工作量成本合计，修改动作后立即变化。"><InfoCircleOutlined aria-label="工作量折算成本说明" /></Tooltip></div>
         <span>{currency.format(currentWorkloadCost)}</span>
@@ -215,15 +256,19 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
         : '工作量折算成本' + workloadDirection + ' ' + currency.format(Math.abs(workloadDelta)) + '；项目年度用工预算同步' + budgetDirection + ' ' + currency.format(Math.abs(budgetDelta)) + '。'} />}
       {recalculation.error && <Alert className="cost-change-alert" type="error" showIcon message={recalculation.error} />}
       <Card className="result-table-card" variant="borderless">
-        <div className="table-toolbar"><Tabs activeKey={category} onChange={(key) => setCategory(key as ActionCategory)} items={categoryOrder.map((key) => { const item = result.categories.find((entry) => entry.category === key)!; return { key, label: item.title + ' ' + item.actionCount }; })} /><Space wrap>
+        <div className="table-toolbar"><Tabs activeKey={category} onChange={(key) => { setCategory(key as ActionCategory); setPage(1); }} items={availableCategories.map((key) => { const item = result.categories.find((entry) => entry.category === key)!; return { key, label: item.title + ' ' + item.actionCount }; })} /></div>
+        <div className="result-filters"><Space wrap>
+          <Checkbox checked={showZeroValues} onChange={(event) => { setShowZeroValues(event.target.checked); setPage(1); }}>显示零值</Checkbox>
+          <Checkbox checked={adjustedOnly} onChange={(event) => { setAdjustedOnly(event.target.checked); setDisabledOrCustomOnly(false); setPage(1); }}>只看已调整</Checkbox>
+          <Checkbox checked={disabledOrCustomOnly} onChange={(event) => { setDisabledOrCustomOnly(event.target.checked); setAdjustedOnly(false); setPage(1); }}>只看已停用/自定义</Checkbox>
           {editing && <Button icon={<ReloadOutlined />} onClick={() => setDraftAdjustments(structuredClone(EMPTY_ADJUSTMENTS))}>恢复原测算</Button>}
-          <Input allowClear prefix={<SearchOutlined />} placeholder="搜索动作、属性、依据或频次" value={query} onChange={(event) => setQuery(event.target.value)} />
-        </Space></div>
+        </Space><Input allowClear prefix={<SearchOutlined />} placeholder="搜索动作、属性、依据或频次" value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} /></div>
         <div className="category-summary"><span>{summary.title}共 <strong>{summary.actionCount}</strong> 项</span><span>工作量相当于 <strong>{workloadEquivalentHeadcount.toFixed(1)}</strong> 人，实际配置 <strong>{displayStaffingCount(summary.headcount)}</strong> 人</span><span>年工作量成本 <strong>{currency.format(summary.workloadAnnualCost ?? categoryActions.filter((item) => item.enabled !== false).reduce((sum, item) => sum + item.annualCost, 0))}</strong></span><span>用工预算 <strong>{currency.format(summary.annualCost)}</strong></span></div>
+        {category !== 'assistance' && <div className="cost-basis-note">动作工作量成本用于逐项核算；分类取整用工预算按汇总工时折算完整岗位，不能用表内行成本相加替代。{category === 'pestControl' && categoryActions.some(hasSharedWorkloadGroup) ? '四害消杀的共享工作量已按动作分摊。' : ''}</div>}
         {recalculation.loading && <div className="recalculation-state"><LoadingOutlined /> 正在重算</div>}
         {editing
-          ? <ActionEditor category={category} actions={actions} adjustments={draftAdjustments} onChange={setDraftAdjustments} />
-          : <Table<ServiceActionResult> rowKey="id" size="middle" columns={columns} dataSource={actions} pagination={{ pageSize: 12, showSizeChanger: false, showTotal: (total) => '共 ' + total + ' 项' }} scroll={{ x: 1100 }} locale={{ emptyText: '没有匹配的动作' }} />}
+          ? <ActionEditor key={`${category}-${showZeroValues}-${adjustedOnly}-${disabledOrCustomOnly}-${query}`} category={category} actions={actions} adjustments={draftAdjustments} onChange={setDraftAdjustments} />
+          : <Table<ServiceActionResult> rowKey="id" size="middle" columns={columns} dataSource={actions} pagination={{ current: page, pageSize: 12, showSizeChanger: false, showTotal: (total) => '共 ' + total + ' 项', onChange: setPage }} scroll={{ x: 1100 }} locale={{ emptyText: '没有匹配的动作' }} />}
       </Card>
       <Modal
         className="generation-modal"

@@ -5,6 +5,11 @@ import { afterEach, expect, test, vi } from 'vitest';
 vi.mock('./workbookCalculator', () => ({ calculateProject: vi.fn(), previewAdvancedParameters: vi.fn() }));
 vi.mock('./excelRecognition', () => ({ recognizeExcelFile: vi.fn() }));
 import App from './App';
+// @ts-expect-error The runtime calculation engine is exercised directly so the UI fixture contains all 452 actions.
+import { applyAdjustments } from '../scripts/calculation/adjustments.mjs';
+// @ts-expect-error The runtime calculation engine is exercised directly so the UI fixture contains all 452 actions.
+import { calculateProject as calculateCompleteProject } from '../scripts/calculation/engine.mjs';
+import { displayActionName } from './calculation';
 import { recognizeExcelFile } from './excelRecognition';
 import { EXAMPLE_PROJECT } from './exampleProject';
 import { storage } from './storage';
@@ -93,6 +98,10 @@ function clickButtonText(name: string) {
   const button = [...document.querySelectorAll('button')].find((item) => item.textContent?.replace(/\s/g, '') === name);
   if (!button) throw new Error(`找不到按钮：${name}`);
   fireEvent.click(button);
+}
+
+function completeResult() {
+  return calculateCompleteProject(EXAMPLE_PROJECT);
 }
 
 test('uses the project center as the workspace home', () => {
@@ -385,6 +394,80 @@ test('explains workload cost separately from the rounded staffing budget', () =>
   expect(screen.getByRole('button', { name: /调整服务方案/ })).toBeTruthy();
 });
 
+test('shows all seven complete-model categories, the 452-action library, management, and result-derived totals', () => {
+  const result = completeResult();
+  storage.saveResult(result);
+  window.history.replaceState({}, '', '/project/result');
+  render(<App />);
+
+  const libraryCard = screen.getByText('标准动作库').closest('.ant-card');
+  expect(libraryCard?.textContent).toContain('452项');
+  expect(libraryCard?.textContent).toContain('当前启用 452 项');
+  for (const title of ['服务', '清洁', '绿化', '客助', '四害消杀', '工程委外', '工程常规']) {
+    expect(screen.getByRole('tab', { name: new RegExp(title) })).toBeTruthy();
+  }
+  const managementCard = screen.getByText('管理人员成本').closest('.ant-card');
+  expect(managementCard?.textContent).toContain(`${result.management.headcount}人`);
+  expect(managementCard?.textContent).toContain(result.management.annualCost.toLocaleString('zh-CN'));
+  expect(screen.getByText('配置总人数').closest('.ant-card')?.textContent).toContain(`${Math.ceil(result.totalHeadcount)}人`);
+  expect(screen.getByText('项目年度用工预算').closest('.ant-card')?.textContent).toContain(Math.round(result.annualCost).toLocaleString('zh-CN'));
+});
+
+test('filters zero, adjusted, disabled, and custom actions without changing summaries', () => {
+  const baseline = completeResult();
+  const disabled = baseline.actions.find((item: { category: string }) => item.category === 'service');
+  const adjusted = baseline.actions.find((item: { category: string; id: string }) => item.category === 'service' && item.id !== disabled.id);
+  const zero = baseline.actions.find((item: { category: string; annualHours?: number; annualCost: number }) => item.category === 'engineeringRoutine' && !item.annualHours && !item.annualCost);
+  expect(disabled && adjusted && zero).toBeTruthy();
+  const adjustments = {
+    version: 1 as const,
+    overrides: {
+      [disabled.id]: { disabled: true },
+      [adjusted.id]: { annualHours: Number(adjusted.annualHours ?? 0) + 1 },
+    },
+    customActions: [{ id: 'custom-service-result-test', category: 'service' as const, action: '自定义夜间巡查', property: '自定义', annualFrequency: 12, annualHours: 24 }],
+  };
+  const result = applyAdjustments(baseline, adjustments);
+  const record = storage.saveCalculatedProject(baseline);
+  storage.saveProjectAdjustments(record.id, adjustments, result);
+  window.history.replaceState({}, '', '/project/result');
+  render(<App />);
+
+  const annualBudget = screen.getByText('项目年度用工预算').closest('.ant-card')?.textContent;
+  expect(screen.queryByText(displayActionName(disabled.action))).toBeNull();
+  fireEvent.click(screen.getByRole('checkbox', { name: '只看已停用/自定义' }));
+  expect(screen.getByText(displayActionName(disabled.action))).toBeTruthy();
+  expect(screen.getByText('自定义夜间巡查')).toBeTruthy();
+  fireEvent.click(screen.getByRole('checkbox', { name: '只看已停用/自定义' }));
+  fireEvent.click(screen.getByRole('checkbox', { name: '只看已调整' }));
+  expect(screen.getByText(displayActionName(adjusted.action))).toBeTruthy();
+  fireEvent.click(screen.getByRole('tab', { name: /工程常规/ }));
+  fireEvent.change(screen.getByPlaceholderText('搜索动作、属性、依据或频次'), { target: { value: displayActionName(zero.action) } });
+  expect(screen.queryByText(displayActionName(zero.action))).toBeNull();
+  fireEvent.click(screen.getByRole('checkbox', { name: '只看已调整' }));
+  fireEvent.click(screen.getByRole('checkbox', { name: '显示零值' }));
+  expect(screen.getByText(displayActionName(zero.action))).toBeTruthy();
+  expect(screen.getByText('项目年度用工预算').closest('.ant-card')?.textContent).toBe(annualBudget);
+});
+
+test('renders one 12-item page, resets pagination on tab changes, and formats workload values', () => {
+  const result = completeResult();
+  storage.saveResult(result);
+  window.history.replaceState({}, '', '/project/result');
+  render(<App />);
+
+  expect(document.querySelectorAll('.ant-table-tbody > tr:not(.ant-table-measure-row)')).toHaveLength(12);
+  const serviceAction = result.actions.find((item: { category: string; annualHours?: number }) => item.category === 'service' && item.annualHours);
+  const row = screen.getByRole('row', { name: new RegExp(displayActionName(serviceAction.action)) });
+  expect(row.children[4]?.textContent).toMatch(/^\d[\d,]*$/);
+  expect(row.children[5]?.textContent).toMatch(/^\d[\d,]*\.\d{2}$/);
+  expect(row.children[6]?.textContent).toMatch(/¥[\d,]+\.\d{2}/);
+  fireEvent.click(document.querySelector('.ant-pagination-item-2')!);
+  expect(document.querySelector('.ant-pagination-item-active')?.textContent).toBe('2');
+  fireEvent.click(screen.getByRole('tab', { name: /清洁/ }));
+  expect(document.querySelector('.ant-pagination-item-active')?.textContent).toBe('1');
+});
+
 test('shows action quantities as rounded whole numbers on the result page', () => {
   storage.saveResult({
     ...savedResult('湖畔家园', '2026-09-03T08:00:00.000Z', 481800),
@@ -407,7 +490,8 @@ test('shows action quantities as rounded whole numbers on the result page', () =
   expect(screen.queryByText('9882.375 平方米')).toBeNull();
   const roundedMetricsRow = screen.getByRole('row', { name: /草坪复绿/ });
   expect(roundedMetricsRow.children[4]?.textContent).toBe('104');
-  expect(roundedMetricsRow.children[5]?.textContent).toBe('9,307');
+  expect(roundedMetricsRow.children[5]?.textContent).toBe('9,307.05');
+  fireEvent.click(screen.getByRole('checkbox', { name: '显示零值' }));
   const missingQuantityRow = screen.getByRole('row', { name: /时花维护/ });
   expect(missingQuantityRow.children[2]?.textContent).toBe('—');
 });
