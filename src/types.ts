@@ -34,12 +34,16 @@ export interface ProjectData {
   buildings: BuildingTypeInput[];
   garageFloorArea: number;
   garageFloors: number;
+  advancedParameterOverrides?: Record<string, number>;
 }
 
 export type RecognizedBuildingData = { [Field in keyof BuildingTypeInput]: BuildingTypeInput[Field] | null };
 export type RecognizedProjectData = {
-  [Field in Exclude<keyof ProjectData, 'buildings'>]: ProjectData[Field] | null;
-} & { buildings: RecognizedBuildingData[] };
+  [Field in Exclude<keyof ProjectData, 'buildings' | 'advancedParameterOverrides'>]: ProjectData[Field] | null;
+} & {
+  buildings: RecognizedBuildingData[];
+  advancedParameterOverrides?: Record<string, number> | null;
+};
 
 export type RecognitionStatus = 'recognized' | 'needs_confirmation' | 'missing' | 'derived';
 
@@ -63,7 +67,33 @@ export interface ExcelRecognitionResult {
   warnings: string[];
 }
 
-export type ActionCategory = 'service' | 'cleaning' | 'greening' | 'assistance';
+export type ActionCategory =
+  | 'service'
+  | 'cleaning'
+  | 'greening'
+  | 'assistance'
+  | 'pestControl'
+  | 'engineeringOutsourced'
+  | 'engineeringRoutine';
+
+export type AdvancedParameterGroup = 'basement' | 'building' | 'grounds' | 'staffingCost';
+export type AdvancedParameterSource = 'derived' | 'estimated' | 'template' | 'manual';
+
+export interface AdvancedParameterSnapshot {
+  key: string;
+  label: string;
+  group: AdvancedParameterGroup;
+  unit: string;
+  defaultValue: number;
+  value: number;
+  source: AdvancedParameterSource;
+  affectedActionIds: string[];
+}
+
+export interface ManagementCostSummary {
+  headcount: number;
+  annualCost: number;
+}
 
 export interface ActionOverride {
   annualFrequency?: number;
@@ -117,8 +147,7 @@ export interface CategorySummary {
   workloadEquivalentHeadcount?: number;
 }
 
-export interface CalculationResult {
-  version: 1;
+interface CalculationResultBase {
   calculatedAt: string;
   project: ProjectData;
   totalActionCount: number;
@@ -128,6 +157,22 @@ export interface CalculationResult {
   categories: CategorySummary[];
   actions: ServiceActionResult[];
 }
+
+export interface CalculationResultV2 extends CalculationResultBase {
+  version: 2;
+  advancedParameterVersion: string;
+  advancedParameters: AdvancedParameterSnapshot[];
+  standardActionCount: 452;
+  activeActionCount: number;
+  management: ManagementCostSummary;
+}
+
+/** @deprecated Temporary compatibility until the calculation engine migrates to V2. */
+export interface LegacyCalculationResult extends CalculationResultBase {
+  version: 1;
+}
+
+export type CalculationResult = CalculationResultV2 | LegacyCalculationResult;
 
 export interface PresentationRecord {
   fileName: string;

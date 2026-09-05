@@ -28,9 +28,17 @@ describe('property calculation rules', () => {
     expect(COST_BAND_FACTORS.high).toBe(1.2);
   });
 
-  test('locks the result inventory to exactly 122 actions', () => {
-    expect(ACTION_COUNTS).toEqual({ service: 17, cleaning: 48, greening: 51, assistance: 6 });
-    expect(Object.values(ACTION_COUNTS).reduce((sum, count) => sum + count, 0)).toBe(122);
+  test('locks the complete result inventory to exactly 452 standard actions', () => {
+    expect(ACTION_COUNTS).toEqual({
+      service: 17,
+      cleaning: 48,
+      greening: 51,
+      assistance: 6,
+      pestControl: 7,
+      engineeringOutsourced: 95,
+      engineeringRoutine: 228,
+    });
+    expect(Object.values(ACTION_COUNTS).reduce((sum, count) => sum + count, 0)).toBe(452);
   });
 
   test('hides internal service codes from action names', () => {

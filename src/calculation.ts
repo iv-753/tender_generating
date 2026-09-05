@@ -6,6 +6,9 @@ export const ACTION_COUNTS = {
   cleaning: 48,
   greening: 51,
   assistance: 6,
+  pestControl: 7,
+  engineeringOutsourced: 95,
+  engineeringRoutine: 228,
 } as const;
 
 export const COST_BAND_FACTORS: Record<CostBand, number> = {
