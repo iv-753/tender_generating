@@ -47,10 +47,12 @@ const recognitionResult = {
   project: {
     ...EXAMPLE_PROJECT,
     projectName: '云麓华庭',
-    region: '浙江省杭州市余杭区',
-    city: '杭州',
+    region: '浙江省',
+    city: '杭州市',
     serviceGrade: 'B' as const,
-    costBand: 'high' as const,
+    costBand: 'upper' as const,
+    recommendedCostBand: 'upper' as const,
+    costBandSourceVersion: '2025-wage-2026-09',
     residentialChargeArea: 108000,
     seasonalFlowerArea: null,
   },
@@ -106,6 +108,18 @@ test('uses enterprise modules as the global navigation', () => {
   expect(screen.getByRole('link', { name: /管理中心/ })).toBeTruthy();
   expect(screen.queryByText('企业内网')).toBeNull();
   expect(screen.queryByRole('link', { name: /新建测算/ })).toBeNull();
+});
+
+test('uses province and city selectors with an adjacent cost override', () => {
+  window.history.replaceState({}, '', '/project/new');
+  render(<App />);
+
+  expect(screen.getByLabelText('省份')).toBeTruthy();
+  expect(screen.getByLabelText('城市')).toBeTruthy();
+  expect(screen.queryByText('成本城市')).toBeNull();
+  fireEvent.click(screen.getByText('测算参数'));
+  expect(screen.getByText(/系统建议：高成本城市/)).toBeTruthy();
+  expect(screen.getByText(/当前采用：较高成本城市.*已手动调整/)).toBeTruthy();
 });
 
 test('opens a project workspace with five business views', () => {

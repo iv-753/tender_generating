@@ -11,7 +11,7 @@ type FieldDefinition = { key: string; label: string; unit?: string; format?: 'ra
 
 const groups: Array<{ title: string; fields: FieldDefinition[] }> = [
   { title: '项目概况', fields: [
-    { key: 'projectName', label: '项目名称' }, { key: 'region', label: '项目地区' }, { key: 'city', label: '成本城市' },
+    { key: 'projectName', label: '项目名称' }, { key: 'region', label: '省份' }, { key: 'city', label: '城市' },
     { key: 'totalBuildingArea', label: '总建筑面积', unit: '㎡' }, { key: 'residentialChargeArea', label: '住宅收费面积', unit: '㎡' },
     { key: 'deliveredHouseholds', label: '已交付户数', unit: '户' }, { key: 'receivedHouseholds', label: '已收楼户数', unit: '户' }, { key: 'occupiedHouseholds', label: '常住户数', unit: '户' },
   ] },

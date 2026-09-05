@@ -1,11 +1,12 @@
 import { ArrowLeftOutlined, ArrowRightOutlined, DeleteOutlined, FileProtectOutlined, PlusOutlined } from '@ant-design/icons';
 import { Alert, Button, Card, Col, Divider, Form, Input, InputNumber, message, Row, Select, Space, Spin, Steps, Typography } from 'antd';
 import { useMemo, useState } from 'react';
-import { COST_BAND_LABELS, gradeLabel, inferCostBand, validateProjectData } from '../calculation';
+import { COST_BAND_LABELS, gradeLabel, validateProjectData } from '../calculation';
+import { CITY_CATALOG_VERSION, allowedCostBands, cityOptions, getCityRecommendation, normalizeProjectLocation, provinceOptions } from '../cityCatalog';
 import ExcelImportPanel from '../components/ExcelImportPanel';
 import { EXAMPLE_PROJECT } from '../exampleProject';
 import { storage } from '../storage';
-import type { BuildingTypeInput, CostBand, ExcelRecognitionResult, ProjectData, ServiceGrade } from '../types';
+import type { BuildingTypeInput, ExcelRecognitionResult, ProjectData, ServiceGrade } from '../types';
 import { calculateProject } from '../workbookCalculator';
 
 type ProjectNewPageProps = { onNavigate: () => void };
@@ -36,8 +37,13 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [calculating, setCalculating] = useState(false);
   const [error, setError] = useState('');
-  const draft = useMemo(() => storage.loadDraft() ?? EXAMPLE_PROJECT, []);
+  const draft = useMemo(() => normalizeProjectLocation(storage.loadDraft() ?? EXAMPLE_PROJECT), []);
   const watched = Form.useWatch([], form) as Partial<ProjectData> | undefined;
+  const province = Form.useWatch('region', form);
+  const city = Form.useWatch('city', form);
+  const selectedCostBand = Form.useWatch('costBand', form);
+  const recommendedCostBand = getCityRecommendation(province, city);
+  const costBandOptions = allowedCostBands(recommendedCostBand).map((value) => ({ value, label: COST_BAND_LABELS[value] }));
 
   const getValidProject = async () => {
     const values = await form.validateFields();
@@ -93,13 +99,13 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
           <aside className="step-rail"><Typography.Text className="panel-kicker">录入进度</Typography.Text><Steps direction="vertical" current={currentStep} items={steps.map((title) => ({ title }))} onChange={setCurrentStep} /></aside>
           <Card className="form-panel" bordered={false}>
             {error && <Alert className="form-alert" type="error" showIcon message={error} closable onClose={() => setError('')} />}
-            <Form<ProjectData> form={form} layout="vertical" initialValues={draft} requiredMark="optional" onValuesChange={(changed) => { if ('city' in changed) form.setFieldValue('costBand', inferCostBand(String(changed.city ?? ''))); }}>
+            <Form<ProjectData> form={form} layout="vertical" initialValues={draft} requiredMark="optional">
               <section className={currentStep === 0 ? 'form-section' : 'form-section is-hidden'}>
                 <Typography.Title level={4}>01 / 项目概况</Typography.Title>
                 <Row gutter={16}>
                   <Col xs={24} md={12}><Form.Item name="projectName" label="项目名称" rules={[{ required: true, whitespace: true, message: '请填写项目名称' }]}><Input placeholder="例如：滨江花园" /></Form.Item></Col>
-                  <Col xs={24} md={12}><Form.Item name="region" label="项目地区" rules={[{ required: true, whitespace: true, message: '请填写项目地区' }]}><Input placeholder="省 / 市 / 区" /></Form.Item></Col>
-                  <Col xs={24} md={8}><Form.Item name="city" label="成本城市" rules={[{ required: true, whitespace: true, message: '请填写城市' }]}><Input placeholder="例如：广州" /></Form.Item></Col>
+                  <Col xs={24} md={12}><Form.Item name="region" label="省份" rules={[{ required: true, message: '请选择省份' }]}><Select showSearch optionFilterProp="label" placeholder="请选择省份" options={provinceOptions} onChange={() => form.setFieldsValue({ city: undefined, costBand: undefined, recommendedCostBand: undefined, costBandSourceVersion: undefined })} /></Form.Item></Col>
+                  <Col xs={24} md={8}><Form.Item name="city" label="城市" rules={[{ required: true, message: '请选择城市' }]}><Select showSearch optionFilterProp="label" placeholder={province ? '请选择城市' : '请先选择省份'} disabled={!province} options={cityOptions(province)} onChange={(nextCity) => { const next = getCityRecommendation(province, nextCity); form.setFieldsValue({ costBand: next, recommendedCostBand: next, costBandSourceVersion: CITY_CATALOG_VERSION }); }} /></Form.Item></Col>
                   <Col xs={24} md={8}><NumberField name="totalBuildingArea" label="总建筑面积" suffix="㎡" /></Col>
                   <Col xs={24} md={8}><NumberField name="residentialChargeArea" label="住宅收费面积" suffix="㎡" /></Col>
                   <Col xs={24} md={8}><NumberField name="deliveredHouseholds" label="已交付户数" suffix="户" /></Col>
@@ -129,7 +135,9 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
               <section className={currentStep === 4 ? 'form-section' : 'form-section is-hidden'}>
                 <Typography.Title level={4}>05 / 测算参数</Typography.Title>
                 <Form.Item name="serviceGrade" label="服务等级" rules={[{ required: true, message: '请选择服务等级' }]}><Select options={(Object.keys({ A: 1, B: 1, C: 1, D: 1 }) as ServiceGrade[]).map((value) => ({ value, label: gradeLabel(value) }))} /></Form.Item>
-                <Form.Item name="costBand" label="城市成本档位" rules={[{ required: true, message: '未知城市必须手动选择成本档位' }]}><Select placeholder="未知城市请手动选择" options={(Object.keys(COST_BAND_LABELS) as CostBand[]).map((value) => ({ value, label: COST_BAND_LABELS[value] }))} /></Form.Item>
+                <Form.Item name="costBand" label="城市成本档位" rules={[{ required: true, message: '请选择城市成本档位' }]} extra={recommendedCostBand && selectedCostBand ? `系统建议：${COST_BAND_LABELS[recommendedCostBand]}；当前采用：${COST_BAND_LABELS[selectedCostBand]}${selectedCostBand !== recommendedCostBand ? '（已手动调整）' : ''}` : '请先选择省份和城市'}><Select disabled={!recommendedCostBand} options={costBandOptions} /></Form.Item>
+                <Form.Item name="recommendedCostBand" hidden><Input /></Form.Item>
+                <Form.Item name="costBandSourceVersion" hidden><Input /></Form.Item>
               </section>
               <Divider />
               <div className="form-footer"><Space><Button icon={<ArrowLeftOutlined />} disabled={currentStep === 0} onClick={() => setCurrentStep((value) => value - 1)}>上一步</Button><Button disabled={currentStep === 4} onClick={() => setCurrentStep((value) => value + 1)}>下一步 <ArrowRightOutlined /></Button></Space><Space wrap><Button onClick={saveDraft}>保存草稿</Button><Button type="primary" loading={calculating} onClick={startCalculation}>开始测算</Button></Space></div>

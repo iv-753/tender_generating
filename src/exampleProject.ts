@@ -2,10 +2,12 @@ import type { ProjectData } from './types';
 
 export const EXAMPLE_PROJECT: ProjectData = {
   projectName: '增城示范花园',
-  region: '广东省广州市增城区',
-  city: '广州',
+  region: '广东省',
+  city: '广州市',
   serviceGrade: 'C',
   costBand: 'upper',
+  recommendedCostBand: 'high',
+  costBandSourceVersion: '2025-wage-2026-09',
   totalBuildingArea: 252480.75,
   residentialChargeArea: 149904,
   deliveredHouseholds: 2256,

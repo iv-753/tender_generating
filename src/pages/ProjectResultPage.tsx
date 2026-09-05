@@ -3,6 +3,7 @@ import { Button, Card, Empty, Input, Modal, Progress, Result, Space, Statistic, 
 import { useMemo, useState } from 'react';
 import BidGenerationButton from '../components/BidGenerationButton';
 import { COST_BAND_LABELS, displayActionName, displayQuantity, displayStaffingCount, gradeLabel, showsActionHeadcount } from '../calculation';
+import { formatProjectLocation } from '../cityCatalog';
 import { storage } from '../storage';
 import type { ActionCategory, ServiceActionResult } from '../types';
 
@@ -97,7 +98,7 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
   const progress = generation.status === 'complete' ? 100 : currentStage * 25;
   return (
     <main className="workspace-page">
-      <div className="result-heading blueprint-rule"><div><Typography.Title level={2}>{result.project.projectName}</Typography.Title><Typography.Paragraph type="secondary">{result.project.region} · {gradeLabel(result.project.serviceGrade)} · {COST_BAND_LABELS[result.project.costBand]}</Typography.Paragraph></div><Space wrap><Button icon={<ArrowLeftOutlined />} onClick={onNavigate}>返回修改</Button><BidGenerationButton result={result} /><Button type="primary" icon={<FilePptOutlined />} loading={generation.status === 'running'} onClick={generatePresentation}>生成路演PPT</Button></Space></div>
+      <div className="result-heading blueprint-rule"><div><Typography.Title level={2}>{result.project.projectName}</Typography.Title><Typography.Paragraph type="secondary">{formatProjectLocation(result.project)} · {gradeLabel(result.project.serviceGrade)} · {COST_BAND_LABELS[result.project.costBand]}</Typography.Paragraph></div><Space wrap><Button icon={<ArrowLeftOutlined />} onClick={onNavigate}>返回修改</Button><BidGenerationButton result={result} /><Button type="primary" icon={<FilePptOutlined />} loading={generation.status === 'running'} onClick={generatePresentation}>生成路演PPT</Button></Space></div>
       <section className="metrics-grid"><Card><Statistic title="动作总数" value={result.totalActionCount} suffix="项" /></Card><Card><Statistic title="配置总人数" value={totalStaffingCount} precision={0} suffix="人" /></Card><Card className="cost-card"><Statistic title="年成本" value={result.annualCost} precision={0} prefix="¥" /></Card><Card><Statistic title="服务成本单价" value={serviceCostPerSqmMonth} precision={2} suffix="元/㎡·月" /></Card></section>
       <Card className="result-table-card" bordered={false}>
         <div className="table-toolbar"><Tabs activeKey={category} onChange={(key) => setCategory(key as ActionCategory)} items={categoryOrder.map((key) => { const item = result.categories.find((entry) => entry.category === key)!; return { key, label: `${item.title} ${item.actionCount}` }; })} /><Input allowClear prefix={<SearchOutlined />} placeholder="搜索动作、属性、依据或频次" value={query} onChange={(event) => setQuery(event.target.value)} /></div>

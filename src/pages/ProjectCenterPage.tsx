@@ -2,6 +2,7 @@ import { CopyOutlined, DeleteOutlined, EditOutlined, FileTextOutlined, FolderOpe
 import { Button, Card, Empty, Input, message, Popconfirm, Space, Table, Tag, Typography } from 'antd';
 import { useMemo, useState } from 'react';
 import { displayStaffingCount, gradeLabel } from '../calculation';
+import { formatProjectLocation } from '../cityCatalog';
 import { storage } from '../storage';
 import type { ProjectRecord } from '../types';
 
@@ -46,7 +47,7 @@ export default function ProjectCenterPage({ onNew, onOpen, onEdit }: ProjectCent
       render: (_: unknown, item: ProjectRecord) => (
         <div className="project-identity">
           <strong>{item.result.project.projectName}</strong>
-          <span>{item.result.project.region}</span>
+          <span>{formatProjectLocation(item.result.project)}</span>
         </div>
       ),
     },
