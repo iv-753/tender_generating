@@ -1,8 +1,13 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import { ADVANCED_PARAMETER_DEFINITIONS } from './rules/advanced-parameter-definitions.mjs';
+import { ASSISTANCE_RULES } from './rules/assistance-rules.mjs';
+import { CLEANING_RULES } from './rules/cleaning-rules.mjs';
+import { SERVICE_RULES } from './rules/service-rules.mjs';
+import { GREENING_RULES } from './rules/greening-rules.mjs';
 import { PEST_CONTROL_RULES } from './rules/pest-control-rules.mjs';
 import { ENGINEERING_OUTSOURCED_RULES } from './rules/engineering-outsourced-rules.mjs';
 import { ENGINEERING_ROUTINE_RULES } from './rules/engineering-routine-rules.mjs';
@@ -14,6 +19,12 @@ const RULE_SETS = [
 ];
 const ALL_RULES = RULE_SETS.flatMap(([, rules]) => rules);
 const PARAMETER_KEYS = new Set(ADVANCED_PARAMETER_DEFINITIONS.map(({ key }) => key));
+
+function assertDeepFrozen(value, path = 'catalog') {
+  if (!value || typeof value !== 'object') return;
+  assert.ok(Object.isFrozen(value), `${path} 未冻结`);
+  for (const [key, nested] of Object.entries(value)) assertDeepFrozen(nested, `${path}.${key}`);
+}
 
 test('完整动作目录包含工作簿的全部 330 个来源行', () => {
   assert.equal(PEST_CONTROL_RULES.length, 7);
@@ -119,10 +130,54 @@ test('四档工时同时保留公式倍率、比例在途和固定在途口径',
   });
 });
 
+test('规则目录的嵌套对象和数组均不可变', () => {
+  for (const [name, catalog] of [
+    ['SERVICE_RULES', SERVICE_RULES],
+    ['CLEANING_RULES', CLEANING_RULES],
+    ['GREENING_RULES', GREENING_RULES],
+    ['ASSISTANCE_RULES', ASSISTANCE_RULES],
+    ['PEST_CONTROL_RULES', PEST_CONTROL_RULES],
+    ['ENGINEERING_OUTSOURCED_RULES', ENGINEERING_OUTSOURCED_RULES],
+    ['ENGINEERING_ROUTINE_RULES', ENGINEERING_ROUTINE_RULES],
+    ['ADVANCED_PARAMETER_DEFINITIONS', ADVANCED_PARAMETER_DEFINITIONS],
+  ]) assertDeepFrozen(catalog, name);
+});
+
+test('独立快照锁定 330 行来源映射与关键数值摘要', async () => {
+  const snapshotUrl = new URL('./fixtures/full-rule-catalog-snapshot.json', import.meta.url);
+  const mapUrl = new URL('./migration/full-model-parameter-map.json', import.meta.url);
+  const snapshot = JSON.parse(await readFile(snapshotUrl, 'utf8'));
+  const mapping = JSON.parse(await readFile(mapUrl, 'utf8'));
+  assert.equal(snapshot.workbookSha256, 'dfcd85e1e5666134359004423927fd28dd64c8037b0fcfca2dda46d51fbfab7d');
+  const sourceMap = Object.fromEntries(ALL_RULES.map((rule) => [rule.source, [rule.id, rule.quantityParameterKey]]));
+  assert.deepEqual(sourceMap, snapshot.rows);
+  const parameterMapSnapshot = Object.fromEntries(
+    Object.entries(snapshot.rows).map(([source, [, parameterKey]]) => [source, parameterKey]),
+  );
+  assert.deepEqual(mapping.rows, parameterMapSnapshot);
+
+  const criticalValues = ALL_RULES.map((rule) => ({
+    source: rule.source,
+    id: rule.id,
+    action: rule.action,
+    system: rule.system,
+    property: rule.property,
+    unit: rule.unit,
+    key: rule.quantityParameterKey,
+    quantity: rule.templateQuantity,
+    unitHours: rule.unitHours,
+    annualFrequency: rule.annualFrequency,
+    monthlyRate: rule.monthlyRate,
+  }));
+  const digest = createHash('sha256').update(JSON.stringify(criticalValues)).digest('hex');
+  assert.equal(digest, snapshot.criticalValuesSha256);
+});
+
 test('330 行参数映射完整且静态目录不泄漏公式或工作簿路径', async () => {
   const mapUrl = new URL('./migration/full-model-parameter-map.json', import.meta.url);
   const mapping = JSON.parse(await readFile(mapUrl, 'utf8'));
   assert.equal(mapping.version, '2026-09-full-model-v1');
+  assert.equal(mapping.workbook.sha256, 'dfcd85e1e5666134359004423927fd28dd64c8037b0fcfca2dda46d51fbfab7d');
   assert.equal(Object.keys(mapping.rows).length, 330);
 
   const expectedSources = new Set(ALL_RULES.map(({ source }) => source));

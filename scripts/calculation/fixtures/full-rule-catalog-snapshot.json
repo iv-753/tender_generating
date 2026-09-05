@@ -1,0 +1,1327 @@
+{
+  "version": "2026-09-full-model-v1",
+  "workbookSha256": "dfcd85e1e5666134359004423927fd28dd64c8037b0fcfca2dda46d51fbfab7d",
+  "criticalValuesSha256": "5c0f439285c2d99471f04410b54275934920ca2fc6f6fcea673b9cc1d26b44e3",
+  "rows": {
+    "四害消杀:5": [
+      "pest-control-5",
+      "pest.treatmentArea"
+    ],
+    "四害消杀:6": [
+      "pest-control-6",
+      "pest.treatmentArea"
+    ],
+    "四害消杀:7": [
+      "pest-control-7",
+      "pest.treatmentArea"
+    ],
+    "四害消杀:8": [
+      "pest-control-8",
+      "pest.treatmentArea"
+    ],
+    "四害消杀:9": [
+      "pest-control-9",
+      "pest.treatmentArea"
+    ],
+    "四害消杀:10": [
+      "pest-control-10",
+      "pest.treatmentArea"
+    ],
+    "四害消杀:11": [
+      "pest-control-11",
+      "pest.treatmentArea"
+    ],
+    "工程委外:5": [
+      "engineering-outsourced-5",
+      "basement.fireShutterCount"
+    ],
+    "工程委外:6": [
+      "engineering-outsourced-6",
+      "basement.parkingArea"
+    ],
+    "工程委外:7": [
+      "engineering-outsourced-7",
+      "basement.parkingArea"
+    ],
+    "工程委外:8": [
+      "engineering-outsourced-8",
+      "basement.parkingSurveillanceCount"
+    ],
+    "工程委外:9": [
+      "engineering-outsourced-9",
+      "basement.parkingSurveillanceCount"
+    ],
+    "工程委外:10": [
+      "engineering-outsourced-10",
+      "basement.vehicleEntranceEquipmentCount"
+    ],
+    "工程委外:11": [
+      "engineering-outsourced-11",
+      "basement.vehicleEntranceEquipmentCount"
+    ],
+    "工程委外:12": [
+      "engineering-outsourced-12",
+      "basement.generatorRoomCount"
+    ],
+    "工程委外:13": [
+      "engineering-outsourced-13",
+      "basement.generatorRoomCount"
+    ],
+    "工程委外:14": [
+      "engineering-outsourced-14",
+      "basement.transformerRoomCount"
+    ],
+    "工程委外:15": [
+      "engineering-outsourced-15",
+      "basement.transformerRoomCount"
+    ],
+    "工程委外:16": [
+      "engineering-outsourced-16",
+      "basement.telecomRoomCount"
+    ],
+    "工程委外:17": [
+      "engineering-outsourced-17",
+      "basement.telecomRoomCount"
+    ],
+    "工程委外:18": [
+      "engineering-outsourced-18",
+      "basement.telecomRoomCount"
+    ],
+    "工程委外:19": [
+      "engineering-outsourced-19",
+      "basement.telecomRoomCount"
+    ],
+    "工程委外:20": [
+      "engineering-outsourced-20",
+      "basement.domesticWaterPumpRoomCount"
+    ],
+    "工程委外:21": [
+      "engineering-outsourced-21",
+      "basement.domesticWaterPumpRoomCount"
+    ],
+    "工程委外:22": [
+      "engineering-outsourced-22",
+      "basement.poolPumpRoomCount"
+    ],
+    "工程委外:23": [
+      "engineering-outsourced-23",
+      "basement.poolPumpRoomCount"
+    ],
+    "工程委外:24": [
+      "engineering-outsourced-24",
+      "basement.parkingArea"
+    ],
+    "工程委外:25": [
+      "engineering-outsourced-25",
+      "basement.parkingArea"
+    ],
+    "工程委外:26": [
+      "engineering-outsourced-26",
+      "basement.wetAlarmValveRoomCount"
+    ],
+    "工程委外:27": [
+      "engineering-outsourced-27",
+      "basement.wetAlarmValveRoomCount"
+    ],
+    "工程委外:28": [
+      "engineering-outsourced-28",
+      "basement.powerDistributionRoomCount"
+    ],
+    "工程委外:29": [
+      "engineering-outsourced-29",
+      "basement.powerDistributionRoomCount"
+    ],
+    "工程委外:30": [
+      "engineering-outsourced-30",
+      "basement.chargingMeterRoomCount"
+    ],
+    "工程委外:31": [
+      "engineering-outsourced-31",
+      "basement.chargingMeterRoomCount"
+    ],
+    "工程委外:32": [
+      "engineering-outsourced-32",
+      "basement.pressurizationFanRoomCount"
+    ],
+    "工程委外:33": [
+      "engineering-outsourced-33",
+      "basement.pressurizationFanRoomCount"
+    ],
+    "工程委外:34": [
+      "engineering-outsourced-34",
+      "basement.smokeExhaustFanRoomCount"
+    ],
+    "工程委外:35": [
+      "engineering-outsourced-35",
+      "basement.smokeExhaustFanRoomCount"
+    ],
+    "工程委外:36": [
+      "engineering-outsourced-36",
+      "basement.supplyAirFanRoomCount"
+    ],
+    "工程委外:37": [
+      "engineering-outsourced-37",
+      "basement.supplyAirFanRoomCount"
+    ],
+    "工程委外:38": [
+      "engineering-outsourced-38",
+      "basement.sewageTreatmentRoomCount"
+    ],
+    "工程委外:39": [
+      "engineering-outsourced-39",
+      "basement.sewageTreatmentRoomCount"
+    ],
+    "工程委外:40": [
+      "engineering-outsourced-40",
+      "basement.rainwaterStorageRoomCount"
+    ],
+    "工程委外:41": [
+      "engineering-outsourced-41",
+      "basement.rainwaterStorageRoomCount"
+    ],
+    "工程委外:42": [
+      "engineering-outsourced-42",
+      "basement.lobbyAccessControlCount"
+    ],
+    "工程委外:43": [
+      "engineering-outsourced-43",
+      "basement.lobbyAccessControlCount"
+    ],
+    "工程委外:44": [
+      "engineering-outsourced-44",
+      "basement.lobbyArea"
+    ],
+    "工程委外:45": [
+      "engineering-outsourced-45",
+      "basement.lobbyArea"
+    ],
+    "工程委外:46": [
+      "engineering-outsourced-46",
+      "building.groundFloorLobbyAccessControlCount"
+    ],
+    "工程委外:47": [
+      "engineering-outsourced-47",
+      "building.groundFloorLobbyAccessControlCount"
+    ],
+    "工程委外:48": [
+      "engineering-outsourced-48",
+      "building.groundFloorLobbyArea"
+    ],
+    "工程委外:49": [
+      "engineering-outsourced-49",
+      "building.groundFloorLobbyArea"
+    ],
+    "工程委外:50": [
+      "engineering-outsourced-50",
+      "building.stiltFloorArea"
+    ],
+    "工程委外:51": [
+      "engineering-outsourced-51",
+      "building.stiltFloorArea"
+    ],
+    "工程委外:52": [
+      "engineering-outsourced-52",
+      "building.clubhouseCount"
+    ],
+    "工程委外:53": [
+      "engineering-outsourced-53",
+      "building.clubhouseCount"
+    ],
+    "工程委外:54": [
+      "engineering-outsourced-54",
+      "building.securityControlRoomCount"
+    ],
+    "工程委外:55": [
+      "engineering-outsourced-55",
+      "building.securityControlRoomCount"
+    ],
+    "工程委外:56": [
+      "engineering-outsourced-56",
+      "building.groundFloorElectricalRoomCount"
+    ],
+    "工程委外:57": [
+      "engineering-outsourced-57",
+      "building.groundFloorElectricalRoomCount"
+    ],
+    "工程委外:58": [
+      "engineering-outsourced-58",
+      "building.standardFloorArea"
+    ],
+    "工程委外:59": [
+      "engineering-outsourced-59",
+      "building.standardFloorArea"
+    ],
+    "工程委外:60": [
+      "engineering-outsourced-60",
+      "building.roofArea"
+    ],
+    "工程委外:61": [
+      "engineering-outsourced-61",
+      "building.roofArea"
+    ],
+    "工程委外:62": [
+      "engineering-outsourced-62",
+      "building.buildingCount"
+    ],
+    "工程委外:63": [
+      "engineering-outsourced-63",
+      "building.buildingCount"
+    ],
+    "工程委外:64": [
+      "engineering-outsourced-64",
+      "building.evacuationStairArea"
+    ],
+    "工程委外:65": [
+      "engineering-outsourced-65",
+      "building.evacuationStairArea"
+    ],
+    "工程委外:66": [
+      "engineering-outsourced-66",
+      "building.elevatorCount"
+    ],
+    "工程委外:67": [
+      "engineering-outsourced-67",
+      "building.elevatorCount"
+    ],
+    "工程委外:68": [
+      "engineering-outsourced-68",
+      "building.elevatorCount"
+    ],
+    "工程委外:69": [
+      "engineering-outsourced-69",
+      "building.elevatorCount"
+    ],
+    "工程委外:70": [
+      "engineering-outsourced-70",
+      "building.elevatorCount"
+    ],
+    "工程委外:71": [
+      "engineering-outsourced-71",
+      "building.elevatorCount"
+    ],
+    "工程委外:72": [
+      "engineering-outsourced-72",
+      "building.buildingCount"
+    ],
+    "工程委外:73": [
+      "engineering-outsourced-73",
+      "building.buildingCount"
+    ],
+    "工程委外:74": [
+      "engineering-outsourced-74",
+      "building.refugeFloorArea"
+    ],
+    "工程委外:75": [
+      "engineering-outsourced-75",
+      "building.refugeFloorArea"
+    ],
+    "工程委外:76": [
+      "engineering-outsourced-76",
+      "building.refugeFloorArea"
+    ],
+    "工程委外:77": [
+      "engineering-outsourced-77",
+      "building.refugeFloorArea"
+    ],
+    "工程委外:78": [
+      "engineering-outsourced-78",
+      "building.refugeWetAlarmRoomCount"
+    ],
+    "工程委外:79": [
+      "engineering-outsourced-79",
+      "building.refugeWetAlarmRoomCount"
+    ],
+    "工程委外:80": [
+      "engineering-outsourced-80",
+      "building.refugePressurizationFanRoomCount"
+    ],
+    "工程委外:81": [
+      "engineering-outsourced-81",
+      "building.refugePressurizationFanRoomCount"
+    ],
+    "工程委外:82": [
+      "engineering-outsourced-82",
+      "building.commercialCorridorArea"
+    ],
+    "工程委外:83": [
+      "engineering-outsourced-83",
+      "building.commercialCorridorArea"
+    ],
+    "工程委外:84": [
+      "engineering-outsourced-84",
+      "building.commercialEvacuationStairArea"
+    ],
+    "工程委外:85": [
+      "engineering-outsourced-85",
+      "building.commercialEvacuationStairArea"
+    ],
+    "工程委外:86": [
+      "engineering-outsourced-86",
+      "grounds.gatedEntrancePedestrianGateCount"
+    ],
+    "工程委外:87": [
+      "engineering-outsourced-87",
+      "grounds.gatedEntrancePedestrianGateCount"
+    ],
+    "工程委外:88": [
+      "engineering-outsourced-88",
+      "grounds.gatedEntranceVehicleGateCount"
+    ],
+    "工程委外:89": [
+      "engineering-outsourced-89",
+      "grounds.gatedEntranceVehicleGateCount"
+    ],
+    "工程委外:90": [
+      "engineering-outsourced-90",
+      "grounds.ungatedEntrancePedestrianGateCount"
+    ],
+    "工程委外:91": [
+      "engineering-outsourced-91",
+      "grounds.ungatedEntrancePedestrianGateCount"
+    ],
+    "工程委外:92": [
+      "engineering-outsourced-92",
+      "grounds.ungatedEntranceVehicleGateCount"
+    ],
+    "工程委外:93": [
+      "engineering-outsourced-93",
+      "grounds.ungatedEntranceVehicleGateCount"
+    ],
+    "工程委外:94": [
+      "engineering-outsourced-94",
+      "grounds.ungatedEntranceAccessGateCount"
+    ],
+    "工程委外:95": [
+      "engineering-outsourced-95",
+      "grounds.ungatedEntranceAccessGateCount"
+    ],
+    "工程委外:96": [
+      "engineering-outsourced-96",
+      "grounds.securityAudioLineLength"
+    ],
+    "工程委外:97": [
+      "engineering-outsourced-97",
+      "grounds.securityAudioLineLength"
+    ],
+    "工程委外:98": [
+      "engineering-outsourced-98",
+      "grounds.fireWaterPointCount"
+    ],
+    "工程委外:99": [
+      "engineering-outsourced-99",
+      "grounds.fireWaterPointCount"
+    ],
+    "工程常规:5": [
+      "engineering-routine-5",
+      "basement.parkingArea"
+    ],
+    "工程常规:6": [
+      "engineering-routine-6",
+      "basement.fireShutterCount"
+    ],
+    "工程常规:7": [
+      "engineering-routine-7",
+      "basement.parkingArea"
+    ],
+    "工程常规:8": [
+      "engineering-routine-8",
+      "basement.parkingArea"
+    ],
+    "工程常规:9": [
+      "engineering-routine-9",
+      "basement.parkingSurveillanceCount"
+    ],
+    "工程常规:10": [
+      "engineering-routine-10",
+      "basement.parkingArea"
+    ],
+    "工程常规:11": [
+      "engineering-routine-11",
+      "basement.drainageEquipmentCount"
+    ],
+    "工程常规:12": [
+      "engineering-routine-12",
+      "basement.drainageEquipmentCount"
+    ],
+    "工程常规:13": [
+      "engineering-routine-13",
+      "basement.drainageEquipmentCount"
+    ],
+    "工程常规:14": [
+      "engineering-routine-14",
+      "basement.evacuationStairArea"
+    ],
+    "工程常规:15": [
+      "engineering-routine-15",
+      "basement.parkingArea"
+    ],
+    "工程常规:16": [
+      "engineering-routine-16",
+      "basement.parkingArea"
+    ],
+    "工程常规:17": [
+      "engineering-routine-17",
+      "basement.parkingArea"
+    ],
+    "工程常规:18": [
+      "engineering-routine-18",
+      "basement.vehicleEntranceArea"
+    ],
+    "工程常规:19": [
+      "engineering-routine-19",
+      "basement.vehicleEntranceEquipmentCount"
+    ],
+    "工程常规:20": [
+      "engineering-routine-20",
+      "basement.generatorRoomCount"
+    ],
+    "工程常规:21": [
+      "engineering-routine-21",
+      "basement.generatorRoomCount"
+    ],
+    "工程常规:22": [
+      "engineering-routine-22",
+      "basement.generatorRoomCount"
+    ],
+    "工程常规:23": [
+      "engineering-routine-23",
+      "basement.generatorRoomCount"
+    ],
+    "工程常规:24": [
+      "engineering-routine-24",
+      "basement.transformerRoomCount"
+    ],
+    "工程常规:25": [
+      "engineering-routine-25",
+      "basement.transformerRoomCount"
+    ],
+    "工程常规:26": [
+      "engineering-routine-26",
+      "basement.transformerRoomCount"
+    ],
+    "工程常规:27": [
+      "engineering-routine-27",
+      "basement.transformerRoomCount"
+    ],
+    "工程常规:28": [
+      "engineering-routine-28",
+      "basement.telecomRoomCount"
+    ],
+    "工程常规:29": [
+      "engineering-routine-29",
+      "basement.telecomRoomCount"
+    ],
+    "工程常规:30": [
+      "engineering-routine-30",
+      "basement.domesticWaterPumpRoomCount"
+    ],
+    "工程常规:31": [
+      "engineering-routine-31",
+      "basement.domesticWaterPumpRoomCount"
+    ],
+    "工程常规:32": [
+      "engineering-routine-32",
+      "basement.domesticWaterPumpRoomCount"
+    ],
+    "工程常规:33": [
+      "engineering-routine-33",
+      "basement.domesticWaterPumpRoomCount"
+    ],
+    "工程常规:34": [
+      "engineering-routine-34",
+      "basement.poolPumpRoomCount"
+    ],
+    "工程常规:35": [
+      "engineering-routine-35",
+      "basement.poolPumpRoomCount"
+    ],
+    "工程常规:36": [
+      "engineering-routine-36",
+      "basement.poolPumpRoomCount"
+    ],
+    "工程常规:37": [
+      "engineering-routine-37",
+      "basement.poolPumpRoomCount"
+    ],
+    "工程常规:38": [
+      "engineering-routine-38",
+      "basement.firePumpRoomCount"
+    ],
+    "工程常规:39": [
+      "engineering-routine-39",
+      "basement.parkingArea"
+    ],
+    "工程常规:40": [
+      "engineering-routine-40",
+      "basement.wetAlarmValveRoomCount"
+    ],
+    "工程常规:41": [
+      "engineering-routine-41",
+      "basement.wetAlarmValveRoomCount"
+    ],
+    "工程常规:42": [
+      "engineering-routine-42",
+      "basement.powerDistributionRoomCount"
+    ],
+    "工程常规:43": [
+      "engineering-routine-43",
+      "basement.powerDistributionRoomCount"
+    ],
+    "工程常规:44": [
+      "engineering-routine-44",
+      "basement.powerDistributionRoomCount"
+    ],
+    "工程常规:45": [
+      "engineering-routine-45",
+      "basement.powerDistributionRoomCount"
+    ],
+    "工程常规:46": [
+      "engineering-routine-46",
+      "basement.chargingMeterRoomCount"
+    ],
+    "工程常规:47": [
+      "engineering-routine-47",
+      "basement.chargingMeterRoomCount"
+    ],
+    "工程常规:48": [
+      "engineering-routine-48",
+      "basement.chargingMeterRoomCount"
+    ],
+    "工程常规:49": [
+      "engineering-routine-49",
+      "basement.chargingMeterRoomCount"
+    ],
+    "工程常规:50": [
+      "engineering-routine-50",
+      "basement.pressurizationFanRoomCount"
+    ],
+    "工程常规:51": [
+      "engineering-routine-51",
+      "basement.pressurizationFanRoomCount"
+    ],
+    "工程常规:52": [
+      "engineering-routine-52",
+      "basement.smokeExhaustFanRoomCount"
+    ],
+    "工程常规:53": [
+      "engineering-routine-53",
+      "basement.smokeExhaustFanRoomCount"
+    ],
+    "工程常规:54": [
+      "engineering-routine-54",
+      "basement.supplyAirFanRoomCount"
+    ],
+    "工程常规:55": [
+      "engineering-routine-55",
+      "basement.supplyAirFanRoomCount"
+    ],
+    "工程常规:56": [
+      "engineering-routine-56",
+      "basement.sewageTreatmentRoomCount"
+    ],
+    "工程常规:57": [
+      "engineering-routine-57",
+      "basement.sewageTreatmentRoomCount"
+    ],
+    "工程常规:58": [
+      "engineering-routine-58",
+      "basement.sewageTreatmentRoomCount"
+    ],
+    "工程常规:59": [
+      "engineering-routine-59",
+      "basement.sewageTreatmentRoomCount"
+    ],
+    "工程常规:60": [
+      "engineering-routine-60",
+      "basement.rainwaterStorageRoomCount"
+    ],
+    "工程常规:61": [
+      "engineering-routine-61",
+      "basement.rainwaterStorageRoomCount"
+    ],
+    "工程常规:62": [
+      "engineering-routine-62",
+      "basement.rainwaterStorageRoomCount"
+    ],
+    "工程常规:63": [
+      "engineering-routine-63",
+      "basement.rainwaterStorageRoomCount"
+    ],
+    "工程常规:64": [
+      "engineering-routine-64",
+      "basement.lobbyArea"
+    ],
+    "工程常规:65": [
+      "engineering-routine-65",
+      "basement.lobbyAccessControlCount"
+    ],
+    "工程常规:66": [
+      "engineering-routine-66",
+      "basement.lobbyEquipmentCount"
+    ],
+    "工程常规:67": [
+      "engineering-routine-67",
+      "basement.lobbyArea"
+    ],
+    "工程常规:68": [
+      "engineering-routine-68",
+      "building.groundFloorLobbyArea"
+    ],
+    "工程常规:69": [
+      "engineering-routine-69",
+      "building.groundFloorLobbyAccessControlCount"
+    ],
+    "工程常规:70": [
+      "engineering-routine-70",
+      "building.groundFloorLobbyArea"
+    ],
+    "工程常规:71": [
+      "engineering-routine-71",
+      "building.stiltFloorArea"
+    ],
+    "工程常规:72": [
+      "engineering-routine-72",
+      "building.stiltFloorArea"
+    ],
+    "工程常规:73": [
+      "engineering-routine-73",
+      "building.stiltFloorArea"
+    ],
+    "工程常规:74": [
+      "engineering-routine-74",
+      "building.stiltFloorArea"
+    ],
+    "工程常规:75": [
+      "engineering-routine-75",
+      "building.clubhouseCount"
+    ],
+    "工程常规:76": [
+      "engineering-routine-76",
+      "building.clubhouseCount"
+    ],
+    "工程常规:77": [
+      "engineering-routine-77",
+      "building.clubhouseCount"
+    ],
+    "工程常规:78": [
+      "engineering-routine-78",
+      "building.clubhouseCount"
+    ],
+    "工程常规:79": [
+      "engineering-routine-79",
+      "building.securityControlRoomCount"
+    ],
+    "工程常规:80": [
+      "engineering-routine-80",
+      "building.securityControlRoomCount"
+    ],
+    "工程常规:81": [
+      "engineering-routine-81",
+      "building.groundFloorElectricalRoomCount"
+    ],
+    "工程常规:82": [
+      "engineering-routine-82",
+      "building.groundFloorElectricalRoomCount"
+    ],
+    "工程常规:83": [
+      "engineering-routine-83",
+      "building.groundFloorElectricalRoomCount"
+    ],
+    "工程常规:84": [
+      "engineering-routine-84",
+      "building.standardFloorArea"
+    ],
+    "工程常规:85": [
+      "engineering-routine-85",
+      "building.standardFloorArea"
+    ],
+    "工程常规:86": [
+      "engineering-routine-86",
+      "building.standardFloorArea"
+    ],
+    "工程常规:87": [
+      "engineering-routine-87",
+      "building.standardFloorArea"
+    ],
+    "工程常规:88": [
+      "engineering-routine-88",
+      "building.standardFloorArea"
+    ],
+    "工程常规:89": [
+      "engineering-routine-89",
+      "building.roofArea"
+    ],
+    "工程常规:90": [
+      "engineering-routine-90",
+      "building.roofArea"
+    ],
+    "工程常规:91": [
+      "engineering-routine-91",
+      "building.roofArea"
+    ],
+    "工程常规:92": [
+      "engineering-routine-92",
+      "building.roofArea"
+    ],
+    "工程常规:93": [
+      "engineering-routine-93",
+      "building.roofArea"
+    ],
+    "工程常规:94": [
+      "engineering-routine-94",
+      "building.buildingCount"
+    ],
+    "工程常规:95": [
+      "engineering-routine-95",
+      "building.shaftCount"
+    ],
+    "工程常规:96": [
+      "engineering-routine-96",
+      "building.shaftCount"
+    ],
+    "工程常规:97": [
+      "engineering-routine-97",
+      "building.shaftCount"
+    ],
+    "工程常规:98": [
+      "engineering-routine-98",
+      "building.evacuationStairArea"
+    ],
+    "工程常规:99": [
+      "engineering-routine-99",
+      "building.evacuationStairArea"
+    ],
+    "工程常规:100": [
+      "engineering-routine-100",
+      "building.evacuationStairArea"
+    ],
+    "工程常规:101": [
+      "engineering-routine-101",
+      "building.evacuationStairArea"
+    ],
+    "工程常规:102": [
+      "engineering-routine-102",
+      "building.elevatorCount"
+    ],
+    "工程常规:103": [
+      "engineering-routine-103",
+      "building.elevatorCount"
+    ],
+    "工程常规:104": [
+      "engineering-routine-104",
+      "building.elevatorCount"
+    ],
+    "工程常规:105": [
+      "engineering-routine-105",
+      "building.buildingCount"
+    ],
+    "工程常规:106": [
+      "engineering-routine-106",
+      "building.refugeFloorArea"
+    ],
+    "工程常规:107": [
+      "engineering-routine-107",
+      "building.refugeFloorArea"
+    ],
+    "工程常规:108": [
+      "engineering-routine-108",
+      "building.refugeFloorArea"
+    ],
+    "工程常规:109": [
+      "engineering-routine-109",
+      "building.refugeFloorArea"
+    ],
+    "工程常规:110": [
+      "engineering-routine-110",
+      "building.refugeFloorArea"
+    ],
+    "工程常规:111": [
+      "engineering-routine-111",
+      "building.refugeFloorArea"
+    ],
+    "工程常规:112": [
+      "engineering-routine-112",
+      "building.refugeFloorArea"
+    ],
+    "工程常规:113": [
+      "engineering-routine-113",
+      "building.refugeFloorArea"
+    ],
+    "工程常规:114": [
+      "engineering-routine-114",
+      "building.refugeWetAlarmRoomCount"
+    ],
+    "工程常规:115": [
+      "engineering-routine-115",
+      "building.refugePressurizationFanRoomCount"
+    ],
+    "工程常规:116": [
+      "engineering-routine-116",
+      "building.facadeBaseArea"
+    ],
+    "工程常规:117": [
+      "engineering-routine-117",
+      "building.facadeBaseArea"
+    ],
+    "工程常规:118": [
+      "engineering-routine-118",
+      "building.facadeBaseArea"
+    ],
+    "工程常规:119": [
+      "engineering-routine-119",
+      "building.facadeStandardArea"
+    ],
+    "工程常规:120": [
+      "engineering-routine-120",
+      "building.facadeStandardArea"
+    ],
+    "工程常规:121": [
+      "engineering-routine-121",
+      "building.facadeStandardArea"
+    ],
+    "工程常规:122": [
+      "engineering-routine-122",
+      "building.facadeRoofParapetArea"
+    ],
+    "工程常规:123": [
+      "engineering-routine-123",
+      "building.facadeRoofParapetArea"
+    ],
+    "工程常规:124": [
+      "engineering-routine-124",
+      "building.facadeRoofParapetArea"
+    ],
+    "工程常规:125": [
+      "engineering-routine-125",
+      "building.commercialCorridorArea"
+    ],
+    "工程常规:126": [
+      "engineering-routine-126",
+      "building.commercialCorridorArea"
+    ],
+    "工程常规:127": [
+      "engineering-routine-127",
+      "building.commercialCorridorArea"
+    ],
+    "工程常规:128": [
+      "engineering-routine-128",
+      "building.commercialCorridorArea"
+    ],
+    "工程常规:129": [
+      "engineering-routine-129",
+      "building.commercialElectricalShaftCount"
+    ],
+    "工程常规:130": [
+      "engineering-routine-130",
+      "building.commercialElectricalShaftCount"
+    ],
+    "工程常规:131": [
+      "engineering-routine-131",
+      "building.commercialElectricalShaftCount"
+    ],
+    "工程常规:132": [
+      "engineering-routine-132",
+      "building.commercialWaterShaftCount"
+    ],
+    "工程常规:133": [
+      "engineering-routine-133",
+      "building.commercialWaterShaftCount"
+    ],
+    "工程常规:134": [
+      "engineering-routine-134",
+      "building.commercialWaterShaftCount"
+    ],
+    "工程常规:135": [
+      "engineering-routine-135",
+      "building.commercialEvacuationStairArea"
+    ],
+    "工程常规:136": [
+      "engineering-routine-136",
+      "building.commercialEvacuationStairArea"
+    ],
+    "工程常规:137": [
+      "engineering-routine-137",
+      "building.commercialEvacuationStairMaintenanceArea"
+    ],
+    "工程常规:138": [
+      "engineering-routine-138",
+      "building.commercialEvacuationStairArea"
+    ],
+    "工程常规:139": [
+      "engineering-routine-139",
+      "building.commercialRoofArea"
+    ],
+    "工程常规:140": [
+      "engineering-routine-140",
+      "building.commercialRoofArea"
+    ],
+    "工程常规:141": [
+      "engineering-routine-141",
+      "building.commercialRoofArea"
+    ],
+    "工程常规:142": [
+      "engineering-routine-142",
+      "building.commercialFacadeArea"
+    ],
+    "工程常规:143": [
+      "engineering-routine-143",
+      "building.commercialFacadeArea"
+    ],
+    "工程常规:144": [
+      "engineering-routine-144",
+      "building.commercialFacadeArea"
+    ],
+    "工程常规:145": [
+      "engineering-routine-145",
+      "building.garbageTransferStationCount"
+    ],
+    "工程常规:146": [
+      "engineering-routine-146",
+      "building.garbageTransferStationCount"
+    ],
+    "工程常规:147": [
+      "engineering-routine-147",
+      "building.garbageTransferStationCount"
+    ],
+    "工程常规:148": [
+      "engineering-routine-148",
+      "building.detachedElectricalRoomCount"
+    ],
+    "工程常规:149": [
+      "engineering-routine-149",
+      "building.detachedElectricalRoomCount"
+    ],
+    "工程常规:150": [
+      "engineering-routine-150",
+      "building.detachedElectricalRoomCount"
+    ],
+    "工程常规:151": [
+      "engineering-routine-151",
+      "grounds.entranceGuardhouseArea"
+    ],
+    "工程常规:152": [
+      "engineering-routine-152",
+      "grounds.gatedEntrancePedestrianGateCount"
+    ],
+    "工程常规:153": [
+      "engineering-routine-153",
+      "grounds.gatedEntranceVehicleGateCount"
+    ],
+    "工程常规:154": [
+      "engineering-routine-154",
+      "grounds.gatedEntranceAccessGateCount"
+    ],
+    "工程常规:155": [
+      "engineering-routine-155",
+      "grounds.gatedEntranceAccessGateCount"
+    ],
+    "工程常规:156": [
+      "engineering-routine-156",
+      "grounds.gatedEntranceAccessGateCount"
+    ],
+    "工程常规:157": [
+      "engineering-routine-157",
+      "grounds.ungatedEntrancePedestrianGateCount"
+    ],
+    "工程常规:158": [
+      "engineering-routine-158",
+      "grounds.ungatedEntranceVehicleGateCount"
+    ],
+    "工程常规:159": [
+      "engineering-routine-159",
+      "grounds.ungatedEntranceAccessGateCount"
+    ],
+    "工程常规:160": [
+      "engineering-routine-160",
+      "grounds.entrancePlazaArea"
+    ],
+    "工程常规:161": [
+      "engineering-routine-161",
+      "grounds.entranceWaterFeatureCount"
+    ],
+    "工程常规:162": [
+      "engineering-routine-162",
+      "grounds.entranceWaterFeatureCount"
+    ],
+    "工程常规:163": [
+      "engineering-routine-163",
+      "grounds.entranceWaterFeatureCount"
+    ],
+    "工程常规:164": [
+      "engineering-routine-164",
+      "grounds.entranceArtworkCount"
+    ],
+    "工程常规:165": [
+      "engineering-routine-165",
+      "grounds.entranceBicycleShelterCount"
+    ],
+    "工程常规:166": [
+      "engineering-routine-166",
+      "grounds.entranceBicycleShelterCount"
+    ],
+    "工程常规:167": [
+      "engineering-routine-167",
+      "grounds.entranceBicycleShelterCount"
+    ],
+    "工程常规:168": [
+      "engineering-routine-168",
+      "grounds.entrancePlazaArea"
+    ],
+    "工程常规:169": [
+      "engineering-routine-169",
+      "grounds.entrancePlazaArea"
+    ],
+    "工程常规:170": [
+      "engineering-routine-170",
+      "grounds.entrancePlazaArea"
+    ],
+    "工程常规:171": [
+      "engineering-routine-171",
+      "grounds.zoneArea"
+    ],
+    "工程常规:172": [
+      "engineering-routine-172",
+      "grounds.landscapeWaterFeatureCount"
+    ],
+    "工程常规:173": [
+      "engineering-routine-173",
+      "grounds.landscapeWaterFeatureCount"
+    ],
+    "工程常规:174": [
+      "engineering-routine-174",
+      "grounds.landscapeWaterFeatureCount"
+    ],
+    "工程常规:175": [
+      "engineering-routine-175",
+      "grounds.poolPergolaArea"
+    ],
+    "工程常规:176": [
+      "engineering-routine-176",
+      "grounds.poolPergolaArea"
+    ],
+    "工程常规:177": [
+      "engineering-routine-177",
+      "grounds.poolPergolaArea"
+    ],
+    "工程常规:178": [
+      "engineering-routine-178",
+      "grounds.poolEquipmentCount"
+    ],
+    "工程常规:179": [
+      "engineering-routine-179",
+      "grounds.poolEquipmentCount"
+    ],
+    "工程常规:180": [
+      "engineering-routine-180",
+      "grounds.poolEquipmentCount"
+    ],
+    "工程常规:181": [
+      "engineering-routine-181",
+      "grounds.poolFacilityRoomCount"
+    ],
+    "工程常规:182": [
+      "engineering-routine-182",
+      "grounds.childrenActivityArea"
+    ],
+    "工程常规:183": [
+      "engineering-routine-183",
+      "grounds.activityFacilityArea"
+    ],
+    "工程常规:184": [
+      "engineering-routine-184",
+      "grounds.activityFacilityArea"
+    ],
+    "工程常规:185": [
+      "engineering-routine-185",
+      "grounds.fitnessActivityArea"
+    ],
+    "工程常规:186": [
+      "engineering-routine-186",
+      "grounds.badmintonCourtCount"
+    ],
+    "工程常规:187": [
+      "engineering-routine-187",
+      "grounds.badmintonCourtCount"
+    ],
+    "工程常规:188": [
+      "engineering-routine-188",
+      "grounds.badmintonCourtCount"
+    ],
+    "工程常规:189": [
+      "engineering-routine-189",
+      "grounds.basketballCourtCount"
+    ],
+    "工程常规:190": [
+      "engineering-routine-190",
+      "grounds.basketballCourtCount"
+    ],
+    "工程常规:191": [
+      "engineering-routine-191",
+      "grounds.basketballCourtCount"
+    ],
+    "工程常规:192": [
+      "engineering-routine-192",
+      "grounds.tennisCourtCount"
+    ],
+    "工程常规:193": [
+      "engineering-routine-193",
+      "grounds.tennisCourtCount"
+    ],
+    "工程常规:194": [
+      "engineering-routine-194",
+      "grounds.tennisCourtCount"
+    ],
+    "工程常规:195": [
+      "engineering-routine-195",
+      "grounds.footballFieldCount"
+    ],
+    "工程常规:196": [
+      "engineering-routine-196",
+      "grounds.footballFieldCount"
+    ],
+    "工程常规:197": [
+      "engineering-routine-197",
+      "grounds.footballFieldCount"
+    ],
+    "工程常规:198": [
+      "engineering-routine-198",
+      "grounds.vehicleParkingArea"
+    ],
+    "工程常规:199": [
+      "engineering-routine-199",
+      "grounds.vehicleParkingArea"
+    ],
+    "工程常规:200": [
+      "engineering-routine-200",
+      "grounds.vehicleParkingArea"
+    ],
+    "工程常规:201": [
+      "engineering-routine-201",
+      "grounds.pergolaPlatformArea"
+    ],
+    "工程常规:202": [
+      "engineering-routine-202",
+      "grounds.securityAudioLineLength"
+    ],
+    "工程常规:203": [
+      "engineering-routine-203",
+      "grounds.landscapeArtworkCount"
+    ],
+    "工程常规:204": [
+      "engineering-routine-204",
+      "grounds.zoneArea"
+    ],
+    "工程常规:205": [
+      "engineering-routine-205",
+      "grounds.zoneArea"
+    ],
+    "工程常规:206": [
+      "engineering-routine-206",
+      "grounds.zoneArea"
+    ],
+    "工程常规:207": [
+      "engineering-routine-207",
+      "grounds.waterOutletCount"
+    ],
+    "工程常规:208": [
+      "engineering-routine-208",
+      "grounds.wasteCollectionPointCount"
+    ],
+    "工程常规:209": [
+      "engineering-routine-209",
+      "grounds.landscapeBicycleShelterCount"
+    ],
+    "工程常规:210": [
+      "engineering-routine-210",
+      "grounds.landscapeBicycleShelterCount"
+    ],
+    "工程常规:211": [
+      "engineering-routine-211",
+      "grounds.landscapeBicycleShelterCount"
+    ],
+    "工程常规:212": [
+      "engineering-routine-212",
+      "grounds.signageCount"
+    ],
+    "工程常规:213": [
+      "engineering-routine-213",
+      "grounds.signageCount"
+    ],
+    "工程常规:214": [
+      "engineering-routine-214",
+      "grounds.signageCount"
+    ],
+    "工程常规:215": [
+      "engineering-routine-215",
+      "grounds.roadArea"
+    ],
+    "工程常规:216": [
+      "engineering-routine-216",
+      "grounds.roadArea"
+    ],
+    "工程常规:217": [
+      "engineering-routine-217",
+      "grounds.roadArea"
+    ],
+    "工程常规:218": [
+      "engineering-routine-218",
+      "grounds.roadArea"
+    ],
+    "工程常规:219": [
+      "engineering-routine-219",
+      "grounds.wallLength"
+    ],
+    "工程常规:220": [
+      "engineering-routine-220",
+      "grounds.tankCount"
+    ],
+    "工程常规:221": [
+      "engineering-routine-221",
+      "grounds.tankCount"
+    ],
+    "工程常规:222": [
+      "engineering-routine-222",
+      "grounds.tankCount"
+    ],
+    "工程常规:223": [
+      "engineering-routine-223",
+      "grounds.drainagePipelineLength"
+    ],
+    "工程常规:224": [
+      "engineering-routine-224",
+      "grounds.drainagePipelineLength"
+    ],
+    "工程常规:225": [
+      "engineering-routine-225",
+      "grounds.drainagePipelineLength"
+    ],
+    "工程常规:226": [
+      "engineering-routine-226",
+      "grounds.drainageWellCount"
+    ],
+    "工程常规:227": [
+      "engineering-routine-227",
+      "grounds.drainageWellCount"
+    ],
+    "工程常规:228": [
+      "engineering-routine-228",
+      "grounds.drainageWellCount"
+    ],
+    "工程常规:229": [
+      "engineering-routine-229",
+      "grounds.fireWaterPointCount"
+    ],
+    "工程常规:230": [
+      "engineering-routine-230",
+      "grounds.distributionBoxCount"
+    ],
+    "工程常规:231": [
+      "engineering-routine-231",
+      "grounds.distributionBoxCount"
+    ],
+    "工程常规:232": [
+      "engineering-routine-232",
+      "grounds.distributionBoxCount"
+    ]
+  }
+}

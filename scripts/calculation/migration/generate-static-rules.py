@@ -2,21 +2,30 @@
 
 from __future__ import annotations
 
+import argparse
+import hashlib
 import json
+import math
 import re
 from pathlib import Path
 
-import openpyxl
+try:
+    import openpyxl
+except ModuleNotFoundError as error:
+    raise SystemExit(
+        "缺少迁移依赖 openpyxl==3.1.5；请按 migration/requirements.txt 准备环境"
+    ) from error
+
+if openpyxl.__version__ != "3.1.5":
+    raise SystemExit(
+        f"迁移依赖版本不匹配：需要 openpyxl==3.1.5，当前为 {openpyxl.__version__}"
+    )
 
 
 HERE = Path(__file__).resolve()
-WORKBOOK = next(
-    (parent / "动态成本分析模型.xlsx" for parent in HERE.parents
-     if (parent / "动态成本分析模型.xlsx").is_file()),
-    HERE.parents[4] / "动态成本分析模型.xlsx",
-)
 OUTPUT = HERE.parents[1] / "rules"
 PARAMETER_MAP = HERE.with_name("full-model-parameter-map.json")
+WORKBOOK_NAME = "动态成本分析模型.xlsx"
 GRADES = ("A", "B", "C", "D")
 PRICE_SHEET_NAME = "分级单价保洁、绿化 "
 MISSING_SHEETS = {
@@ -120,28 +129,72 @@ PARAMETER_LABELS = {
 }
 
 
-def js(value: object) -> str:
-    return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+def default_workbook_path() -> Path:
+    for parent in HERE.parents:
+        candidate = parent / WORKBOOK_NAME
+        if candidate.is_file():
+            return candidate
+    raise FileNotFoundError(
+        f"未找到 {WORKBOOK_NAME}；请通过 --workbook 显式指定已审计工作簿"
+    )
+
+
+def required_number(value: object, label: str) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"{label}必须是有限数值，实际为 {value!r}")
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError(f"{label}必须是有限数值，实际为 {value!r}")
+    return number
+
+
+def validate_workbook_hash(workbook: Path, expected_sha256: str) -> None:
+    actual_sha256 = hashlib.sha256(workbook.read_bytes()).hexdigest()
+    if actual_sha256 != expected_sha256:
+        raise ValueError(
+            f"工作簿 SHA-256 不匹配：期望 {expected_sha256}，实际 {actual_sha256}"
+        )
+
+
+def module_source(export_name: str, rows: list[dict]) -> str:
+    serialized = json.dumps(rows, ensure_ascii=False, indent=2)
+    return (
+        "// Generated once from the audited internal workbook; production never reads it.\n"
+        "function deepFreeze(value) {\n"
+        "  if (value && typeof value === 'object' && !Object.isFrozen(value)) {\n"
+        "    for (const nested of Object.values(value)) deepFreeze(nested);\n"
+        "    Object.freeze(value);\n"
+        "  }\n"
+        "  return value;\n"
+        "}\n\n"
+        f"export const {export_name} = deepFreeze({serialized});\n"
+    )
 
 
 def write_module(name: str, export_name: str, rows: list[dict]) -> None:
-    content = (
-        "// Generated once from the internal workbook; production never reads that workbook.\n"
-        f"export const {export_name} = Object.freeze({js(rows)}.map(Object.freeze));\n"
+    (OUTPUT / name).write_text(
+        module_source(export_name, rows), encoding="utf-8", newline="\n",
     )
-    (OUTPUT / name).write_text(content, encoding="utf-8", newline="\n")
 
 
 def multiplier(formula: str) -> float:
-    match = re.search(r"\*([0-9.]+)$", formula)
+    if not isinstance(formula, str):
+        raise ValueError(f"无法读取公式倍率：{formula!r}")
+    match = re.search(r"\*([0-9]+(?:\.[0-9]+)?)$", formula.strip())
     if not match:
-        raise ValueError(f"Cannot find multiplier: {formula}")
-    return float(match.group(1))
+        raise ValueError(f"无法读取公式倍率：{formula}")
+    return required_number(float(match.group(1)), "公式倍率")
 
 
 def ratio(formula: str) -> float:
-    match = re.search(r"\*([0-9.]+)$", formula)
-    return float(match.group(1)) if match else 0.0
+    if formula in (None, ""):
+        return 0.0
+    if not isinstance(formula, str):
+        raise ValueError(f"无法读取在途比例：{formula!r}")
+    match = re.fullmatch(r"=[A-Z]+[0-9]+\*([0-9]+(?:\.[0-9]+)?)", formula.strip())
+    if not match:
+        raise ValueError(f"无法读取在途比例：{formula}")
+    return required_number(float(match.group(1)), "在途比例")
 
 
 def grade_values(sheet, row: int, columns: tuple[int, int, int, int]) -> dict:
@@ -297,19 +350,40 @@ def require_parameter_key(mapping: dict[str, str], sheet_name: str, row: int) ->
 
 def grade_unit_hours(formula_sheet, price_sheet, row: int, column: int = 5) -> dict[str, float]:
     formula = formula_sheet.cell(row, column).value
-    references = GRADE_REFERENCE.findall(formula or "")
-    if len(references) != 4:
+    references = GRADE_REFERENCE.findall(formula) if isinstance(formula, str) else []
+    reference_columns = {re.match(r"[A-Z]+", reference).group() for reference in references}
+    reference_rows = [int(re.search(r"[0-9]+", reference).group()) for reference in references]
+    if (
+        not isinstance(formula, str)
+        or not formula.startswith("=IF(")
+        or formula.count("IF(") != 4
+        or len(references) != 4
+        or len(reference_columns) != 1
+        or reference_rows != [4, 5, 6, 7]
+    ):
         coordinate = formula_sheet.cell(row, column).coordinate
         raise ValueError(f"无法读取四档标准工时：{formula_sheet.title}!{coordinate}")
-    travel_value = formula_sheet.cell(row, column + 2).value or 0
+    travel_value = formula_sheet.cell(row, column + 2).value
+    if travel_value is None:
+        coordinate = formula_sheet.cell(row, column + 2).coordinate
+        raise ValueError(f"{formula_sheet.title}!{coordinate}在途工时必须是有限数值或比例公式")
     scale = multiplier(formula)
-    base_hours = [float(price_sheet[reference].value) * scale for reference in references]
+    base_hours = [
+        required_number(price_sheet[reference].value, f"{price_sheet.title}!{reference}") * scale
+        for reference in references
+    ]
     if isinstance(travel_value, (int, float)):
-        total_hours = (base + float(travel_value) for base in base_hours)
+        travel_hours = required_number(
+            travel_value, f"{formula_sheet.title}!{formula_sheet.cell(row, column + 2).coordinate}"
+        )
+        total_hours = (base + travel_hours for base in base_hours)
     else:
         travel_ratio = ratio(travel_value)
         total_hours = (base * (1 + travel_ratio) for base in base_hours)
-    return dict(zip(GRADES, total_hours))
+    return {
+        grade: required_number(value, f"{formula_sheet.title}!{formula_sheet.cell(row, column).coordinate}/{grade}")
+        for grade, value in zip(GRADES, total_hours)
+    }
 
 
 def property_from_action(action: str) -> str:
@@ -330,7 +404,9 @@ def engineering_rule(
 ) -> dict:
     action = formula_sheet.cell(row, 1).value
     frequency = formula_sheet.cell(row, 11).value or "0"
-    annual_frequency = float(value_sheet.cell(row, 14).value or 0)
+    annual_frequency = required_number(
+        value_sheet.cell(row, 14).value, f"{value_sheet.title}!N{row}"
+    )
     return {
         "id": f"{prefix}-{row}",
         "source": f"{formula_sheet.title}:{row}",
@@ -339,19 +415,27 @@ def engineering_rule(
         "property": property_from_action(action),
         "unit": formula_sheet.cell(row, 3).value or "",
         "quantityParameterKey": parameter_key,
-        "templateQuantity": float(value_sheet.cell(row, 4).value or 0),
+        "templateQuantity": required_number(
+            value_sheet.cell(row, 4).value, f"{value_sheet.title}!D{row}"
+        ),
         "unitHours": grade_unit_hours(formula_sheet, price_sheet, row),
         "frequency": dict.fromkeys(GRADES, frequency),
         "annualFrequency": dict.fromkeys(GRADES, annual_frequency),
-        "monthlyRate": float(value_sheet.cell(row, 16).value or 0),
+        "monthlyRate": required_number(
+            value_sheet.cell(row, 16).value, f"{value_sheet.title}!P{row}"
+        ),
     }
 
 
 def pest_control_rules(formula_sheet, value_sheet, price_sheet, mapping: dict[str, str]) -> list[dict]:
     anchor_row = 5
     frequency = formula_sheet.cell(anchor_row, 10).value or "0"
-    annual_frequency = float(value_sheet.cell(anchor_row, 11).value or 0)
-    template_quantity = float(value_sheet.cell(anchor_row, 3).value or 0)
+    annual_frequency = required_number(
+        value_sheet.cell(anchor_row, 11).value, f"{value_sheet.title}!K{anchor_row}"
+    )
+    template_quantity = required_number(
+        value_sheet.cell(anchor_row, 3).value, f"{value_sheet.title}!C{anchor_row}"
+    )
     unit_hours = grade_unit_hours(formula_sheet, price_sheet, anchor_row, column=4)
     rows = []
     for row in range(5, 12):
@@ -422,12 +506,16 @@ def advanced_parameter_definitions(rules: list[dict], mapping: dict[str, str]) -
     return definitions
 
 
-def main() -> None:
-    formula_workbook = openpyxl.load_workbook(WORKBOOK, data_only=False, read_only=True)
-    value_workbook = openpyxl.load_workbook(WORKBOOK, data_only=True, read_only=True)
+def main(workbook: Path) -> None:
     mapping_document = json.loads(PARAMETER_MAP.read_text(encoding="utf-8"))
     if mapping_document.get("version") != "2026-09-full-model-v1":
         raise ValueError("高级参数映射版本不正确")
+    expected_sha256 = mapping_document.get("workbook", {}).get("sha256")
+    if not isinstance(expected_sha256, str) or not re.fullmatch(r"[0-9a-f]{64}", expected_sha256):
+        raise ValueError("高级参数映射缺少有效的工作簿 SHA-256")
+    validate_workbook_hash(workbook, expected_sha256)
+    formula_workbook = openpyxl.load_workbook(workbook, data_only=False, read_only=True)
+    value_workbook = openpyxl.load_workbook(workbook, data_only=True, read_only=True)
     mapping = mapping_document.get("rows", {})
     validate_mapping(mapping)
 
@@ -471,4 +559,11 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--workbook",
+        type=Path,
+        help="已审计的内部工作簿路径；省略时仅向上查找同名工作簿",
+    )
+    arguments = parser.parse_args()
+    main((arguments.workbook or default_workbook_path()).resolve())

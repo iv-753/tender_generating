@@ -1,2 +1,1133 @@
-// Generated once from the internal workbook; production never reads that workbook.
-export const GREENING_RULES = Object.freeze([{"id":"greening-5","action":"A-LH-01 园林出入口广场草坪浇灌","property":"基础","unit":"平方米","quantitySource":"entranceLawnArea","baseUnitHours":0.0008,"unitHoursScale":1,"travelRatio":0.1,"frequency":{"A":"2次/周","B":"2次/周","C":"2次/周","D":"2次/周"},"annualFrequency":{"A":104.4,"B":104.4,"C":104.4,"D":104.4}},{"id":"greening-6","action":"B-LH-02 园林出入口广场草坪打孔","property":"可选","unit":"平方米","quantitySource":"entranceLawnArea","baseUnitHours":0.005,"unitHoursScale":1,"travelRatio":0.1,"frequency":{"A":"2次/年","B":"1次/年","C":"1次/年","D":null},"annualFrequency":{"A":2,"B":1,"C":1,"D":0}},{"id":"greening-7","action":"A-LH-03 园林出入口广场草坪施肥","property":"基础","unit":"平方米","quantitySource":"entranceLawnArea","baseUnitHours":0.001,"unitHoursScale":1,"travelRatio":0.1,"frequency":{"A":"3次/年","B":"2次/年","C":"1次/年","D":"1次/年"},"annualFrequency":{"A":3,"B":2,"C":1,"D":1}},{"id":"greening-8","action":"A-LH-04 园林出入口广场草坪修剪","property":"基础","unit":"平方米","quantitySource":"entranceLawnArea","baseUnitHours":0.0063077,"unitHoursScale":1,"travelRatio":0.1,"frequency":{"A":"9次/年","B":"6次/年","C":"6次/年","D":"4次/年"},"annualFrequency":{"A":9,"B":6,"C":6,"D":4}},{"id":"greening-9","action":"A-LH-05 园林出入口广场草坪裸土复绿","property":"基础","unit":"平方米","quantitySource":"entranceLawnArea","baseUnitHours":0.003,"unitHoursScale":1,"travelRatio":0.1,"frequency":{"A":"4次/年","B":"3次/年","C":"2次/年","D":"1次/年"},"annualFrequency":{"A":4,"B":3,"C":2,"D":1}},{"id":"greening-10","action":"B-LH-06 园林出入口广场草坪土壤改良","property":"可选","unit":"平方米","quantitySource":"entranceLawnArea","baseUnitHours":0.005,"unitHoursScale":1,"travelRatio":0.1,"frequency":{"A":"2次/年","B":"1次/年","C":"无","D":"无"},"annualFrequency":{"A":2,"B":1,"C":0,"D":0}},{"id":"greening-11","action":"A-LH-07 园林出入口广场草坪除草清杂","property":"基础","unit":"平方米","quantitySource":"entranceLawnArea","baseUnitHours":0.001,"unitHoursScale":1,"travelRatio":0.1,"frequency":{"A":"1次/月","B":"2次/季","C":"1次/季","D":"1次/半年"},"annualFrequency":{"A":12,"B":8,"C":4,"D":2}},{"id":"greening-12","action":"A-LH-08 园林出入口广场草坪病虫防制","property":"基础","unit":"平方米","quantitySource":"entranceLawnArea","baseUnitHours":0.0015,"unitHoursScale":1,"travelRatio":0.1,"frequency":{"A":"4次/年","B":"3次/年","C":"2次/年","D":"1次/年"},"annualFrequency":{"A":4,"B":3,"C":2,"D":1}},{"id":"greening-13","action":"A-LH-01 园林出入口广场地被浇灌","property":"基础","unit":"平方米","quantitySource":"entranceGroundcoverArea","baseUnitHours":0.0008,"unitHoursScale":1,"travelRatio":0.15,"frequency":{"A":"2次/周","B":"2次/周","C":"2次/周","D":"2次/周"},"annualFrequency":{"A":104.4,"B":104.4,"C":104.4,"D":104.4}},{"id":"greening-14","action":"B-LH-09 园林出入口广场地被松土","property":"可选","unit":"平方米","quantitySource":"entranceGroundcoverArea","baseUnitHours":0.005,"unitHoursScale":1,"travelRatio":0.15,"frequency":{"A":"2次/年","B":"1次/年","C":"无","D":"无"},"annualFrequency":{"A":2,"B":1,"C":0,"D":0}},{"id":"greening-15","action":"A-LH-03 园林出入口广场地被施肥","property":"基础","unit":"平方米","quantitySource":"entranceGroundcoverArea","baseUnitHours":0.001,"unitHoursScale":1,"travelRatio":0.15,"frequency":{"A":"3次/年","B":"2次/年","C":"1次/年","D":"1次/年"},"annualFrequency":{"A":3,"B":2,"C":1,"D":1}},{"id":"greening-16","action":"A-LH-10 园林出入口广场地被时花维护","property":"可选","unit":"平方米","quantitySource":"seasonalFlowerArea","baseUnitHours":15.0769231,"unitHoursScale":0.25,"travelRatio":0.15,"frequency":{"A":"9个月/年","B":"6月/年","C":"3个月/年","D":"1个月/年"},"annualFrequency":{"A":9,"B":6,"C":3,"D":1}},{"id":"greening-17","action":"A-LH-04 园林出入口广场地被修剪","property":"基础","unit":"平方米","quantitySource":"entranceGroundcoverArea","baseUnitHours":0.0063077,"unitHoursScale":1,"travelRatio":0.15,"frequency":{"A":"9次/年","B":"6次/年","C":"4次/年","D":"2次/年"},"annualFrequency":{"A":9,"B":6,"C":4,"D":2}},{"id":"greening-18","action":"A-LH-05 园林出入口广场地被裸土复绿","property":"基础","unit":"平方米","quantitySource":"entranceGroundcoverArea","baseUnitHours":0.003,"unitHoursScale":1,"travelRatio":0.15,"frequency":{"A":"4次/年","B":"3次/年","C":"2次/年","D":"1次/年"},"annualFrequency":{"A":4,"B":3,"C":2,"D":2}},{"id":"greening-19","action":"B-LH-06 园林出入口广场地被土壤改良","property":"基础","unit":"平方米","quantitySource":"entranceGroundcoverArea","baseUnitHours":0.005,"unitHoursScale":1,"travelRatio":0.15,"frequency":{"A":"2次/年","B":"1次/年","C":"无","D":"无"},"annualFrequency":{"A":2,"B":1,"C":0,"D":0}},{"id":"greening-20","action":"A-LH-07 园林出入口广场地被除草清杂","property":"基础","unit":"平方米","quantitySource":"entranceGroundcoverArea","baseUnitHours":0.0025,"unitHoursScale":1,"travelRatio":0.15,"frequency":{"A":"1次/月","B":"2次/季","C":"1次/季","D":"1次/半年"},"annualFrequency":{"A":12,"B":8,"C":4,"D":2}},{"id":"greening-21","action":"A-LH-08 园林出入口广场地被病虫防制","property":"基础","unit":"平方米","quantitySource":"entranceGroundcoverArea","baseUnitHours":0.001,"unitHoursScale":1,"travelRatio":0.15,"frequency":{"A":"4次/年","B":"3次/年","C":"2次/年","D":"1次/年"},"annualFrequency":{"A":4,"B":3,"C":2,"D":1}},{"id":"greening-22","action":"B-LH-11 园林出入口广场地被防寒","property":"可选","unit":"平方米","quantitySource":"zero","baseUnitHours":0.3076923,"unitHoursScale":1,"travelRatio":0.15,"frequency":{"A":"1次/年","B":null,"C":"无","D":"无"},"annualFrequency":{"A":1,"B":null,"C":0,"D":0}},{"id":"greening-23","action":"绿地保洁","property":"基础","unit":"平方米","quantitySource":"entranceGreenArea","baseUnitHours":0.00025,"unitHoursScale":1,"travelRatio":0.15,"frequency":{"A":"1次/天","B":"1次/天","C":"2次/周","D":"1次/周"},"annualFrequency":{"A":365,"B":365,"C":104.4,"D":104.4}},{"id":"greening-24","action":"机械、化肥、农药及垃圾外运","property":"基础","unit":"平方米","quantitySource":"entranceGreenArea","baseUnitHours":0.0089065,"unitHoursScale":1,"travelRatio":0.3,"frequency":{"A":"1次/月","B":"1次/月","C":"2次/季","D":"1次/季"},"annualFrequency":{"A":12,"B":12,"C":8,"D":4}},{"id":"greening-25","action":"A-LH-01 园林分区草坪浇灌","property":"基础","unit":"平方米","quantitySource":"mainLawnArea","baseUnitHours":0.0008,"unitHoursScale":1,"travelRatio":0.15,"frequency":{"A":"2次/周","B":"2次/周","C":"2次/周","D":"2次/周"},"annualFrequency":{"A":104.4,"B":104.4,"C":104.4,"D":104.4}},{"id":"greening-26","action":"B-LH-02 园林分区草坪打孔","property":"可选","unit":"平方米","quantitySource":"mainLawnArea","baseUnitHours":0.005,"unitHoursScale":1,"travelRatio":0.15,"frequency":{"A":"2次/年","B":"1次/年","C":"1次/年","D":"无"},"annualFrequency":{"A":2,"B":1,"C":1,"D":0}},{"id":"greening-27","action":"A-LH-03 园林分区草坪施肥","property":"基础","unit":"平方米","quantitySource":"mainLawnArea","baseUnitHours":0.001,"unitHoursScale":1,"travelRatio":0.15,"frequency":{"A":"3次/年","B":"2次/年","C":"1次/年","D":"1次/年"},"annualFrequency":{"A":3,"B":2,"C":1,"D":1}},{"id":"greening-28","action":"A-LH-04 园林分区草坪修剪","property":"基础","unit":"平方米","quantitySource":"mainLawnArea","baseUnitHours":0.0063077,"unitHoursScale":1,"travelRatio":0.15,"frequency":{"A":"9次/年","B":"6次/年","C":"6次/年","D":"4次/年"},"annualFrequency":{"A":9,"B":6,"C":6,"D":4}},{"id":"greening-29","action":"A-LH-05 园林分区草坪裸土复绿","property":"基础","unit":"平方米","quantitySource":"mainLawnArea","baseUnitHours":0.003,"unitHoursScale":1,"travelRatio":0.15,"frequency":{"A":"4次/年","B":"3次/年","C":"2次/年","D":"1次/年"},"annualFrequency":{"A":4,"B":3,"C":2,"D":1}},{"id":"greening-30","action":"B-LH-06 园林分区草坪土壤改良","property":"可选","unit":"平方米","quantitySource":"mainLawnArea","baseUnitHours":0.005,"unitHoursScale":1,"travelRatio":0.15,"frequency":{"A":"2次/年","B":"1次/年","C":"无","D":"无"},"annualFrequency":{"A":2,"B":1,"C":0,"D":0}},{"id":"greening-31","action":"A-LH-07 园林分区草坪除草清杂","property":"基础","unit":"平方米","quantitySource":"mainLawnArea","baseUnitHours":0.001,"unitHoursScale":1,"travelRatio":0.15,"frequency":{"A":"1次/月","B":"2次/季","C":"1次/季","D":"1次/半年"},"annualFrequency":{"A":12,"B":8,"C":4,"D":2}},{"id":"greening-32","action":"A-LH-08 园林分区草坪病虫防制","property":"基础","unit":"平方米","quantitySource":"mainLawnArea","baseUnitHours":0.0015,"unitHoursScale":1,"travelRatio":0.15,"frequency":{"A":"4次/年","B":"3次/年","C":"2次/年","D":"1次/年"},"annualFrequency":{"A":4,"B":3,"C":2,"D":1}},{"id":"greening-33","action":"A-LH-01 园林分区地被浇灌","property":"基础","unit":"平方米","quantitySource":"mainGroundcoverArea","baseUnitHours":0.0008,"unitHoursScale":1,"travelRatio":0.2,"frequency":{"A":"2次/周","B":"2次/周","C":"2次/周","D":"2次/周"},"annualFrequency":{"A":104.4,"B":104.4,"C":104.4,"D":104.4}},{"id":"greening-34","action":"B-LH-09 园林分区地被松土","property":"可选","unit":"平方米","quantitySource":"mainGroundcoverArea","baseUnitHours":0.005,"unitHoursScale":1,"travelRatio":0.2,"frequency":{"A":"2次/年","B":"1次/年","C":"无","D":"无"},"annualFrequency":{"A":2,"B":1,"C":0,"D":0}},{"id":"greening-35","action":"A-LH-03 园林分区地被施肥","property":"基础","unit":"平方米","quantitySource":"mainGroundcoverArea","baseUnitHours":0.001,"unitHoursScale":1,"travelRatio":0.2,"frequency":{"A":"3次/年","B":"2次/年","C":"1次/年","D":"1次/年"},"annualFrequency":{"A":3,"B":2,"C":1,"D":1}},{"id":"greening-36","action":"A-LH-10 园林分区地被时花维护","property":"基础","unit":"平方米","quantitySource":"zero","baseUnitHours":15.0769231,"unitHoursScale":0.25,"travelRatio":0.2,"frequency":{"A":"9个月/年","B":"6月/年","C":"3个月/年","D":"1个月/年"},"annualFrequency":{"A":9,"B":6,"C":3,"D":1}},{"id":"greening-37","action":"A-LH-04 园林分区地被修剪","property":"基础","unit":"平方米","quantitySource":"mainGroundcoverArea","baseUnitHours":0.0063077,"unitHoursScale":1,"travelRatio":0.2,"frequency":{"A":"9次/年","B":"6次/年","C":"4次/年","D":"2次/年"},"annualFrequency":{"A":9,"B":6,"C":4,"D":2}},{"id":"greening-38","action":"A-LH-05 园林分区地被裸土复绿","property":"基础","unit":"平方米","quantitySource":"mainGroundcoverArea","baseUnitHours":0.003,"unitHoursScale":1,"travelRatio":0.2,"frequency":{"A":"4次/年","B":"3次/年","C":"2次/年","D":"1次/年"},"annualFrequency":{"A":4,"B":3,"C":2,"D":1}},{"id":"greening-39","action":"B-LH-06 园林分区地被土壤改良","property":"可选","unit":"平方米","quantitySource":"mainGroundcoverArea","baseUnitHours":0.005,"unitHoursScale":1,"travelRatio":0.2,"frequency":{"A":"2次/年","B":"1次/年","C":"无","D":"无"},"annualFrequency":{"A":2,"B":1,"C":0,"D":0}},{"id":"greening-40","action":"A-LH-07 园林分区地被除草清杂","property":"基础","unit":"平方米","quantitySource":"mainGroundcoverArea","baseUnitHours":0.0025,"unitHoursScale":1,"travelRatio":0.2,"frequency":{"A":"1次/月","B":"2次/季","C":"1次/季","D":"1次/半年"},"annualFrequency":{"A":12,"B":8,"C":4,"D":2}},{"id":"greening-41","action":"A-LH-08 园林分区地被病虫防制","property":"基础","unit":"平方米","quantitySource":"mainGroundcoverArea","baseUnitHours":0.001,"unitHoursScale":1,"travelRatio":0.2,"frequency":{"A":"4次/年","B":"3次/年","C":"2次/年","D":"1次/年"},"annualFrequency":{"A":4,"B":3,"C":2,"D":1}},{"id":"greening-42","action":"B-LH-11 园林分区地被防寒","property":"可选","unit":"平方米","quantitySource":"zero","baseUnitHours":0.3076923,"unitHoursScale":1,"travelRatio":0.2,"frequency":{"A":"1次/年","B":null,"C":"无","D":"无"},"annualFrequency":{"A":1,"B":null,"C":0,"D":0}},{"id":"greening-43","action":"绿地保洁","property":"基础","unit":"平方米","quantitySource":"mainGreenArea","baseUnitHours":0.00025,"unitHoursScale":1,"travelRatio":0.2,"frequency":{"A":"1次/天","B":"1次/天","C":"2次/周","D":"1次/周"},"annualFrequency":{"A":365,"B":365,"C":104.4,"D":104.4}},{"id":"greening-44","action":"机械、化肥、农药及垃圾外运","property":"基础","unit":"平方米","quantitySource":"mainGreenArea","baseUnitHours":0.0089065,"unitHoursScale":1,"travelRatio":0.25,"frequency":{"A":"1次/月","B":"1次/月","C":"2次/季","D":"1次/季"},"annualFrequency":{"A":12,"B":12,"C":8,"D":4}},{"id":"greening-45","action":"A-LH-01 园林总区乔灌木浇灌","property":"基础","unit":"株","quantitySource":"treeShrubCount","baseUnitHours":0.0024,"unitHoursScale":1,"travelRatio":0.3,"frequency":{"A":"2次/周","B":"2次/周","C":"2次/周","D":"2次/周"},"annualFrequency":{"A":104.4,"B":104.4,"C":104.4,"D":104.4}},{"id":"greening-46","action":"B-LH-09 园林总区乔灌木松土","property":"可选","unit":"株","quantitySource":"treeShrubCount","baseUnitHours":0.12,"unitHoursScale":1,"travelRatio":0.3,"frequency":{"A":"1次/年","B":"无","C":"无","D":"无"},"annualFrequency":{"A":1,"B":0,"C":0,"D":0}},{"id":"greening-47","action":"B-LH-03 园林总区乔灌木施肥","property":"基础","unit":"株","quantitySource":"treeShrubCount","baseUnitHours":0.001,"unitHoursScale":1,"travelRatio":0.3,"frequency":{"A":"3次/年","B":"2次/年","C":"1次/年","D":null},"annualFrequency":{"A":3,"B":2,"C":1,"D":0}},{"id":"greening-48","action":"A-LH-04 园林总区乔木修剪","property":"基础","unit":"株","quantitySource":"treeShrubCount","baseUnitHours":0.06,"unitHoursScale":1,"travelRatio":0.3,"frequency":{"A":"3次/年","B":"2次/年","C":"1次/年","D":"1次/年"},"annualFrequency":{"A":3,"B":2,"C":1,"D":1}},{"id":"greening-49","action":"A-LH-04 园林总区灌木修剪","property":"基础","unit":"株","quantitySource":"treeShrubCount","baseUnitHours":0.06,"unitHoursScale":1,"travelRatio":0.3,"frequency":{"A":"6次/年","B":"4次/年","C":"2次/年","D":"1次/年"},"annualFrequency":{"A":6,"B":4,"C":2,"D":1}},{"id":"greening-50","action":"B-LH-06 园林总区乔灌木土壤改良","property":"可选","unit":"株","quantitySource":"treeShrubCount","baseUnitHours":0.12,"unitHoursScale":1,"travelRatio":0.3,"frequency":{"A":"1次/年","B":"无","C":"无","D":"无"},"annualFrequency":{"A":1,"B":0,"C":0,"D":0}},{"id":"greening-51","action":"B-LH-08 园林总区乔灌木病虫防制","property":"基础","unit":"株","quantitySource":"treeShrubCount","baseUnitHours":0.0533333,"unitHoursScale":1,"travelRatio":0.3,"frequency":{"A":"3次/年","B":"2次/年","C":"1次/年","D":"无"},"annualFrequency":{"A":3,"B":2,"C":1,"D":0}},{"id":"greening-52","action":"A-LH-12 园林总区乔灌木稳固支撑","property":"基础","unit":"株","quantitySource":"treeShrubCount","baseUnitHours":0.02,"unitHoursScale":1,"travelRatio":0.3,"frequency":{"A":"1次/季","B":"2次/年","C":"1次/年","D":"1次/年"},"annualFrequency":{"A":4,"B":2,"C":1,"D":1}},{"id":"greening-53","action":"A-LH-13 园林总区乔木大修","property":"可选","unit":"株","quantitySource":"zero","baseUnitHours":36.9230769,"unitHoursScale":1,"travelRatio":0.5,"frequency":{"A":"1次/年","B":"1次/2年","C":"1次/3年","D":"1次/5年"},"annualFrequency":{"A":1,"B":0.5,"C":0.3,"D":0.2}},{"id":"greening-54","action":"B-LH-14 园林总区乔灌木防寒刷白","property":"可选","unit":"株","quantitySource":"zero","baseUnitHours":0.1230769,"unitHoursScale":1,"travelRatio":0.35,"frequency":{"A":"1次/年","B":"1次/年","C":"无","D":"无"},"annualFrequency":{"A":1,"B":1,"C":0,"D":0}},{"id":"greening-55","action":"B-LH-15 园林总区乔灌木防寒缠干","property":"可选","unit":"株","quantitySource":"zero","baseUnitHours":0.1230769,"unitHoursScale":1,"travelRatio":0.35,"frequency":{"A":"1次/年","B":"无","C":"无","D":"无"},"annualFrequency":{"A":1,"B":0,"C":0,"D":0}}].map(Object.freeze));
+// Generated once from the audited internal workbook; production never reads it.
+function deepFreeze(value) {
+  if (value && typeof value === 'object' && !Object.isFrozen(value)) {
+    for (const nested of Object.values(value)) deepFreeze(nested);
+    Object.freeze(value);
+  }
+  return value;
+}
+
+export const GREENING_RULES = deepFreeze([
+  {
+    "id": "greening-5",
+    "action": "A-LH-01 园林出入口广场草坪浇灌",
+    "property": "基础",
+    "unit": "平方米",
+    "quantitySource": "entranceLawnArea",
+    "baseUnitHours": 0.0008,
+    "unitHoursScale": 1,
+    "travelRatio": 0.1,
+    "frequency": {
+      "A": "2次/周",
+      "B": "2次/周",
+      "C": "2次/周",
+      "D": "2次/周"
+    },
+    "annualFrequency": {
+      "A": 104.4,
+      "B": 104.4,
+      "C": 104.4,
+      "D": 104.4
+    }
+  },
+  {
+    "id": "greening-6",
+    "action": "B-LH-02 园林出入口广场草坪打孔",
+    "property": "可选",
+    "unit": "平方米",
+    "quantitySource": "entranceLawnArea",
+    "baseUnitHours": 0.005,
+    "unitHoursScale": 1,
+    "travelRatio": 0.1,
+    "frequency": {
+      "A": "2次/年",
+      "B": "1次/年",
+      "C": "1次/年",
+      "D": null
+    },
+    "annualFrequency": {
+      "A": 2,
+      "B": 1,
+      "C": 1,
+      "D": 0
+    }
+  },
+  {
+    "id": "greening-7",
+    "action": "A-LH-03 园林出入口广场草坪施肥",
+    "property": "基础",
+    "unit": "平方米",
+    "quantitySource": "entranceLawnArea",
+    "baseUnitHours": 0.001,
+    "unitHoursScale": 1,
+    "travelRatio": 0.1,
+    "frequency": {
+      "A": "3次/年",
+      "B": "2次/年",
+      "C": "1次/年",
+      "D": "1次/年"
+    },
+    "annualFrequency": {
+      "A": 3,
+      "B": 2,
+      "C": 1,
+      "D": 1
+    }
+  },
+  {
+    "id": "greening-8",
+    "action": "A-LH-04 园林出入口广场草坪修剪",
+    "property": "基础",
+    "unit": "平方米",
+    "quantitySource": "entranceLawnArea",
+    "baseUnitHours": 0.0063077,
+    "unitHoursScale": 1,
+    "travelRatio": 0.1,
+    "frequency": {
+      "A": "9次/年",
+      "B": "6次/年",
+      "C": "6次/年",
+      "D": "4次/年"
+    },
+    "annualFrequency": {
+      "A": 9,
+      "B": 6,
+      "C": 6,
+      "D": 4
+    }
+  },
+  {
+    "id": "greening-9",
+    "action": "A-LH-05 园林出入口广场草坪裸土复绿",
+    "property": "基础",
+    "unit": "平方米",
+    "quantitySource": "entranceLawnArea",
+    "baseUnitHours": 0.003,
+    "unitHoursScale": 1,
+    "travelRatio": 0.1,
+    "frequency": {
+      "A": "4次/年",
+      "B": "3次/年",
+      "C": "2次/年",
+      "D": "1次/年"
+    },
+    "annualFrequency": {
+      "A": 4,
+      "B": 3,
+      "C": 2,
+      "D": 1
+    }
+  },
+  {
+    "id": "greening-10",
+    "action": "B-LH-06 园林出入口广场草坪土壤改良",
+    "property": "可选",
+    "unit": "平方米",
+    "quantitySource": "entranceLawnArea",
+    "baseUnitHours": 0.005,
+    "unitHoursScale": 1,
+    "travelRatio": 0.1,
+    "frequency": {
+      "A": "2次/年",
+      "B": "1次/年",
+      "C": "无",
+      "D": "无"
+    },
+    "annualFrequency": {
+      "A": 2,
+      "B": 1,
+      "C": 0,
+      "D": 0
+    }
+  },
+  {
+    "id": "greening-11",
+    "action": "A-LH-07 园林出入口广场草坪除草清杂",
+    "property": "基础",
+    "unit": "平方米",
+    "quantitySource": "entranceLawnArea",
+    "baseUnitHours": 0.001,
+    "unitHoursScale": 1,
+    "travelRatio": 0.1,
+    "frequency": {
+      "A": "1次/月",
+      "B": "2次/季",
+      "C": "1次/季",
+      "D": "1次/半年"
+    },
+    "annualFrequency": {
+      "A": 12,
+      "B": 8,
+      "C": 4,
+      "D": 2
+    }
+  },
+  {
+    "id": "greening-12",
+    "action": "A-LH-08 园林出入口广场草坪病虫防制",
+    "property": "基础",
+    "unit": "平方米",
+    "quantitySource": "entranceLawnArea",
+    "baseUnitHours": 0.0015,
+    "unitHoursScale": 1,
+    "travelRatio": 0.1,
+    "frequency": {
+      "A": "4次/年",
+      "B": "3次/年",
+      "C": "2次/年",
+      "D": "1次/年"
+    },
+    "annualFrequency": {
+      "A": 4,
+      "B": 3,
+      "C": 2,
+      "D": 1
+    }
+  },
+  {
+    "id": "greening-13",
+    "action": "A-LH-01 园林出入口广场地被浇灌",
+    "property": "基础",
+    "unit": "平方米",
+    "quantitySource": "entranceGroundcoverArea",
+    "baseUnitHours": 0.0008,
+    "unitHoursScale": 1,
+    "travelRatio": 0.15,
+    "frequency": {
+      "A": "2次/周",
+      "B": "2次/周",
+      "C": "2次/周",
+      "D": "2次/周"
+    },
+    "annualFrequency": {
+      "A": 104.4,
+      "B": 104.4,
+      "C": 104.4,
+      "D": 104.4
+    }
+  },
+  {
+    "id": "greening-14",
+    "action": "B-LH-09 园林出入口广场地被松土",
+    "property": "可选",
+    "unit": "平方米",
+    "quantitySource": "entranceGroundcoverArea",
+    "baseUnitHours": 0.005,
+    "unitHoursScale": 1,
+    "travelRatio": 0.15,
+    "frequency": {
+      "A": "2次/年",
+      "B": "1次/年",
+      "C": "无",
+      "D": "无"
+    },
+    "annualFrequency": {
+      "A": 2,
+      "B": 1,
+      "C": 0,
+      "D": 0
+    }
+  },
+  {
+    "id": "greening-15",
+    "action": "A-LH-03 园林出入口广场地被施肥",
+    "property": "基础",
+    "unit": "平方米",
+    "quantitySource": "entranceGroundcoverArea",
+    "baseUnitHours": 0.001,
+    "unitHoursScale": 1,
+    "travelRatio": 0.15,
+    "frequency": {
+      "A": "3次/年",
+      "B": "2次/年",
+      "C": "1次/年",
+      "D": "1次/年"
+    },
+    "annualFrequency": {
+      "A": 3,
+      "B": 2,
+      "C": 1,
+      "D": 1
+    }
+  },
+  {
+    "id": "greening-16",
+    "action": "A-LH-10 园林出入口广场地被时花维护",
+    "property": "可选",
+    "unit": "平方米",
+    "quantitySource": "seasonalFlowerArea",
+    "baseUnitHours": 15.0769231,
+    "unitHoursScale": 0.25,
+    "travelRatio": 0.15,
+    "frequency": {
+      "A": "9个月/年",
+      "B": "6月/年",
+      "C": "3个月/年",
+      "D": "1个月/年"
+    },
+    "annualFrequency": {
+      "A": 9,
+      "B": 6,
+      "C": 3,
+      "D": 1
+    }
+  },
+  {
+    "id": "greening-17",
+    "action": "A-LH-04 园林出入口广场地被修剪",
+    "property": "基础",
+    "unit": "平方米",
+    "quantitySource": "entranceGroundcoverArea",
+    "baseUnitHours": 0.0063077,
+    "unitHoursScale": 1,
+    "travelRatio": 0.15,
+    "frequency": {
+      "A": "9次/年",
+      "B": "6次/年",
+      "C": "4次/年",
+      "D": "2次/年"
+    },
+    "annualFrequency": {
+      "A": 9,
+      "B": 6,
+      "C": 4,
+      "D": 2
+    }
+  },
+  {
+    "id": "greening-18",
+    "action": "A-LH-05 园林出入口广场地被裸土复绿",
+    "property": "基础",
+    "unit": "平方米",
+    "quantitySource": "entranceGroundcoverArea",
+    "baseUnitHours": 0.003,
+    "unitHoursScale": 1,
+    "travelRatio": 0.15,
+    "frequency": {
+      "A": "4次/年",
+      "B": "3次/年",
+      "C": "2次/年",
+      "D": "1次/年"
+    },
+    "annualFrequency": {
+      "A": 4,
+      "B": 3,
+      "C": 2,
+      "D": 2
+    }
+  },
+  {
+    "id": "greening-19",
+    "action": "B-LH-06 园林出入口广场地被土壤改良",
+    "property": "基础",
+    "unit": "平方米",
+    "quantitySource": "entranceGroundcoverArea",
+    "baseUnitHours": 0.005,
+    "unitHoursScale": 1,
+    "travelRatio": 0.15,
+    "frequency": {
+      "A": "2次/年",
+      "B": "1次/年",
+      "C": "无",
+      "D": "无"
+    },
+    "annualFrequency": {
+      "A": 2,
+      "B": 1,
+      "C": 0,
+      "D": 0
+    }
+  },
+  {
+    "id": "greening-20",
+    "action": "A-LH-07 园林出入口广场地被除草清杂",
+    "property": "基础",
+    "unit": "平方米",
+    "quantitySource": "entranceGroundcoverArea",
+    "baseUnitHours": 0.0025,
+    "unitHoursScale": 1,
+    "travelRatio": 0.15,
+    "frequency": {
+      "A": "1次/月",
+      "B": "2次/季",
+      "C": "1次/季",
+      "D": "1次/半年"
+    },
+    "annualFrequency": {
+      "A": 12,
+      "B": 8,
+      "C": 4,
+      "D": 2
+    }
+  },
+  {
+    "id": "greening-21",
+    "action": "A-LH-08 园林出入口广场地被病虫防制",
+    "property": "基础",
+    "unit": "平方米",
+    "quantitySource": "entranceGroundcoverArea",
+    "baseUnitHours": 0.001,
+    "unitHoursScale": 1,
+    "travelRatio": 0.15,
+    "frequency": {
+      "A": "4次/年",
+      "B": "3次/年",
+      "C": "2次/年",
+      "D": "1次/年"
+    },
+    "annualFrequency": {
+      "A": 4,
+      "B": 3,
+      "C": 2,
+      "D": 1
+    }
+  },
+  {
+    "id": "greening-22",
+    "action": "B-LH-11 园林出入口广场地被防寒",
+    "property": "可选",
+    "unit": "平方米",
+    "quantitySource": "zero",
+    "baseUnitHours": 0.3076923,
+    "unitHoursScale": 1,
+    "travelRatio": 0.15,
+    "frequency": {
+      "A": "1次/年",
+      "B": null,
+      "C": "无",
+      "D": "无"
+    },
+    "annualFrequency": {
+      "A": 1,
+      "B": null,
+      "C": 0,
+      "D": 0
+    }
+  },
+  {
+    "id": "greening-23",
+    "action": "绿地保洁",
+    "property": "基础",
+    "unit": "平方米",
+    "quantitySource": "entranceGreenArea",
+    "baseUnitHours": 0.00025,
+    "unitHoursScale": 1,
+    "travelRatio": 0.15,
+    "frequency": {
+      "A": "1次/天",
+      "B": "1次/天",
+      "C": "2次/周",
+      "D": "1次/周"
+    },
+    "annualFrequency": {
+      "A": 365,
+      "B": 365,
+      "C": 104.4,
+      "D": 104.4
+    }
+  },
+  {
+    "id": "greening-24",
+    "action": "机械、化肥、农药及垃圾外运",
+    "property": "基础",
+    "unit": "平方米",
+    "quantitySource": "entranceGreenArea",
+    "baseUnitHours": 0.0089065,
+    "unitHoursScale": 1,
+    "travelRatio": 0.3,
+    "frequency": {
+      "A": "1次/月",
+      "B": "1次/月",
+      "C": "2次/季",
+      "D": "1次/季"
+    },
+    "annualFrequency": {
+      "A": 12,
+      "B": 12,
+      "C": 8,
+      "D": 4
+    }
+  },
+  {
+    "id": "greening-25",
+    "action": "A-LH-01 园林分区草坪浇灌",
+    "property": "基础",
+    "unit": "平方米",
+    "quantitySource": "mainLawnArea",
+    "baseUnitHours": 0.0008,
+    "unitHoursScale": 1,
+    "travelRatio": 0.15,
+    "frequency": {
+      "A": "2次/周",
+      "B": "2次/周",
+      "C": "2次/周",
+      "D": "2次/周"
+    },
+    "annualFrequency": {
+      "A": 104.4,
+      "B": 104.4,
+      "C": 104.4,
+      "D": 104.4
+    }
+  },
+  {
+    "id": "greening-26",
+    "action": "B-LH-02 园林分区草坪打孔",
+    "property": "可选",
+    "unit": "平方米",
+    "quantitySource": "mainLawnArea",
+    "baseUnitHours": 0.005,
+    "unitHoursScale": 1,
+    "travelRatio": 0.15,
+    "frequency": {
+      "A": "2次/年",
+      "B": "1次/年",
+      "C": "1次/年",
+      "D": "无"
+    },
+    "annualFrequency": {
+      "A": 2,
+      "B": 1,
+      "C": 1,
+      "D": 0
+    }
+  },
+  {
+    "id": "greening-27",
+    "action": "A-LH-03 园林分区草坪施肥",
+    "property": "基础",
+    "unit": "平方米",
+    "quantitySource": "mainLawnArea",
+    "baseUnitHours": 0.001,
+    "unitHoursScale": 1,
+    "travelRatio": 0.15,
+    "frequency": {
+      "A": "3次/年",
+      "B": "2次/年",
+      "C": "1次/年",
+      "D": "1次/年"
+    },
+    "annualFrequency": {
+      "A": 3,
+      "B": 2,
+      "C": 1,
+      "D": 1
+    }
+  },
+  {
+    "id": "greening-28",
+    "action": "A-LH-04 园林分区草坪修剪",
+    "property": "基础",
+    "unit": "平方米",
+    "quantitySource": "mainLawnArea",
+    "baseUnitHours": 0.0063077,
+    "unitHoursScale": 1,
+    "travelRatio": 0.15,
+    "frequency": {
+      "A": "9次/年",
+      "B": "6次/年",
+      "C": "6次/年",
+      "D": "4次/年"
+    },
+    "annualFrequency": {
+      "A": 9,
+      "B": 6,
+      "C": 6,
+      "D": 4
+    }
+  },
+  {
+    "id": "greening-29",
+    "action": "A-LH-05 园林分区草坪裸土复绿",
+    "property": "基础",
+    "unit": "平方米",
+    "quantitySource": "mainLawnArea",
+    "baseUnitHours": 0.003,
+    "unitHoursScale": 1,
+    "travelRatio": 0.15,
+    "frequency": {
+      "A": "4次/年",
+      "B": "3次/年",
+      "C": "2次/年",
+      "D": "1次/年"
+    },
+    "annualFrequency": {
+      "A": 4,
+      "B": 3,
+      "C": 2,
+      "D": 1
+    }
+  },
+  {
+    "id": "greening-30",
+    "action": "B-LH-06 园林分区草坪土壤改良",
+    "property": "可选",
+    "unit": "平方米",
+    "quantitySource": "mainLawnArea",
+    "baseUnitHours": 0.005,
+    "unitHoursScale": 1,
+    "travelRatio": 0.15,
+    "frequency": {
+      "A": "2次/年",
+      "B": "1次/年",
+      "C": "无",
+      "D": "无"
+    },
+    "annualFrequency": {
+      "A": 2,
+      "B": 1,
+      "C": 0,
+      "D": 0
+    }
+  },
+  {
+    "id": "greening-31",
+    "action": "A-LH-07 园林分区草坪除草清杂",
+    "property": "基础",
+    "unit": "平方米",
+    "quantitySource": "mainLawnArea",
+    "baseUnitHours": 0.001,
+    "unitHoursScale": 1,
+    "travelRatio": 0.15,
+    "frequency": {
+      "A": "1次/月",
+      "B": "2次/季",
+      "C": "1次/季",
+      "D": "1次/半年"
+    },
+    "annualFrequency": {
+      "A": 12,
+      "B": 8,
+      "C": 4,
+      "D": 2
+    }
+  },
+  {
+    "id": "greening-32",
+    "action": "A-LH-08 园林分区草坪病虫防制",
+    "property": "基础",
+    "unit": "平方米",
+    "quantitySource": "mainLawnArea",
+    "baseUnitHours": 0.0015,
+    "unitHoursScale": 1,
+    "travelRatio": 0.15,
+    "frequency": {
+      "A": "4次/年",
+      "B": "3次/年",
+      "C": "2次/年",
+      "D": "1次/年"
+    },
+    "annualFrequency": {
+      "A": 4,
+      "B": 3,
+      "C": 2,
+      "D": 1
+    }
+  },
+  {
+    "id": "greening-33",
+    "action": "A-LH-01 园林分区地被浇灌",
+    "property": "基础",
+    "unit": "平方米",
+    "quantitySource": "mainGroundcoverArea",
+    "baseUnitHours": 0.0008,
+    "unitHoursScale": 1,
+    "travelRatio": 0.2,
+    "frequency": {
+      "A": "2次/周",
+      "B": "2次/周",
+      "C": "2次/周",
+      "D": "2次/周"
+    },
+    "annualFrequency": {
+      "A": 104.4,
+      "B": 104.4,
+      "C": 104.4,
+      "D": 104.4
+    }
+  },
+  {
+    "id": "greening-34",
+    "action": "B-LH-09 园林分区地被松土",
+    "property": "可选",
+    "unit": "平方米",
+    "quantitySource": "mainGroundcoverArea",
+    "baseUnitHours": 0.005,
+    "unitHoursScale": 1,
+    "travelRatio": 0.2,
+    "frequency": {
+      "A": "2次/年",
+      "B": "1次/年",
+      "C": "无",
+      "D": "无"
+    },
+    "annualFrequency": {
+      "A": 2,
+      "B": 1,
+      "C": 0,
+      "D": 0
+    }
+  },
+  {
+    "id": "greening-35",
+    "action": "A-LH-03 园林分区地被施肥",
+    "property": "基础",
+    "unit": "平方米",
+    "quantitySource": "mainGroundcoverArea",
+    "baseUnitHours": 0.001,
+    "unitHoursScale": 1,
+    "travelRatio": 0.2,
+    "frequency": {
+      "A": "3次/年",
+      "B": "2次/年",
+      "C": "1次/年",
+      "D": "1次/年"
+    },
+    "annualFrequency": {
+      "A": 3,
+      "B": 2,
+      "C": 1,
+      "D": 1
+    }
+  },
+  {
+    "id": "greening-36",
+    "action": "A-LH-10 园林分区地被时花维护",
+    "property": "基础",
+    "unit": "平方米",
+    "quantitySource": "zero",
+    "baseUnitHours": 15.0769231,
+    "unitHoursScale": 0.25,
+    "travelRatio": 0.2,
+    "frequency": {
+      "A": "9个月/年",
+      "B": "6月/年",
+      "C": "3个月/年",
+      "D": "1个月/年"
+    },
+    "annualFrequency": {
+      "A": 9,
+      "B": 6,
+      "C": 3,
+      "D": 1
+    }
+  },
+  {
+    "id": "greening-37",
+    "action": "A-LH-04 园林分区地被修剪",
+    "property": "基础",
+    "unit": "平方米",
+    "quantitySource": "mainGroundcoverArea",
+    "baseUnitHours": 0.0063077,
+    "unitHoursScale": 1,
+    "travelRatio": 0.2,
+    "frequency": {
+      "A": "9次/年",
+      "B": "6次/年",
+      "C": "4次/年",
+      "D": "2次/年"
+    },
+    "annualFrequency": {
+      "A": 9,
+      "B": 6,
+      "C": 4,
+      "D": 2
+    }
+  },
+  {
+    "id": "greening-38",
+    "action": "A-LH-05 园林分区地被裸土复绿",
+    "property": "基础",
+    "unit": "平方米",
+    "quantitySource": "mainGroundcoverArea",
+    "baseUnitHours": 0.003,
+    "unitHoursScale": 1,
+    "travelRatio": 0.2,
+    "frequency": {
+      "A": "4次/年",
+      "B": "3次/年",
+      "C": "2次/年",
+      "D": "1次/年"
+    },
+    "annualFrequency": {
+      "A": 4,
+      "B": 3,
+      "C": 2,
+      "D": 1
+    }
+  },
+  {
+    "id": "greening-39",
+    "action": "B-LH-06 园林分区地被土壤改良",
+    "property": "可选",
+    "unit": "平方米",
+    "quantitySource": "mainGroundcoverArea",
+    "baseUnitHours": 0.005,
+    "unitHoursScale": 1,
+    "travelRatio": 0.2,
+    "frequency": {
+      "A": "2次/年",
+      "B": "1次/年",
+      "C": "无",
+      "D": "无"
+    },
+    "annualFrequency": {
+      "A": 2,
+      "B": 1,
+      "C": 0,
+      "D": 0
+    }
+  },
+  {
+    "id": "greening-40",
+    "action": "A-LH-07 园林分区地被除草清杂",
+    "property": "基础",
+    "unit": "平方米",
+    "quantitySource": "mainGroundcoverArea",
+    "baseUnitHours": 0.0025,
+    "unitHoursScale": 1,
+    "travelRatio": 0.2,
+    "frequency": {
+      "A": "1次/月",
+      "B": "2次/季",
+      "C": "1次/季",
+      "D": "1次/半年"
+    },
+    "annualFrequency": {
+      "A": 12,
+      "B": 8,
+      "C": 4,
+      "D": 2
+    }
+  },
+  {
+    "id": "greening-41",
+    "action": "A-LH-08 园林分区地被病虫防制",
+    "property": "基础",
+    "unit": "平方米",
+    "quantitySource": "mainGroundcoverArea",
+    "baseUnitHours": 0.001,
+    "unitHoursScale": 1,
+    "travelRatio": 0.2,
+    "frequency": {
+      "A": "4次/年",
+      "B": "3次/年",
+      "C": "2次/年",
+      "D": "1次/年"
+    },
+    "annualFrequency": {
+      "A": 4,
+      "B": 3,
+      "C": 2,
+      "D": 1
+    }
+  },
+  {
+    "id": "greening-42",
+    "action": "B-LH-11 园林分区地被防寒",
+    "property": "可选",
+    "unit": "平方米",
+    "quantitySource": "zero",
+    "baseUnitHours": 0.3076923,
+    "unitHoursScale": 1,
+    "travelRatio": 0.2,
+    "frequency": {
+      "A": "1次/年",
+      "B": null,
+      "C": "无",
+      "D": "无"
+    },
+    "annualFrequency": {
+      "A": 1,
+      "B": null,
+      "C": 0,
+      "D": 0
+    }
+  },
+  {
+    "id": "greening-43",
+    "action": "绿地保洁",
+    "property": "基础",
+    "unit": "平方米",
+    "quantitySource": "mainGreenArea",
+    "baseUnitHours": 0.00025,
+    "unitHoursScale": 1,
+    "travelRatio": 0.2,
+    "frequency": {
+      "A": "1次/天",
+      "B": "1次/天",
+      "C": "2次/周",
+      "D": "1次/周"
+    },
+    "annualFrequency": {
+      "A": 365,
+      "B": 365,
+      "C": 104.4,
+      "D": 104.4
+    }
+  },
+  {
+    "id": "greening-44",
+    "action": "机械、化肥、农药及垃圾外运",
+    "property": "基础",
+    "unit": "平方米",
+    "quantitySource": "mainGreenArea",
+    "baseUnitHours": 0.0089065,
+    "unitHoursScale": 1,
+    "travelRatio": 0.25,
+    "frequency": {
+      "A": "1次/月",
+      "B": "1次/月",
+      "C": "2次/季",
+      "D": "1次/季"
+    },
+    "annualFrequency": {
+      "A": 12,
+      "B": 12,
+      "C": 8,
+      "D": 4
+    }
+  },
+  {
+    "id": "greening-45",
+    "action": "A-LH-01 园林总区乔灌木浇灌",
+    "property": "基础",
+    "unit": "株",
+    "quantitySource": "treeShrubCount",
+    "baseUnitHours": 0.0024,
+    "unitHoursScale": 1,
+    "travelRatio": 0.3,
+    "frequency": {
+      "A": "2次/周",
+      "B": "2次/周",
+      "C": "2次/周",
+      "D": "2次/周"
+    },
+    "annualFrequency": {
+      "A": 104.4,
+      "B": 104.4,
+      "C": 104.4,
+      "D": 104.4
+    }
+  },
+  {
+    "id": "greening-46",
+    "action": "B-LH-09 园林总区乔灌木松土",
+    "property": "可选",
+    "unit": "株",
+    "quantitySource": "treeShrubCount",
+    "baseUnitHours": 0.12,
+    "unitHoursScale": 1,
+    "travelRatio": 0.3,
+    "frequency": {
+      "A": "1次/年",
+      "B": "无",
+      "C": "无",
+      "D": "无"
+    },
+    "annualFrequency": {
+      "A": 1,
+      "B": 0,
+      "C": 0,
+      "D": 0
+    }
+  },
+  {
+    "id": "greening-47",
+    "action": "B-LH-03 园林总区乔灌木施肥",
+    "property": "基础",
+    "unit": "株",
+    "quantitySource": "treeShrubCount",
+    "baseUnitHours": 0.001,
+    "unitHoursScale": 1,
+    "travelRatio": 0.3,
+    "frequency": {
+      "A": "3次/年",
+      "B": "2次/年",
+      "C": "1次/年",
+      "D": null
+    },
+    "annualFrequency": {
+      "A": 3,
+      "B": 2,
+      "C": 1,
+      "D": 0
+    }
+  },
+  {
+    "id": "greening-48",
+    "action": "A-LH-04 园林总区乔木修剪",
+    "property": "基础",
+    "unit": "株",
+    "quantitySource": "treeShrubCount",
+    "baseUnitHours": 0.06,
+    "unitHoursScale": 1,
+    "travelRatio": 0.3,
+    "frequency": {
+      "A": "3次/年",
+      "B": "2次/年",
+      "C": "1次/年",
+      "D": "1次/年"
+    },
+    "annualFrequency": {
+      "A": 3,
+      "B": 2,
+      "C": 1,
+      "D": 1
+    }
+  },
+  {
+    "id": "greening-49",
+    "action": "A-LH-04 园林总区灌木修剪",
+    "property": "基础",
+    "unit": "株",
+    "quantitySource": "treeShrubCount",
+    "baseUnitHours": 0.06,
+    "unitHoursScale": 1,
+    "travelRatio": 0.3,
+    "frequency": {
+      "A": "6次/年",
+      "B": "4次/年",
+      "C": "2次/年",
+      "D": "1次/年"
+    },
+    "annualFrequency": {
+      "A": 6,
+      "B": 4,
+      "C": 2,
+      "D": 1
+    }
+  },
+  {
+    "id": "greening-50",
+    "action": "B-LH-06 园林总区乔灌木土壤改良",
+    "property": "可选",
+    "unit": "株",
+    "quantitySource": "treeShrubCount",
+    "baseUnitHours": 0.12,
+    "unitHoursScale": 1,
+    "travelRatio": 0.3,
+    "frequency": {
+      "A": "1次/年",
+      "B": "无",
+      "C": "无",
+      "D": "无"
+    },
+    "annualFrequency": {
+      "A": 1,
+      "B": 0,
+      "C": 0,
+      "D": 0
+    }
+  },
+  {
+    "id": "greening-51",
+    "action": "B-LH-08 园林总区乔灌木病虫防制",
+    "property": "基础",
+    "unit": "株",
+    "quantitySource": "treeShrubCount",
+    "baseUnitHours": 0.0533333,
+    "unitHoursScale": 1,
+    "travelRatio": 0.3,
+    "frequency": {
+      "A": "3次/年",
+      "B": "2次/年",
+      "C": "1次/年",
+      "D": "无"
+    },
+    "annualFrequency": {
+      "A": 3,
+      "B": 2,
+      "C": 1,
+      "D": 0
+    }
+  },
+  {
+    "id": "greening-52",
+    "action": "A-LH-12 园林总区乔灌木稳固支撑",
+    "property": "基础",
+    "unit": "株",
+    "quantitySource": "treeShrubCount",
+    "baseUnitHours": 0.02,
+    "unitHoursScale": 1,
+    "travelRatio": 0.3,
+    "frequency": {
+      "A": "1次/季",
+      "B": "2次/年",
+      "C": "1次/年",
+      "D": "1次/年"
+    },
+    "annualFrequency": {
+      "A": 4,
+      "B": 2,
+      "C": 1,
+      "D": 1
+    }
+  },
+  {
+    "id": "greening-53",
+    "action": "A-LH-13 园林总区乔木大修",
+    "property": "可选",
+    "unit": "株",
+    "quantitySource": "zero",
+    "baseUnitHours": 36.9230769,
+    "unitHoursScale": 1,
+    "travelRatio": 0.5,
+    "frequency": {
+      "A": "1次/年",
+      "B": "1次/2年",
+      "C": "1次/3年",
+      "D": "1次/5年"
+    },
+    "annualFrequency": {
+      "A": 1,
+      "B": 0.5,
+      "C": 0.3,
+      "D": 0.2
+    }
+  },
+  {
+    "id": "greening-54",
+    "action": "B-LH-14 园林总区乔灌木防寒刷白",
+    "property": "可选",
+    "unit": "株",
+    "quantitySource": "zero",
+    "baseUnitHours": 0.1230769,
+    "unitHoursScale": 1,
+    "travelRatio": 0.35,
+    "frequency": {
+      "A": "1次/年",
+      "B": "1次/年",
+      "C": "无",
+      "D": "无"
+    },
+    "annualFrequency": {
+      "A": 1,
+      "B": 1,
+      "C": 0,
+      "D": 0
+    }
+  },
+  {
+    "id": "greening-55",
+    "action": "B-LH-15 园林总区乔灌木防寒缠干",
+    "property": "可选",
+    "unit": "株",
+    "quantitySource": "zero",
+    "baseUnitHours": 0.1230769,
+    "unitHoursScale": 1,
+    "travelRatio": 0.35,
+    "frequency": {
+      "A": "1次/年",
+      "B": "无",
+      "C": "无",
+      "D": "无"
+    },
+    "annualFrequency": {
+      "A": 1,
+      "B": 0,
+      "C": 0,
+      "D": 0
+    }
+  }
+]);

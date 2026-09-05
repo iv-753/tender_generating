@@ -1,5 +1,8 @@
 {
   "version": "2026-09-full-model-v1",
+  "workbook": {
+    "sha256": "dfcd85e1e5666134359004423927fd28dd64c8037b0fcfca2dda46d51fbfab7d"
+  },
   "rows": {
     "四害消杀:5": "pest.treatmentArea",
     "四害消杀:6": "pest.treatmentArea",
