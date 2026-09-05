@@ -12,3 +12,4 @@ __pycache__/
 /public/models/*.xlsx
 /.chrome-qa/
 /.qa-*.png
+/.worktrees/
