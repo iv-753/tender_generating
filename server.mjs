@@ -6,6 +6,7 @@ import { spawn } from 'node:child_process';
 import { dirname, extname, isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createCalculator, validateProject } from './scripts/calculation/calculator.mjs';
+import { applyAdjustments } from './scripts/calculation/adjustments.mjs';
 import { loadRecognitionConfig } from './scripts/excel-recognition/config.mjs';
 import { recognizeExcel } from './scripts/excel-recognition/recognize-excel.mjs';
 
@@ -262,6 +263,13 @@ const server = createServer(async (request, response) => {
       const validationError = validateProject(project);
       if (validationError) return json(response, 400, { error: validationError });
       return json(response, 200, calculate(project));
+    }
+    if (url.pathname === '/api/calculate-adjusted') {
+      if (request.method !== 'POST') return json(response, 405, { error: '仅支持 POST 请求' });
+      const body = await readJson(request);
+      const validationError = validateProject(body?.project);
+      if (validationError) return json(response, 400, { error: validationError });
+      return json(response, 200, applyAdjustments(calculate(body.project), body.adjustments));
     }
     if (url.pathname === '/api/excel/recognize') {
       if (request.method !== 'POST') return json(response, 405, { error: '仅支持 POST 请求' });

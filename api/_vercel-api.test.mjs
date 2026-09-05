@@ -28,6 +28,30 @@ test('Vercel calculation endpoint calls the pure calculator without loading a mo
   assert.equal(calls, 1);
 });
 
+test('adjusted calculation rebuilds the baseline before applying user changes', async () => {
+  const { createAdjustedCalculateHandler } = await import('./calculate-adjusted.mjs');
+  const calls = [];
+  const handler = createAdjustedCalculateHandler({
+    calculate: (project) => { calls.push(['calculate', project]); return { project, actions: [], categories: [], annualCost: 10 }; },
+    apply: (baseline, adjustments) => { calls.push(['apply', baseline, adjustments]); return { ...baseline, annualCost: 20 }; },
+    validate: () => undefined,
+  });
+  const body = {
+    project: { projectName: '演示项目' },
+    adjustments: { version: 1, overrides: {}, customActions: [] },
+  };
+  const response = await handler.fetch(new Request('https://example.test/api/calculate-adjusted', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  }));
+
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).annualCost, 20);
+  assert.deepEqual(calls.map(([name]) => name), ['calculate', 'apply']);
+  assert.deepEqual(calls[1][2], body.adjustments);
+});
+
 test('Vercel Excel endpoint rejects non-xlsx input before AI recognition', async () => {
   let calls = 0;
   const handler = createExcelRecognitionHandler({ recognize: async () => { calls += 1; } });
