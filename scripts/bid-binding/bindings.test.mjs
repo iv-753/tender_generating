@@ -145,3 +145,19 @@ test('marks services without a configured frequency as disabled', () => {
   assert.equal(bindings.actionRows.find((item) => item.id === 'service-5').enabled, false);
   assert.equal(bindings.actionRows.find((item) => item.id === 'service-6').enabled, true);
 });
+
+test('accepts stopped baseline actions and extra custom actions for fixed-template export', () => {
+  const current = result();
+  current.actions = [
+    ...current.actions.map((item) => item.id === 'service-5'
+      ? { ...item, enabled: false, annualFrequency: 0, annualCost: 0 }
+      : { ...item, source: 'baseline', enabled: true }),
+    action('custom-service-demo', 'service', { source: 'custom', enabled: true }),
+  ];
+  current.totalActionCount = 122;
+
+  const bindings = buildBidBindings(current);
+
+  assert.equal(bindings.actionRows.find((item) => item.id === 'service-5').enabled, false);
+  assert.equal(bindings.actionRows.length, 109);
+});

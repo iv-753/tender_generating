@@ -93,6 +93,28 @@ test('Vercel document endpoint finishes in one invocation and returns a private 
   assert.equal(stored[0].downloadFileName, '增城示范花园-路演方案.pptx');
 });
 
+test('generation accepts adjusted results while preserving the original 122-action inventory', async () => {
+  const result = JSON.parse(await readFile(RESULT_FIXTURE, 'utf8'));
+  result.actions = [
+    ...result.actions.map((item) => item.id === 'service-5'
+      ? { ...item, source: 'baseline', enabled: false, annualFrequency: 0, annualCost: 0 }
+      : { ...item, source: 'baseline', enabled: true }),
+    { id: 'custom-service-demo', category: 'service', action: '自定义动作', source: 'custom', enabled: true, annualCost: 100 },
+  ];
+  result.totalActionCount = 122;
+  const handler = createGenerationHandler({
+    kind: 'bid', extension: 'docx', fileLabel: '投标标书', contentType: 'application/test',
+    generate: async () => ({ bytes: Buffer.from('docx'), actionCount: 109 }),
+    store: async () => ({ downloadUrl: 'https://private.example/signed' }),
+  });
+
+  const response = await handler.fetch(new Request('https://example.test/api/bid/jobs', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(result),
+  }));
+
+  assert.equal(response.status, 200);
+});
+
 test('production calculation source has no workbook model loading path', async () => {
   const sources = await Promise.all([
     readFile(path.resolve(ROOT, 'api', 'calculate.mjs'), 'utf8'),

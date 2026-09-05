@@ -9,6 +9,7 @@ import { createCalculator, validateProject } from './scripts/calculation/calcula
 import { applyAdjustments } from './scripts/calculation/adjustments.mjs';
 import { loadRecognitionConfig } from './scripts/excel-recognition/config.mjs';
 import { recognizeExcel } from './scripts/excel-recognition/recognize-excel.mjs';
+import { resultValidationError } from './api/_lib/result-validation.mjs';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const DIST = resolve(ROOT, 'dist');
@@ -57,14 +58,6 @@ function publicBidJob(job) {
     downloadUrl: job.status === 'complete' ? `/api/bid/jobs/${job.jobId}/download` : undefined,
     error: job.error,
   };
-}
-
-function presentationValidationError(result) {
-  if (!result || typeof result !== 'object') return '测算结果无效';
-  if (!text(result.project?.projectName).trim()) return '测算结果缺少项目名称';
-  if (result.totalActionCount !== 122 || !Array.isArray(result.actions) || result.actions.length !== 122) return '服务动作数据不完整，请重新测算';
-  if (!Array.isArray(result.categories) || !['service', 'cleaning', 'greening', 'assistance'].every((category) => result.categories.some((item) => item.category === category))) return '服务分类数据不完整，请重新测算';
-  return undefined;
 }
 
 function safeFileName(value) {
@@ -286,7 +279,7 @@ const server = createServer(async (request, response) => {
     if (url.pathname === '/api/presentation/jobs') {
       if (request.method !== 'POST') return json(response, 405, { error: '仅支持 POST 请求' });
       const result = await readJson(request);
-      const validationError = presentationValidationError(result);
+      const validationError = resultValidationError(result);
       if (validationError) return json(response, 400, { error: validationError });
       const jobId = randomUUID();
       const fileName = `${safeFileName(result.project.projectName)}-路演方案.pptx`;
@@ -299,7 +292,7 @@ const server = createServer(async (request, response) => {
     if (url.pathname === '/api/bid/jobs') {
       if (request.method !== 'POST') return json(response, 405, { error: '仅支持 POST 请求' });
       const result = await readJson(request);
-      const validationError = presentationValidationError(result);
+      const validationError = resultValidationError(result);
       if (validationError) return json(response, 400, { error: validationError });
       const jobId = randomUUID();
       const fileName = `${safeFileName(result.project.projectName)}-投标标书.docx`;

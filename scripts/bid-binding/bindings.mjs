@@ -70,6 +70,7 @@ function actionScope(item) {
 }
 
 function actionEnabled(item) {
+  if (item.enabled === false) return false;
   const frequency = String(item.frequency ?? '').trim();
   return !['', '-', '无', '不设置'].includes(frequency)
     && (item.annualFrequency === undefined || Number(item.annualFrequency) > 0);
@@ -158,7 +159,9 @@ export function buildBidBindings(result, generatedAt = new Date(), supplemental 
       };
     }),
   };
-  if (result.totalActionCount !== 122 || result.actions.length !== 122) {
+  const baselineActions = result.actions.filter((item) => item.source !== 'custom');
+  const activeActionCount = result.actions.filter((item) => item.enabled !== false).length;
+  if (baselineActions.length !== 122 || new Set(baselineActions.map((item) => item.id)).size !== 122 || result.totalActionCount !== activeActionCount) {
     throw new Error('标书生成需要完整的122项测算结果');
   }
   return bindings;
