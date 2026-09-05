@@ -65,6 +65,31 @@ export interface ExcelRecognitionResult {
 
 export type ActionCategory = 'service' | 'cleaning' | 'greening' | 'assistance';
 
+export interface ActionOverride {
+  annualFrequency?: number;
+  annualHours?: number;
+  headcount?: number;
+  disabled?: boolean;
+}
+
+export interface CustomActionInput {
+  id: string;
+  category: ActionCategory;
+  action: string;
+  property: string;
+  basis?: string;
+  frequency?: string;
+  annualFrequency?: number;
+  annualHours?: number;
+  headcount?: number;
+}
+
+export interface CalculationAdjustments {
+  version: 1;
+  overrides: Record<string, ActionOverride>;
+  customActions: CustomActionInput[];
+}
+
 export interface ServiceActionResult {
   id: string;
   category: ActionCategory;
@@ -78,6 +103,8 @@ export interface ServiceActionResult {
   annualHours?: number;
   headcount?: number;
   annualCost: number;
+  enabled?: boolean;
+  source?: 'baseline' | 'custom';
 }
 
 export interface CategorySummary {
@@ -86,6 +113,8 @@ export interface CategorySummary {
   actionCount: number;
   headcount: number;
   annualCost: number;
+  workloadAnnualCost?: number;
+  workloadEquivalentHeadcount?: number;
 }
 
 export interface CalculationResult {
@@ -95,6 +124,7 @@ export interface CalculationResult {
   totalActionCount: number;
   totalHeadcount: number;
   annualCost: number;
+  workloadAnnualCost?: number;
   categories: CategorySummary[];
   actions: ServiceActionResult[];
 }
@@ -117,6 +147,7 @@ export interface ProjectRecord {
   createdAt: string;
   updatedAt: string;
   result: CalculationResult;
+  adjustments?: CalculationAdjustments;
   presentation?: PresentationRecord;
   bidDocument?: BidDocumentRecord;
 }

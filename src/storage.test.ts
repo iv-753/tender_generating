@@ -2,7 +2,23 @@
 import { afterEach, describe, expect, test } from 'vitest';
 import { EXAMPLE_PROJECT } from './exampleProject';
 import { storage } from './storage';
-import type { CalculationResult } from './types';
+import type { CalculationAdjustments, CalculationResult } from './types';
+
+const adjustments: CalculationAdjustments = {
+  version: 1,
+  overrides: {
+    'service-5': { annualFrequency: 400 },
+    'cleaning-12': { disabled: true },
+  },
+  customActions: [{
+    id: 'custom-service-1',
+    category: 'service',
+    action: '夜间客户关怀',
+    property: '自定义',
+    annualFrequency: 120,
+    annualHours: 60,
+  }],
+};
 
 function result(projectName: string, calculatedAt: string, annualCost = 481800): CalculationResult {
   return {
