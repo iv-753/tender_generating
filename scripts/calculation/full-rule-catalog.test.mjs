@@ -181,7 +181,13 @@ test('默认测试链显式执行跨平台迁移解析测试', async () => {
   const runnerUrl = new URL('./migration/run-tests.mjs', import.meta.url);
   const packageDocument = JSON.parse(await readFile(packageUrl, 'utf8'));
   assert.ok(packageDocument.scripts.test.startsWith('npm run test:migration && '));
-  assert.match(packageDocument.scripts.test, /scripts\/calculation\/advanced-parameters\.test\.mjs/);
+  for (const file of [
+    'advanced-parameters.test.mjs',
+    'full-cost-calculators.test.mjs',
+    'full-rule-catalog.test.mjs',
+    'engine.test.mjs',
+    'calculator.parity.test.mjs',
+  ]) assert.ok(packageDocument.scripts.test.includes(`scripts/calculation/${file}`), `${file} 未加入默认测试链`);
   assert.equal(
     packageDocument.scripts['test:migration'],
     'node scripts/calculation/migration/run-tests.mjs',

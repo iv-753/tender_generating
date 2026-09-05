@@ -77,8 +77,26 @@ test('rounds generated and manual count parameters to whole facilities', () => {
 });
 
 test('uses derived, estimated, and template defaults according to parameter reliability', () => {
-  const sources = new Set(ADVANCED_PARAMETER_DEFINITIONS.map(({ defaultRule }) => defaultRule.source));
-  assert.deepEqual(sources, new Set(['derived', 'estimated', 'template']));
+  const sourceCounts = Object.groupBy(
+    ADVANCED_PARAMETER_DEFINITIONS,
+    ({ defaultRule }) => defaultRule.source,
+  );
+  assert.deepEqual(
+    Object.fromEntries(Object.entries(sourceCounts).map(([source, items]) => [source, items.length])),
+    { derived: 1, estimated: 36, template: 53 },
+  );
+  const sourcesByType = Object.fromEntries(Object.entries(Object.groupBy(
+    ADVANCED_PARAMETER_DEFINITIONS,
+    ({ defaultRule }) => defaultRule.type,
+  )).map(([type, definitions]) => [
+    type,
+    [...new Set(definitions.map(({ defaultRule }) => defaultRule.source))],
+  ]));
+  assert.deepEqual(sourcesByType, {
+    metric: ['derived'],
+    'scaled-template': ['estimated'],
+    template: ['template'],
+  });
 
   const larger = resolveAdvancedParameters({
     ...baseProject,

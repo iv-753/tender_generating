@@ -1,10 +1,18 @@
 import { deriveMetrics } from './derived-metrics.mjs';
+import {
+  ADVANCED_PARAMETER_VERSION,
+  parameterValues,
+  resolveAdvancedParameters,
+} from './advanced-parameters.mjs';
+import { CATEGORY_CONFIG, STANDARD_ACTION_COUNT } from './category-config.mjs';
+import { calculateFullCostModules } from './full-cost-calculators.mjs';
 import { ASSISTANCE_RULES } from './rules/assistance-rules.mjs';
 import { CLEANING_RULES } from './rules/cleaning-rules.mjs';
 import {
   ASSISTANCE_MONTHLY_RATE,
   CLEANING_DAILY_RATE,
-  COST_BAND_FACTORS,
+  ASSISTANCE_BUDGET_FACTOR,
+  FULL_MODEL_COST_FACTORS,
   GRADE_CORRECTION,
   GREENING_DAILY_RATE,
   SERVICE_ANNUAL_HOURS,
@@ -18,7 +26,12 @@ import { SERVICE_RULES } from './rules/service-rules.mjs';
 const text = (value) => value === null || value === undefined || value === '' ? '' : String(value);
 
 function assertRuleCatalog() {
-  const catalogs = [['服务', SERVICE_RULES, 17], ['清洁', CLEANING_RULES, 48], ['绿化', GREENING_RULES, 51], ['客助', ASSISTANCE_RULES, 6]];
+  const catalogs = [
+    ['服务', SERVICE_RULES, 17],
+    ['清洁', CLEANING_RULES, 48],
+    ['绿化', GREENING_RULES, 51],
+    ['客助', ASSISTANCE_RULES, 6],
+  ];
   const ids = new Set();
   for (const [name, rules, expected] of catalogs) {
     if (rules.length !== expected) throw new Error(`${name}规则数量必须为 ${expected}`);
@@ -62,8 +75,17 @@ function calculateService(metrics, grade, factor) {
     const annualHours = finite(annualFrequency * serviceUnitHours(rule, grade), `${rule.id}.annualHours`);
     return { id: rule.id, category: 'service', action: rule.action, property: rule.property, basis: rule.basis, frequency: text(rule.frequency[grade] ?? 0), annualFrequency, annualHours, headcount: annualHours / SERVICE_ANNUAL_HOURS, annualCost: annualHours * SERVICE_HOURLY_RATE * factor };
   });
-  const headcount = Math.ceil(actions.reduce((sum, item) => sum + item.headcount, 0));
-  return { actions, summary: { category: 'service', title: '服务', actionCount: 17, headcount, annualCost: headcount * SERVICE_HOURLY_RATE * WORKDAY_HOURS * WORKDAYS_PER_YEAR * factor } };
+  const workloadEquivalentHeadcount = actions.reduce((sum, item) => sum + item.headcount, 0);
+  const headcount = Math.ceil(workloadEquivalentHeadcount);
+  return { actions, summary: {
+    category: 'service',
+    title: '服务',
+    actionCount: 17,
+    headcount,
+    annualCost: headcount * SERVICE_HOURLY_RATE * WORKDAY_HOURS * WORKDAYS_PER_YEAR * factor,
+    workloadAnnualCost: actions.reduce((sum, item) => sum + item.annualCost, 0),
+    workloadEquivalentHeadcount,
+  } };
 }
 
 function quantityFor(rule, metrics) {
@@ -85,8 +107,17 @@ function calculateAreaCategory({ rules, category, title, metrics, grade, factor,
     };
   });
   const totalAnnualHours = actions.reduce((sum, item) => sum + item.annualHours, 0);
-  const headcount = Math.ceil(totalAnnualHours / WORKDAY_HOURS / WORKDAYS_PER_YEAR);
-  return { actions, summary: { category, title, actionCount: rules.length, headcount, annualCost: dailyRate * headcount * WORKDAYS_PER_YEAR * factor } };
+  const workloadEquivalentHeadcount = totalAnnualHours / WORKDAY_HOURS / WORKDAYS_PER_YEAR;
+  const headcount = Math.ceil(workloadEquivalentHeadcount);
+  return { actions, summary: {
+    category,
+    title,
+    actionCount: rules.length,
+    headcount,
+    annualCost: dailyRate * headcount * WORKDAYS_PER_YEAR * factor,
+    workloadAnnualCost: actions.reduce((sum, item) => sum + item.annualCost, 0),
+    workloadEquivalentHeadcount,
+  } };
 }
 
 function calculateAssistance(metrics, grade, factor) {
@@ -105,24 +136,71 @@ function calculateAssistance(metrics, grade, factor) {
     if (['assistance-4', 'assistance-5', 'assistance-7', 'assistance-8'].includes(rule.id)) assistanceBaseRaw += rawHeadcount;
     if (rule.id === 'assistance-9') assistanceWithReliefRaw = assistanceBaseRaw + rawHeadcount;
     const headcount = Math.ceil(rawHeadcount);
-    return { id: rule.id, category: 'assistance', action: rule.action, property: rule.property, unit: rule.unit, quantity, frequency: text(rule.frequency[grade]), headcount, annualCost: headcount * ASSISTANCE_MONTHLY_RATE * 12 * factor };
+    return { id: rule.id, category: 'assistance', action: rule.action, property: rule.property, unit: rule.unit, quantity, frequency: text(rule.frequency[grade]), headcount, annualCost: headcount * ASSISTANCE_MONTHLY_RATE * 12 * ASSISTANCE_BUDGET_FACTOR * factor };
   });
   const headcount = actions.reduce((sum, item) => sum + item.headcount, 0);
-  return { actions, summary: { category: 'assistance', title: '客助', actionCount: 6, headcount, annualCost: headcount * ASSISTANCE_MONTHLY_RATE * 12 * factor } };
+  const annualCost = headcount * ASSISTANCE_MONTHLY_RATE * 12 * ASSISTANCE_BUDGET_FACTOR * factor;
+  return { actions, summary: {
+    category: 'assistance',
+    title: '客助',
+    actionCount: 6,
+    headcount,
+    annualCost,
+    workloadAnnualCost: annualCost,
+    workloadEquivalentHeadcount: headcount,
+  } };
 }
 
 export function calculateProject(project) {
   const grade = project.serviceGrade;
-  const factor = COST_BAND_FACTORS[project.costBand];
+  const factor = FULL_MODEL_COST_FACTORS[project.costBand];
+  if (factor === undefined) throw new Error(`未知城市成本档位：${String(project.costBand)}`);
+  const advancedParameters = resolveAdvancedParameters(project);
+  const parameters = parameterValues(advancedParameters);
   const metrics = deriveMetrics(project);
-  const groups = [
+  const legacyGroups = [
     calculateService(metrics, grade, factor),
     calculateAreaCategory({ rules: CLEANING_RULES, category: 'cleaning', title: '清洁', metrics, grade, factor, dailyRate: CLEANING_DAILY_RATE[grade] }),
     calculateAreaCategory({ rules: GREENING_RULES, category: 'greening', title: '绿化', metrics, grade, factor, dailyRate: GREENING_DAILY_RATE[grade] }),
     calculateAssistance(metrics, grade, factor),
   ];
+  const full = calculateFullCostModules(project, parameters);
+  const groups = [...legacyGroups, ...full.groups];
+  for (let index = 0; index < CATEGORY_CONFIG.length; index += 1) {
+    const expected = CATEGORY_CONFIG[index];
+    const current = groups[index];
+    if (current?.summary.category !== expected.category) {
+      throw new Error(`测算分类顺序异常：第 ${index + 1} 类应为 ${expected.category}`);
+    }
+    if (current.actions.length !== expected.expectedCount || current.summary.actionCount !== expected.expectedCount) {
+      throw new Error(`${expected.title}测算结果数量异常：应为 ${expected.expectedCount} 项，实际为 ${current.actions.length} 项`);
+    }
+  }
   const categories = groups.map(({ summary }) => summary);
-  const actions = groups.flatMap(({ actions: items }) => items);
-  if (actions.length !== 122) throw new Error(`测算结果数量异常：应为 122 项，实际为 ${actions.length} 项`);
-  return { version: 1, calculatedAt: new Date().toISOString(), project, totalActionCount: actions.length, totalHeadcount: categories.reduce((sum, item) => sum + item.headcount, 0), annualCost: categories.reduce((sum, item) => sum + item.annualCost, 0), categories, actions };
+  const actions = groups.flatMap(({ actions: items }) => items).map((action) => ({
+    ...action,
+    source: 'baseline',
+    enabled: true,
+  }));
+  const uniqueIds = new Set(actions.map(({ id }) => id));
+  if (actions.length !== STANDARD_ACTION_COUNT || uniqueIds.size !== STANDARD_ACTION_COUNT) {
+    throw new Error(`测算结果数量异常：应为 ${STANDARD_ACTION_COUNT} 项，实际为 ${actions.length} 项，唯一编号 ${uniqueIds.size} 项`);
+  }
+  const activeActionCount = actions.filter(({ enabled }) => enabled !== false).length;
+  return {
+    version: 2,
+    calculatedAt: new Date().toISOString(),
+    project,
+    advancedParameterVersion: ADVANCED_PARAMETER_VERSION,
+    advancedParameters,
+    standardActionCount: STANDARD_ACTION_COUNT,
+    activeActionCount,
+    totalActionCount: activeActionCount,
+    totalHeadcount: categories.reduce((sum, item) => sum + item.headcount, 0) + full.management.headcount,
+    annualCost: categories.reduce((sum, item) => sum + item.annualCost, 0) + full.management.annualCost,
+    workloadAnnualCost: categories.reduce((sum, item) => sum + item.workloadAnnualCost, 0),
+    management: full.management,
+    categories,
+    actions,
+  };
 }

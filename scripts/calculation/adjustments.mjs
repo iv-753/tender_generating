@@ -2,8 +2,9 @@ import { ASSISTANCE_RULES } from './rules/assistance-rules.mjs';
 import { CLEANING_RULES } from './rules/cleaning-rules.mjs';
 import {
   ASSISTANCE_MONTHLY_RATE,
+  ASSISTANCE_BUDGET_FACTOR,
   CLEANING_DAILY_RATE,
-  COST_BAND_FACTORS,
+  FULL_MODEL_COST_FACTORS,
   GRADE_CORRECTION,
   GREENING_DAILY_RATE,
   SERVICE_ANNUAL_HOURS,
@@ -65,7 +66,7 @@ function hourlyRate(category, grade) {
 }
 
 function actionCost(action, grade, factor) {
-  if (action.category === 'assistance') return Number(action.headcount ?? 0) * ASSISTANCE_MONTHLY_RATE * 12 * factor;
+  if (action.category === 'assistance') return Number(action.headcount ?? 0) * ASSISTANCE_MONTHLY_RATE * 12 * ASSISTANCE_BUDGET_FACTOR * factor;
   return Number(action.annualHours ?? 0) * hourlyRate(action.category, grade) * factor;
 }
 
@@ -109,7 +110,7 @@ function customAction(input, grade, factor, ids) {
   };
   if (input.category === 'assistance') {
     const headcount = wholeNonNegative(input.headcount ?? 0, '配置人数');
-    return { ...base, frequency: input.frequency ? String(input.frequency) : '自定义配置', headcount, annualCost: headcount * ASSISTANCE_MONTHLY_RATE * 12 * factor };
+    return { ...base, frequency: input.frequency ? String(input.frequency) : '自定义配置', headcount, annualCost: headcount * ASSISTANCE_MONTHLY_RATE * 12 * ASSISTANCE_BUDGET_FACTOR * factor };
   }
   const annualFrequency = finiteNonNegative(input.annualFrequency ?? 0, '年频次');
   const annualHours = finiteNonNegative(input.annualHours ?? 0, '年工时');
@@ -133,7 +134,7 @@ function summarize(category, actions, grade, factor) {
   if (category === 'assistance') {
     workloadEquivalentHeadcount = active.reduce((sum, item) => sum + Number(item.headcount ?? 0), 0);
     headcount = workloadEquivalentHeadcount;
-    annualCost = headcount * ASSISTANCE_MONTHLY_RATE * 12 * factor;
+    annualCost = headcount * ASSISTANCE_MONTHLY_RATE * 12 * ASSISTANCE_BUDGET_FACTOR * factor;
   } else {
     const annualHours = active.reduce((sum, item) => sum + Number(item.annualHours ?? 0), 0);
     const annualCapacity = category === 'service' ? SERVICE_ANNUAL_HOURS : WORKDAY_HOURS * WORKDAYS_PER_YEAR;
@@ -158,15 +159,32 @@ function summarize(category, actions, grade, factor) {
 export function applyAdjustments(baseline, adjustments) {
   assertAdjustments(adjustments);
   if (!baseline?.project || !Array.isArray(baseline.actions)) throw new Error('基准测算结果无效');
+  if (baseline.version === 2 && (!baseline.management
+    || !Number.isFinite(baseline.management.headcount)
+    || baseline.management.headcount < 0
+    || !Number.isFinite(baseline.management.annualCost)
+    || baseline.management.annualCost < 0)) {
+    throw new Error('V2 基准测算缺少管理成本');
+  }
   const grade = baseline.project.serviceGrade;
-  const factor = COST_BAND_FACTORS[baseline.project.costBand];
+  const factor = FULL_MODEL_COST_FACTORS[baseline.project.costBand];
   if (!grade || !factor) throw new Error('项目服务等级或城市成本档位无效');
 
   const baselineIds = new Set(baseline.actions.map((item) => item.id));
   for (const id of Object.keys(adjustments.overrides)) {
     if (!baselineIds.has(id)) throw new Error(`服务动作 ${id} 不存在`);
   }
-  const actions = baseline.actions.map((action) => applyOverride(action, adjustments.overrides[action.id] ?? {}, grade, factor));
+  if (Object.keys(adjustments.overrides).length === 0 && adjustments.customActions.length === 0) {
+    return { ...baseline, calculatedAt: new Date().toISOString() };
+  }
+  const actions = baseline.actions.map((action) => {
+    const override = adjustments.overrides[action.id];
+    if (override === undefined) return action;
+    if (!CATEGORIES.includes(action.category)) {
+      throw new Error(`${CATEGORY_TITLES[action.category] ?? action.category}动作调整尚未开放`);
+    }
+    return applyOverride(action, override, grade, factor);
+  });
   const ids = new Set(baselineIds);
   for (const input of adjustments.customActions) {
     const item = customAction(input, grade, factor, ids);
@@ -174,13 +192,22 @@ export function applyAdjustments(baseline, adjustments) {
     actions.push(item);
   }
 
-  const categories = CATEGORIES.map((category) => summarize(category, actions, grade, factor));
+  const adjustedCategories = new Map(
+    CATEGORIES.map((category) => [category, summarize(category, actions, grade, factor)]),
+  );
+  const categories = baseline.categories.map((summary) => (
+    adjustedCategories.get(summary.category) ?? summary
+  ));
+  const activeActionCount = actions.filter((item) => item.enabled !== false).length;
+  const managementHeadcount = baseline.version === 2 ? baseline.management.headcount : 0;
+  const managementAnnualCost = baseline.version === 2 ? baseline.management.annualCost : 0;
   return {
     ...baseline,
     calculatedAt: new Date().toISOString(),
-    totalActionCount: actions.filter((item) => item.enabled !== false).length,
-    totalHeadcount: categories.reduce((sum, item) => sum + item.headcount, 0),
-    annualCost: categories.reduce((sum, item) => sum + item.annualCost, 0),
+    ...(baseline.version === 2 ? { activeActionCount } : {}),
+    totalActionCount: activeActionCount,
+    totalHeadcount: categories.reduce((sum, item) => sum + item.headcount, 0) + managementHeadcount,
+    annualCost: categories.reduce((sum, item) => sum + item.annualCost, 0) + managementAnnualCost,
     workloadAnnualCost: actions.filter((item) => item.enabled !== false).reduce((sum, item) => sum + item.annualCost, 0),
     categories,
     actions,

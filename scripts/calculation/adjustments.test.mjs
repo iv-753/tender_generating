@@ -14,8 +14,19 @@ test('returns workbook totals when no adjustment exists', () => {
 
   assert.equal(after.annualCost, before.annualCost);
   assert.equal(after.totalHeadcount, before.totalHeadcount);
-  assert.equal(after.totalActionCount, 122);
-  assert.equal(after.workloadAnnualCost, before.actions.reduce((sum, item) => sum + item.annualCost, 0));
+  assert.equal(after.totalActionCount, 452);
+  assert.equal(after.activeActionCount, 452);
+  assert.deepEqual(after.categories, before.categories);
+  assert.deepEqual(after.management, before.management);
+  assert.equal(after.workloadAnnualCost, before.workloadAnnualCost);
+});
+
+test('rejects a malformed V2 baseline instead of inventing management defaults', () => {
+  const { management: _management, ...incomplete } = baseline();
+  assert.throws(
+    () => applyAdjustments(incomplete, emptyAdjustments()),
+    /V2 基准测算缺少管理成本/,
+  );
 });
 
 test('changing annual frequency recalculates hours and workload cost', () => {
@@ -38,7 +49,7 @@ test('an annual-hours override is authoritative', () => {
 
   assert.equal(changed.annualFrequency, 400);
   assert.equal(changed.annualHours, 100);
-  assert.equal(changed.annualCost, 100 * 30 * 1.1);
+  assert.equal(changed.annualCost, 100 * 30);
 });
 
 test('a zero-frequency workbook action can be activated by frequency', () => {
@@ -49,7 +60,7 @@ test('a zero-frequency workbook action can be activated by frequency', () => {
   const changed = after.actions.find((item) => item.id === 'service-8');
 
   assert.equal(changed.annualHours, 100 * 0.01 * 1.05);
-  assert.equal(changed.annualCost, changed.annualHours * 30 * 1.1);
+  assert.equal(changed.annualCost, changed.annualHours * 30);
 });
 
 test('disabling an action zeros its workload cost', () => {
@@ -61,7 +72,8 @@ test('disabling an action zeros its workload cost', () => {
   assert.equal(disabled.annualFrequency, 0);
   assert.equal(disabled.annualHours, 0);
   assert.equal(disabled.annualCost, 0);
-  assert.equal(after.totalActionCount, 121);
+  assert.equal(after.totalActionCount, 451);
+  assert.equal(after.activeActionCount, 451);
   assert.ok(after.workloadAnnualCost < before.actions.reduce((sum, item) => sum + item.annualCost, 0));
 });
 
@@ -76,8 +88,9 @@ test('a custom action adds workload cost and participates in rounded staffing', 
   const custom = after.actions.find((item) => item.id === 'custom-service-1');
 
   assert.equal(custom.source, 'custom');
-  assert.equal(custom.annualCost, 500 * 30 * 1.1);
-  assert.equal(after.totalActionCount, 123);
+  assert.equal(custom.annualCost, 500 * 30);
+  assert.equal(after.totalActionCount, 453);
+  assert.equal(after.activeActionCount, 453);
   assert.ok(after.workloadAnnualCost > before.actions.reduce((sum, item) => sum + item.annualCost, 0));
 });
 
@@ -89,7 +102,7 @@ test('assistance custom actions use whole posts and monthly pricing', () => {
   const custom = after.actions.find((item) => item.id === 'custom-assistance-1');
 
   assert.equal(custom.headcount, 2);
-  assert.equal(custom.annualCost, 2 * 8000 * 12 * 1.1);
+  assert.equal(custom.annualCost, 2 * 8000 * 12 * 1.06);
 });
 
 test('rejects invalid numbers, unknown ids, and duplicate custom ids', () => {
