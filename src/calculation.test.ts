@@ -1,4 +1,6 @@
 import { describe, expect, test } from 'vitest';
+// @ts-expect-error Runtime ESM config is exercised directly without duplicating its contract.
+import { CATEGORY_CONFIG, CATEGORY_TITLES, STANDARD_ACTION_COUNT } from '../scripts/calculation/category-config.mjs';
 import {
   ACTION_COUNTS,
   COST_BAND_FACTORS,
@@ -28,17 +30,31 @@ describe('property calculation rules', () => {
     expect(COST_BAND_FACTORS.high).toBe(1.2);
   });
 
-  test('locks the complete result inventory to exactly 452 standard actions', () => {
-    expect(ACTION_COUNTS).toEqual({
-      service: 17,
-      cleaning: 48,
-      greening: 51,
-      assistance: 6,
-      pestControl: 7,
-      engineeringOutsourced: 95,
-      engineeringRoutine: 228,
+  test('locks the complete category configuration to exactly 452 standard actions', () => {
+    expect(CATEGORY_CONFIG).toEqual([
+      { category: 'service', title: '服务', expectedCount: 17, costModel: 'rounded-service-staffing' },
+      { category: 'cleaning', title: '清洁', expectedCount: 48, costModel: 'rounded-daily-staffing' },
+      { category: 'greening', title: '绿化', expectedCount: 51, costModel: 'rounded-daily-staffing' },
+      { category: 'assistance', title: '客助', expectedCount: 6, costModel: 'dedicated-posts' },
+      { category: 'pestControl', title: '四害消杀', expectedCount: 7, costModel: 'pest-workdays' },
+      { category: 'engineeringOutsourced', title: '工程委外', expectedCount: 95, costModel: 'rounded-outsourced-staffing' },
+      { category: 'engineeringRoutine', title: '工程常规', expectedCount: 228, costModel: 'rounded-routine-staffing' },
+    ]);
+    expect(CATEGORY_TITLES).toEqual({
+      service: '服务',
+      cleaning: '清洁',
+      greening: '绿化',
+      assistance: '客助',
+      pestControl: '四害消杀',
+      engineeringOutsourced: '工程委外',
+      engineeringRoutine: '工程常规',
     });
-    expect(Object.values(ACTION_COUNTS).reduce((sum, count) => sum + count, 0)).toBe(452);
+    expect(STANDARD_ACTION_COUNT).toBe(452);
+    expect(ACTION_COUNTS).toEqual(Object.fromEntries(
+      CATEGORY_CONFIG.map((item: { category: string; expectedCount: number }) => [item.category, item.expectedCount]),
+    ));
+    expect(Object.isFrozen(CATEGORY_CONFIG)).toBe(true);
+    expect(CATEGORY_CONFIG.every(Object.isFrozen)).toBe(true);
   });
 
   test('hides internal service codes from action names', () => {

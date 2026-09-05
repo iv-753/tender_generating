@@ -6,7 +6,7 @@ export const CATEGORY_CONFIG = Object.freeze([
   { category: 'pestControl', title: '四害消杀', expectedCount: 7, costModel: 'pest-workdays' },
   { category: 'engineeringOutsourced', title: '工程委外', expectedCount: 95, costModel: 'rounded-outsourced-staffing' },
   { category: 'engineeringRoutine', title: '工程常规', expectedCount: 228, costModel: 'rounded-routine-staffing' },
-]);
+].map(Object.freeze));
 
 export const CATEGORY_TITLES = Object.freeze(Object.fromEntries(
   CATEGORY_CONFIG.map(({ category, title }) => [category, title]),
