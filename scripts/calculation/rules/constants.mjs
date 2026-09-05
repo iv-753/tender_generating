@@ -8,3 +8,18 @@ export const SERVICE_ANNUAL_HOURS = 2304;
 export const WORKDAY_HOURS = 8;
 export const WORKDAYS_PER_YEAR = 365;
 export const ASSISTANCE_MONTHLY_RATE = 8000;
+export const WORKBOOK_BASE_COST_BAND = 'upper';
+export const FULL_MODEL_COST_FACTORS = Object.freeze({
+  high: 1.2 / 1.1,
+  upper: 1,
+  standard: 1 / 1.1,
+  base: 0.9 / 1.1,
+});
+export const ENGINEERING_ROUTINE_MONTHLY_RATE = 6666.66666666667;
+export const ENGINEERING_OUTSOURCED_MONTHLY_RATE = 7500;
+export const ENGINEERING_BUDGET_FACTOR = 1.2;
+export const MANAGEMENT_BUDGET_FACTOR = 1.06;
+export const ASSISTANCE_BUDGET_FACTOR = 1.06;
+export const PEST_WORKDAY_RATE = 600;
+export const ENGINEERING_MONTHLY_CAPACITY_HOURS = 30 * 8;
+export const ENGINEERING_ANNUAL_CAPACITY_HOURS = 12 * 30 * 8;
