@@ -136,22 +136,54 @@ test('工程动作与分类严格使用工时、系统月薪、统一预算月�
   closeTo(routine.summary.annualCost, 480000, '示范项目工程常规预算');
 });
 
-test('四害按共享工作量折工作日并复刻全年兼职人员与日成本预算', () => {
+test('四害将 Excel 合并区域的一份共享工作量等额分摊到 7 行明细', () => {
   const pest = group(calculate(), 'pestControl');
   const rule = PEST_CONTROL_RULES[0];
-  const action = pest.actions[0];
-  const expectedHours = action.quantity * rule.unitHours.C * rule.annualFrequency.C;
-  const expectedWorkdays = expectedHours / 8;
+  const sharedAnnualHours = pest.actions[0].quantity
+    * rule.unitHours.C * rule.annualFrequency.C;
+  const expectedActionHours = sharedAnnualHours / pest.actions.length;
+  const expectedWorkdays = sharedAnnualHours / 8;
   const expectedHeadcount = expectedWorkdays / (12 * 30);
 
-  closeTo(action.annualHours, expectedHours, '四害年工时');
-  closeTo(action.annualCost, expectedHours * (PEST_WORKDAY_RATE / 8), '四害动作工作量成本');
-  closeTo(pest.summary.annualHours, expectedHours, '四害共享年工时');
+  for (const action of pest.actions) {
+    assert.equal(action.sharedWorkloadGroup, 'pest-control');
+    assert.equal(action.allocationRatio, 1 / 7);
+    closeTo(action.annualHours, expectedActionHours, `${action.id}分摊年工时`);
+    closeTo(
+      action.annualCost,
+      expectedActionHours * (PEST_WORKDAY_RATE / 8),
+      `${action.id}分摊工作量成本`,
+    );
+  }
+  assert.equal(
+    pest.actions.reduce((sum, action) => sum + action.annualHours, 0),
+    pest.summary.annualHours,
+  );
+  assert.equal(
+    pest.actions.reduce((sum, action) => sum + action.annualCost, 0),
+    pest.summary.workloadAnnualCost,
+  );
+  closeTo(pest.summary.annualHours, sharedAnnualHours, '四害共享年工时');
   closeTo(pest.summary.annualWorkdays, expectedWorkdays, '四害全年工作日');
   closeTo(pest.summary.headcount, expectedHeadcount, '四害全年兼职人数');
-  closeTo(pest.summary.workloadAnnualCost, expectedHours * (PEST_WORKDAY_RATE / 8));
+  closeTo(pest.summary.workloadAnnualCost, sharedAnnualHours * (PEST_WORKDAY_RATE / 8));
   closeTo(pest.summary.annualCost, expectedHeadcount * PEST_WORKDAY_RATE * 365);
   closeTo(pest.summary.annualCost, 41103.55418838223, '示范项目四害年度预算');
+});
+
+test('四害共享数量为零时 7 行分摊工作量和分类成本同时归零', () => {
+  const project = {
+    ...baseProject,
+    advancedParameterOverrides: { 'pest.treatmentArea': 0 },
+  };
+  const pest = group(calculate(project), 'pestControl');
+  assert.equal(pest.actions.length, 7);
+  assert.ok(pest.actions.every(({ quantity, annualHours, annualCost }) => (
+    quantity === 0 && annualHours === 0 && annualCost === 0
+  )));
+  assert.equal(pest.summary.annualHours, 0);
+  assert.equal(pest.summary.workloadAnnualCost, 0);
+  assert.equal(pest.summary.annualCost, 0);
 });
 
 test('管理成本使用四岗位工资、1.06 附加比例及城市相对因子', () => {

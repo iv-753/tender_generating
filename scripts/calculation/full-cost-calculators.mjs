@@ -112,7 +112,7 @@ function engineeringSummary(category, title, actions, monthlyRate, costFactor) {
 }
 
 function calculatePest(grade, parameters, costFactor) {
-  const actions = calculateActions(
+  const sharedActions = calculateActions(
     PEST_CONTROL_RULES,
     'pestControl',
     grade,
@@ -120,9 +120,24 @@ function calculatePest(grade, parameters, costFactor) {
     () => PEST_WORKDAY_RATE / WORKDAY_HOURS,
     costFactor,
   );
-
-  // The workbook stores one shared workload across the seven labels in a merged range.
-  const annualHours = actions[0]?.annualHours ?? 0;
+  const allocationRatio = 1 / sharedActions.length;
+  // Excel only supplies one workload in a merged range for all seven labels. The
+  // equal allocation makes 452-row detail explainable; it is not per-action Excel data.
+  const actions = sharedActions.map((action) => ({
+    ...action,
+    sharedWorkloadGroup: 'pest-control',
+    allocationRatio,
+    annualHours: action.annualHours * allocationRatio,
+    annualCost: action.annualCost * allocationRatio,
+  }));
+  const annualHours = finiteNonNegative(
+    actions.reduce((sum, action) => sum + action.annualHours, 0),
+    'pestControl.annualHours',
+  );
+  const workloadAnnualCost = finiteNonNegative(
+    actions.reduce((sum, action) => sum + action.annualCost, 0),
+    'pestControl.workloadAnnualCost',
+  );
   const annualWorkdays = finiteNonNegative(
     annualHours / WORKDAY_HOURS,
     'pestControl.annualWorkdays',
@@ -144,10 +159,7 @@ function calculatePest(grade, parameters, costFactor) {
         headcount * PEST_WORKDAY_RATE * WORKDAYS_PER_YEAR * costFactor,
         'pestControl.annualCost',
       ),
-      workloadAnnualCost: finiteNonNegative(
-        annualHours * (PEST_WORKDAY_RATE / WORKDAY_HOURS) * costFactor,
-        'pestControl.workloadAnnualCost',
-      ),
+      workloadAnnualCost,
       workloadEquivalentHeadcount: headcount,
     },
   };
