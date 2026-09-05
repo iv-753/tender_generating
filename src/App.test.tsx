@@ -89,6 +89,7 @@ test('uses the project center as the workspace home', () => {
   render(<App />);
 
   expect(window.location.pathname).toBe('/projects');
+  expect(screen.getByRole('heading', { name: '智营图谱' })).toBeTruthy();
   expect(screen.getByRole('heading', { name: '项目中心' })).toBeTruthy();
   expect(screen.getByText('还没有保存的项目')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: /新建项目/ }));

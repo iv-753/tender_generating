@@ -67,7 +67,7 @@ export default function App() {
   ].map((item) => ({ ...item, label: <a href={item.key} onClick={(event) => { event.preventDefault(); navigate(item.key as AppPath); }}>{item.label}</a> }));
 
   return <Layout className="app-shell">
-    <Header className="app-header"><Typography.Title className="brand" level={3}>物业方案工作台</Typography.Title><Menu className="main-menu" mode="horizontal" theme="dark" selectedKeys={[selected]} items={menuItems} /><span className="account-chip"><UserOutlined /><span><strong>{storage.loadCompanyProfile()?.companyName || '企业账户'}</strong><small>管理员</small></span></span></Header>
+    <Header className="app-header"><Typography.Title className="brand" level={3}>智营图谱</Typography.Title><Menu className="main-menu" mode="horizontal" theme="dark" selectedKeys={[selected]} items={menuItems} /><span className="account-chip"><UserOutlined /><span><strong>{storage.loadCompanyProfile()?.companyName || '企业账户'}</strong><small>管理员</small></span></span></Header>
     <Content className="app-content">{workspace && <ProjectWorkspaceNav activePath={path as ProjectWorkspacePath} onNavigate={projectNavigate} />}{page}</Content>
   </Layout>;
 }
