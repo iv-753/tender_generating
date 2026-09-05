@@ -1,4 +1,5 @@
 import type { ActionCategory, CostBand, ProjectData, ServiceGrade } from './types';
+import { getCityRecommendation, getCityRecommendationByName, isAllowedCostBand } from './cityCatalog';
 
 export const ACTION_COUNTS = {
   service: 17,
@@ -35,13 +36,6 @@ export const WORKBOOK_GRADE_VALUES: Record<ServiceGrade, string> = {
   D: '向日葵',
 };
 
-const CITY_BANDS: Record<CostBand, string[]> = {
-  high: ['北京', '上海', '深圳', '杭州'],
-  upper: ['广州', '苏州', '南京', '成都', '武汉'],
-  standard: ['东莞', '佛山', '长沙', '重庆', '昆山'],
-  base: ['肇庆', '云浮'],
-};
-
 export function gradeLabel(grade: ServiceGrade) {
   return GRADE_LABELS[grade];
 }
@@ -67,16 +61,16 @@ export function showsActionHeadcount(category: ActionCategory) {
 }
 
 export function inferCostBand(city: string): CostBand | undefined {
-  const normalized = city.trim().replace(/市$/, '');
-  return (Object.keys(CITY_BANDS) as CostBand[]).find((band) =>
-    CITY_BANDS[band].includes(normalized),
-  );
+  return getCityRecommendationByName(city);
 }
 
 export function validateProjectData(data: ProjectData): string[] {
   const errors: string[] = [];
   if (!data.projectName.trim()) errors.push('请填写项目名称');
   if (!data.region.trim() || !data.city.trim()) errors.push('请填写项目地区和城市');
+  const recommendedCostBand = getCityRecommendation(data.region, data.city);
+  if (data.region.trim() && data.city.trim() && !recommendedCostBand) errors.push('请选择有效的省份和城市');
+  if (recommendedCostBand && !isAllowedCostBand(recommendedCostBand, data.costBand)) errors.push('城市成本档位只能在系统建议的相邻一级内调整');
   if (data.occupiedHouseholds > data.receivedHouseholds) errors.push('常住户数不能大于已收楼户数');
   if (data.receivedHouseholds > data.deliveredHouseholds) errors.push('已收楼户数不能大于已交付户数');
   if (data.lawnRatio < 0 || data.lawnRatio > 1) errors.push('草坪比例必须在 0%—100% 之间');

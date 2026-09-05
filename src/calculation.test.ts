@@ -19,12 +19,12 @@ describe('property calculation rules', () => {
     expect(gradeLabel('A')).not.toContain('紫荆花');
   });
 
-  test('maps known cities to demonstration cost bands', () => {
+  test('maps nationwide cities to the versioned cost bands', () => {
     expect(inferCostBand('深圳')).toBe('high');
     expect(inferCostBand('成都市')).toBe('upper');
-    expect(inferCostBand('东莞')).toBe('standard');
+    expect(inferCostBand('东莞')).toBe('upper');
     expect(inferCostBand('云浮市')).toBe('base');
-    expect(inferCostBand('西安')).toBeUndefined();
+    expect(inferCostBand('西安')).toBe('upper');
     expect(COST_BAND_FACTORS.high).toBe(1.2);
   });
 
@@ -66,5 +66,7 @@ describe('property calculation rules', () => {
         occupiedHouseholds: EXAMPLE_PROJECT.receivedHouseholds + 1,
       }),
     ).toContain('常住户数不能大于已收楼户数');
+    expect(validateProjectData({ ...EXAMPLE_PROJECT, costBand: 'standard' }))
+      .toContain('城市成本档位只能在系统建议的相邻一级内调整');
   });
 });

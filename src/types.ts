@@ -17,6 +17,8 @@ export interface ProjectData {
   city: string;
   serviceGrade: ServiceGrade;
   costBand: CostBand;
+  recommendedCostBand?: CostBand;
+  costBandSourceVersion?: string;
   totalBuildingArea: number;
   residentialChargeArea: number;
   deliveredHouseholds: number;
