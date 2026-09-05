@@ -48,6 +48,13 @@ test('changing frequency clears a previous hours override', () => {
   }));
 });
 
+test('shows annual frequency as a whole count and hours without floating-point noise', () => {
+  render(<ActionEditor category="service" actions={[{ ...action, annualFrequency: 23.039999999999996, annualHours: 24.239999999999995 }]} adjustments={empty} onChange={vi.fn()} />);
+
+  expect((screen.getByLabelText('车行相关业务办理年频次') as HTMLInputElement).value).toBe('23');
+  expect((screen.getByLabelText('车行相关业务办理年工时') as HTMLInputElement).value).toBe('24.24');
+});
+
 test('stops and restores a workbook action without removing its id', () => {
   const onChange = vi.fn();
   const { rerender } = render(<ActionEditor category="service" actions={[action]} adjustments={empty} onChange={onChange} />);

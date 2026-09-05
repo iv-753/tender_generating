@@ -23,6 +23,8 @@ type CustomDraft = {
 };
 
 const blankDraft = (): CustomDraft => ({ action: '', basis: '', annualFrequency: 0, annualHours: 0, headcount: 1 });
+const cleanDecimal = (value: number) => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
+const cleanFrequency = (value: number) => Math.round(Number(value));
 
 export default function ActionEditor({ category, actions, adjustments, onChange }: Props) {
   const [adding, setAdding] = useState(false);
@@ -98,7 +100,7 @@ export default function ActionEditor({ category, actions, adjustments, onChange 
         render: (_: unknown, item: ServiceActionResult) => {
           const custom = adjustments.customActions.find((entry) => entry.id === item.id);
           const value = custom?.annualFrequency ?? adjustments.overrides[item.id]?.annualFrequency ?? item.annualFrequency ?? 0;
-          return <InputNumber aria-label={`${displayActionName(item.action)}年频次`} min={0} value={value} disabled={item.enabled === false} onChange={(next) => item.source === 'custom' ? updateCustom(item.id, { annualFrequency: Number(next ?? 0) }) : updateOverride(item.id, { annualFrequency: Number(next ?? 0), annualHours: undefined })} />;
+          return <InputNumber aria-label={`${displayActionName(item.action)}年频次`} min={0} precision={0} value={cleanFrequency(value)} disabled={item.enabled === false} onChange={(next) => item.source === 'custom' ? updateCustom(item.id, { annualFrequency: Number(next ?? 0) }) : updateOverride(item.id, { annualFrequency: Number(next ?? 0), annualHours: undefined })} />;
         },
       },
       {
@@ -107,7 +109,7 @@ export default function ActionEditor({ category, actions, adjustments, onChange 
           const custom = adjustments.customActions.find((entry) => entry.id === item.id);
           const overridden = adjustments.overrides[item.id]?.annualHours !== undefined;
           const value = custom?.annualHours ?? adjustments.overrides[item.id]?.annualHours ?? item.annualHours ?? 0;
-          return <Space orientation="vertical" size={1}><InputNumber aria-label={`${displayActionName(item.action)}年工时`} min={0} value={value} disabled={item.enabled === false} onChange={(next) => item.source === 'custom' ? updateCustom(item.id, { annualHours: Number(next ?? 0) }) : updateOverride(item.id, { annualHours: Number(next ?? 0) })} />{overridden && <small className="manual-override">已手动调整</small>}</Space>;
+          return <Space orientation="vertical" size={1}><InputNumber aria-label={`${displayActionName(item.action)}年工时`} min={0} value={cleanDecimal(value)} disabled={item.enabled === false} onChange={(next) => item.source === 'custom' ? updateCustom(item.id, { annualHours: Number(next ?? 0) }) : updateOverride(item.id, { annualHours: Number(next ?? 0) })} />{overridden && <small className="manual-override">已手动调整</small>}</Space>;
         },
       },
     ]),
@@ -131,7 +133,7 @@ export default function ActionEditor({ category, actions, adjustments, onChange 
         {addError && <span className="field-error">{addError}</span>}
         <label>适用依据（选填）<Input aria-label="自定义动作适用依据" value={draft.basis} onChange={(event) => setDraft({ ...draft, basis: event.target.value })} /></label>
         {category === 'assistance' ? <label>配置人数<InputNumber aria-label="自定义动作配置人数" min={0} precision={0} value={draft.headcount} onChange={(value) => setDraft({ ...draft, headcount: Number(value ?? 0) })} /></label> : <Space wrap>
-          <label>年频次<InputNumber aria-label="自定义动作年频次" min={0} value={draft.annualFrequency} onChange={(value) => setDraft({ ...draft, annualFrequency: Number(value ?? 0) })} /></label>
+          <label>年频次<InputNumber aria-label="自定义动作年频次" min={0} precision={0} value={draft.annualFrequency} onChange={(value) => setDraft({ ...draft, annualFrequency: Number(value ?? 0) })} /></label>
           <label>年工时<InputNumber aria-label="自定义动作年工时" min={0} value={draft.annualHours} onChange={(value) => setDraft({ ...draft, annualHours: Number(value ?? 0) })} /></label>
         </Space>}
       </div>
