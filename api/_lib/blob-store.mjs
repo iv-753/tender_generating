@@ -1,4 +1,4 @@
-import { get, put } from '@vercel/blob';
+import { get, issueSignedToken, presignUrl, put } from '@vercel/blob';
 import { createArtifactDownloadUrl } from './artifact-download.mjs';
 
 export async function privateBlobBytes(pathname, { getBlob = get } = {}) {
@@ -7,7 +7,7 @@ export async function privateBlobBytes(pathname, { getBlob = get } = {}) {
   return Buffer.from(await new Response(result.stream).arrayBuffer());
 }
 
-export function createPrivateArtifactStore({ putBlob = put, downloadTokenSecret } = {}) {
+export function createPrivateArtifactStore({ putBlob = put, issueToken = issueSignedToken, presign = presignUrl } = {}) {
   return async function storePrivateArtifact({ pathname, downloadFileName, bytes, contentType }) {
     const blob = await putBlob(pathname, bytes, {
       access: 'private',
@@ -17,11 +17,17 @@ export function createPrivateArtifactStore({ putBlob = put, downloadTokenSecret 
       multipart: bytes.byteLength > 5_000_000,
     });
     const validUntil = Date.now() + 24 * 60 * 60 * 1000;
-    const downloadUrl = createArtifactDownloadUrl({
+    const token = await issueToken({ pathname: blob.pathname, operations: ['get'], validUntil });
+    const { presignedUrl } = await presign(token, {
+      access: 'private',
+      operation: 'get',
       pathname: blob.pathname,
-      fileName: downloadFileName,
       validUntil,
-    }, downloadTokenSecret);
+    });
+    const downloadUrl = createArtifactDownloadUrl({
+      sourceUrl: presignedUrl,
+      fileName: downloadFileName,
+    });
     return { pathname: blob.pathname, downloadUrl, validUntil };
   };
 }

@@ -79,35 +79,38 @@ test('production calculation source has no workbook model loading path', async (
   }
 });
 
-test('artifact storage keeps Blob private and returns a same-origin named download URL', async () => {
+test('artifact storage uses Vercel signing without requiring a custom download secret', async () => {
   const calls = [];
   const store = createPrivateArtifactStore({
     putBlob: async (pathname, _bytes, options) => { calls.push(['put', pathname, options]); return { pathname }; },
-    downloadTokenSecret: 'test-secret',
+    issueToken: async (options) => { calls.push(['issue', options]); return { clientSigningToken: 'client', delegationToken: 'delegation', validUntil: options.validUntil }; },
+    presign: async (_token, options) => { calls.push(['presign', options]); return { presignedUrl: 'https://store.private.blob.vercel-storage.com/generated/presentation/test.pptx?signature=test' }; },
   });
   const result = await store({ pathname: 'generated/presentation/test.pptx', downloadFileName: '示范项目-路演方案.pptx', bytes: Buffer.alloc(6_000_000), contentType: 'application/test' });
-  assert.match(result.downloadUrl, /^\/api\/artifacts\/download\?token=/);
+  const downloadUrl = new URL(result.downloadUrl, 'https://example.test');
+  assert.equal(downloadUrl.pathname, '/api/artifacts/download');
+  assert.equal(downloadUrl.searchParams.get('filename'), '示范项目-路演方案.pptx');
+  assert.match(downloadUrl.searchParams.get('source'), /^https:\/\/store\.private\.blob\.vercel-storage\.com\//);
   assert.equal(calls[0][2].access, 'private');
   assert.equal(calls[0][2].multipart, true);
+  assert.deepEqual(calls[1][1].operations, ['get']);
+  assert.equal(calls[2][1].operation, 'get');
   assert.ok(result.validUntil > Date.now());
 });
 
 test('artifact download endpoint returns the generated Chinese filename', async () => {
   const artifactDownload = await import('./_lib/artifact-download.mjs');
   assert.equal(typeof artifactDownload.createArtifactDownloadHandler, 'function');
-  const secret = 'test-secret';
+  const sourceUrl = 'https://store.private.blob.vercel-storage.com/generated/bid/123e4567-e89b-12d3-a456-426614174000/artifact.docx?signature=test';
   const downloadUrl = artifactDownload.createArtifactDownloadUrl({
-    pathname: 'generated/bid/123e4567-e89b-12d3-a456-426614174000/artifact.docx',
+    sourceUrl,
     fileName: '增城示范花园-投标标书.docx',
-    validUntil: Date.now() + 60_000,
-  }, secret);
+  });
   const handler = artifactDownload.createArtifactDownloadHandler({
-    secret,
-    getBlob: async () => ({
-      statusCode: 200,
-      stream: new Blob(['docx']).stream(),
-      blob: { contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
-    }),
+    fetchSource: async (url) => {
+      assert.equal(url, sourceUrl);
+      return new Response('docx', { headers: { 'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' } });
+    },
   });
   const response = await handler.fetch(new Request(`https://example.test${downloadUrl}`));
 
