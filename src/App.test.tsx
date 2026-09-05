@@ -319,6 +319,28 @@ test('does not expose the internal calculation-scope disclaimer on results', () 
   expect(screen.queryByText('CALCULATION RESULT / 122 ACTIONS')).toBeNull();
 });
 
+test('explains workload cost separately from the rounded staffing budget', () => {
+  storage.saveResult({
+    ...savedResult('湖畔家园', '2026-09-03T08:00:00.000Z', 481800),
+    workloadAnnualCost: 410000,
+    categories: [
+      { category: 'service', title: '服务', actionCount: 1, headcount: 5, annualCost: 481800, workloadAnnualCost: 10395, workloadEquivalentHeadcount: 4.6 },
+      { category: 'cleaning', title: '清洁', actionCount: 0, headcount: 0, annualCost: 0, workloadAnnualCost: 0, workloadEquivalentHeadcount: 0 },
+      { category: 'greening', title: '绿化', actionCount: 0, headcount: 0, annualCost: 0, workloadAnnualCost: 0, workloadEquivalentHeadcount: 0 },
+      { category: 'assistance', title: '客助', actionCount: 0, headcount: 0, annualCost: 0, workloadAnnualCost: 0, workloadEquivalentHeadcount: 0 },
+    ],
+    actions: [{ id: 'service-5', category: 'service', action: '车行相关业务办理', property: '基础', annualFrequency: 600, annualHours: 315, annualCost: 10395 }],
+  });
+  window.history.replaceState({}, '', '/project/result');
+  render(<App />);
+
+  expect(screen.getByText('项目年度用工预算')).toBeTruthy();
+  expect(screen.getByText('工作量折算成本')).toBeTruthy();
+  expect(screen.getByRole('columnheader', { name: /年工作量成本/ })).toBeTruthy();
+  expect(document.querySelector('.category-summary')?.textContent).toContain('工作量相当于 4.6 人，实际配置 5 人');
+  expect(screen.getByRole('button', { name: /调整服务方案/ })).toBeTruthy();
+});
+
 test('shows action quantities as rounded whole numbers on the result page', () => {
   storage.saveResult({
     ...savedResult('湖畔家园', '2026-09-03T08:00:00.000Z', 481800),
