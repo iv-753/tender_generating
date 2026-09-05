@@ -92,17 +92,16 @@ test('工程动作与分类严格使用工时、系统月薪、统一预算月�
 
   const expectedOutsourcedHours = outsourcedAction.quantity
     * outsourcedRule.unitHours.C * outsourcedRule.annualFrequency.C;
+  assert.equal(outsourcedAction.unitHours, outsourcedRule.unitHours.C);
   closeTo(outsourcedAction.annualHours, expectedOutsourcedHours, '工程委外年工时');
   closeTo(
     outsourcedAction.annualCost,
     expectedOutsourcedHours * (outsourcedRule.monthlyRate / 30 / 8),
     '工程委外动作工作量成本',
   );
-  closeTo(
-    routineAction.annualHours,
-    routineAction.quantity * routineRule.unitHours.C * routineRule.annualFrequency.C,
-    '工程常规年工时',
-  );
+  assert.equal(routineAction.unitHours, routineRule.unitHours.C);
+  closeTo(routineAction.annualHours, routineAction.quantity * routineAction.unitHours
+    * routineAction.annualFrequency, '工程常规年工时');
   closeTo(
     routineAction.annualCost,
     routineAction.annualHours * (6666.66666666667 / 30 / 8),
@@ -148,6 +147,13 @@ test('四害将 Excel 合并区域的一份共享工作量等额分摊到 7 行�
   for (const action of pest.actions) {
     assert.equal(action.sharedWorkloadGroup, 'pest-control');
     assert.equal(action.allocationRatio, 1 / 7);
+    assert.equal(action.sourceSharedUnitHours, rule.unitHours.C);
+    assert.equal(action.unitHours, rule.unitHours.C / 7);
+    closeTo(
+      action.annualHours,
+      action.quantity * action.unitHours * action.annualFrequency,
+      `${action.id}有效单位工时公式`,
+    );
     closeTo(action.annualHours, expectedActionHours, `${action.id}分摊年工时`);
     closeTo(
       action.annualCost,

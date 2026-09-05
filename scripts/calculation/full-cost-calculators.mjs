@@ -44,13 +44,26 @@ function quantityFor(rule, parameters) {
   return finiteNonNegative(parameters[rule.quantityParameterKey], `${rule.id}.quantity`);
 }
 
-function workloadAction(rule, category, grade, quantity, hourlyRate) {
+function workloadAction(rule, category, grade, quantity, hourlyRate, options = {}) {
   const annualFrequency = requiredGradeValue(
     rule.annualFrequency,
     grade,
     `${rule.id}.annualFrequency`,
   );
-  const unitHours = requiredGradeValue(rule.unitHours, grade, `${rule.id}.unitHours`);
+  const sourceUnitHours = requiredGradeValue(rule.unitHours, grade, `${rule.id}.unitHours`);
+  const unitHoursScale = finiteNonNegative(
+    options.unitHoursScale ?? 1,
+    `${rule.id}.unitHoursScale`,
+  );
+  const unitHoursDivisor = options.unitHoursDivisor === undefined
+    ? undefined
+    : finiteNonNegative(options.unitHoursDivisor, `${rule.id}.unitHoursDivisor`);
+  const unitHours = finiteNonNegative(
+    unitHoursDivisor === undefined
+      ? sourceUnitHours * unitHoursScale
+      : sourceUnitHours / unitHoursDivisor,
+    `${rule.id}.effectiveUnitHours`,
+  );
   const rate = finiteNonNegative(hourlyRate, `${rule.id}.hourlyRate`);
   if (!rule.frequency || !Object.hasOwn(rule.frequency, grade)) {
     throw new Error(`${rule.id}.frequency缺失`);
@@ -68,18 +81,33 @@ function workloadAction(rule, category, grade, quantity, hourlyRate) {
     quantity,
     frequency: String(rule.frequency[grade]),
     annualFrequency,
+    unitHours,
     annualHours,
     annualCost: finiteNonNegative(annualHours * rate, `${rule.id}.annualCost`),
+    ...(options.sharedWorkloadGroup === undefined ? {} : {
+      sourceSharedUnitHours: sourceUnitHours,
+      sharedWorkloadGroup: options.sharedWorkloadGroup,
+      allocationRatio: unitHoursScale,
+    }),
   };
 }
 
-function calculateActions(rules, category, grade, parameters, hourlyRateFor, costFactor) {
+function calculateActions(
+  rules,
+  category,
+  grade,
+  parameters,
+  hourlyRateFor,
+  costFactor,
+  actionOptions = {},
+) {
   return rules.map((rule) => workloadAction(
     rule,
     category,
     grade,
     quantityFor(rule, parameters),
     finiteNonNegative(hourlyRateFor(rule), `${rule.id}.baseHourlyRate`) * costFactor,
+    actionOptions,
   ));
 }
 
@@ -112,24 +140,22 @@ function engineeringSummary(category, title, actions, monthlyRate, costFactor) {
 }
 
 function calculatePest(grade, parameters, costFactor) {
-  const sharedActions = calculateActions(
+  const allocationRatio = 1 / PEST_CONTROL_RULES.length;
+  // Excel only supplies one unit workload in a merged range for all seven labels.
+  // Scaling unitHours exposes an explainable allocation; it is not per-action Excel data.
+  const actions = calculateActions(
     PEST_CONTROL_RULES,
     'pestControl',
     grade,
     parameters,
     () => PEST_WORKDAY_RATE / WORKDAY_HOURS,
     costFactor,
+    {
+      unitHoursScale: allocationRatio,
+      unitHoursDivisor: PEST_CONTROL_RULES.length,
+      sharedWorkloadGroup: 'pest-control',
+    },
   );
-  const allocationRatio = 1 / sharedActions.length;
-  // Excel only supplies one workload in a merged range for all seven labels. The
-  // equal allocation makes 452-row detail explainable; it is not per-action Excel data.
-  const actions = sharedActions.map((action) => ({
-    ...action,
-    sharedWorkloadGroup: 'pest-control',
-    allocationRatio,
-    annualHours: action.annualHours * allocationRatio,
-    annualCost: action.annualCost * allocationRatio,
-  }));
   const annualHours = finiteNonNegative(
     actions.reduce((sum, action) => sum + action.annualHours, 0),
     'pestControl.annualHours',
