@@ -66,6 +66,7 @@ test('Vercel document endpoint finishes in one invocation and returns a private 
   assert.equal(stored[0].access, 'private');
   assert.match(stored[0].pathname, /^generated\/presentation\/[0-9a-f-]+\/artifact\.pptx$/);
   assert.doesNotMatch(stored[0].pathname, /[^\x00-\x7F]/);
+  assert.equal(stored[0].downloadFileName, '增城示范花园-路演方案.pptx');
 });
 
 test('production calculation source has no workbook model loading path', async () => {
@@ -78,21 +79,41 @@ test('production calculation source has no workbook model loading path', async (
   }
 });
 
-test('artifact storage uses private Blob and a time-limited download URL', async () => {
+test('artifact storage keeps Blob private and returns a same-origin named download URL', async () => {
   const calls = [];
   const store = createPrivateArtifactStore({
     putBlob: async (pathname, _bytes, options) => { calls.push(['put', pathname, options]); return { pathname }; },
-    issueToken: async (options) => { calls.push(['issue', options]); return { clientSigningToken: 'client', delegationToken: 'delegation', validUntil: options.validUntil }; },
-    presign: async (_token, options) => { calls.push(['presign', options]); return { presignedUrl: 'https://private.example/download' }; },
+    downloadTokenSecret: 'test-secret',
   });
-  const result = await store({ pathname: 'generated/presentation/test.pptx', bytes: Buffer.alloc(6_000_000), contentType: 'application/test' });
-  assert.equal(result.downloadUrl, 'https://private.example/download');
+  const result = await store({ pathname: 'generated/presentation/test.pptx', downloadFileName: '示范项目-路演方案.pptx', bytes: Buffer.alloc(6_000_000), contentType: 'application/test' });
+  assert.match(result.downloadUrl, /^\/api\/artifacts\/download\?token=/);
   assert.equal(calls[0][2].access, 'private');
   assert.equal(calls[0][2].multipart, true);
-  assert.deepEqual(calls[1][1].operations, ['get']);
-  assert.equal(calls[2][1].access, 'private');
-  assert.equal(calls[2][1].operation, 'get');
   assert.ok(result.validUntil > Date.now());
+});
+
+test('artifact download endpoint returns the generated Chinese filename', async () => {
+  const artifactDownload = await import('./_lib/artifact-download.mjs');
+  assert.equal(typeof artifactDownload.createArtifactDownloadHandler, 'function');
+  const secret = 'test-secret';
+  const downloadUrl = artifactDownload.createArtifactDownloadUrl({
+    pathname: 'generated/bid/123e4567-e89b-12d3-a456-426614174000/artifact.docx',
+    fileName: '增城示范花园-投标标书.docx',
+    validUntil: Date.now() + 60_000,
+  }, secret);
+  const handler = artifactDownload.createArtifactDownloadHandler({
+    secret,
+    getBlob: async () => ({
+      statusCode: 200,
+      stream: new Blob(['docx']).stream(),
+      blob: { contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
+    }),
+  });
+  const response = await handler.fetch(new Request(`https://example.test${downloadUrl}`));
+
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get('content-disposition'), /filename\*=UTF-8''%E5%A2%9E%E5%9F%8E%E7%A4%BA%E8%8C%83%E8%8A%B1%E5%9B%AD-%E6%8A%95%E6%A0%87%E6%A0%87%E4%B9%A6\.docx/);
+  assert.equal(await response.text(), 'docx');
 });
 
 test('Vercel configuration keeps API routes and rewrites SPA pages', async () => {

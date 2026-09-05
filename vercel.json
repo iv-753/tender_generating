@@ -17,6 +17,9 @@
     "api/bid/jobs.mjs": {
       "maxDuration": 300,
       "includeFiles": "templates/安序物业_住宅物业服务投标文件_双括号动态母版_清理版.docx"
+    },
+    "api/artifacts/download.mjs": {
+      "maxDuration": 60
     }
   },
   "rewrites": [
