@@ -195,7 +195,7 @@ export function calculateProject(project) {
     advancedParameters,
     standardActionCount: STANDARD_ACTION_COUNT,
     activeActionCount,
-    totalActionCount: activeActionCount,
+    totalActionCount: actions.length,
     totalHeadcount: categories.reduce((sum, item) => sum + item.headcount, 0) + full.management.headcount,
     annualCost: categories.reduce((sum, item) => sum + item.annualCost, 0) + full.management.annualCost,
     workloadAnnualCost: categories.reduce((sum, item) => sum + item.workloadAnnualCost, 0),

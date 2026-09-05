@@ -23,6 +23,7 @@ test('returns the formal V2 contract with all 452 standard actions', () => {
   assert.equal(result.standardActionCount, 452);
   assert.equal(result.totalActionCount, 452);
   assert.equal(result.activeActionCount, 452);
+  assert.equal(result.totalActionCount, result.actions.length);
   assert.deepEqual(result.categories.map((item) => [item.category, item.actionCount]), EXPECTED_CATEGORIES);
   assert.equal(new Set(result.actions.map(({ id }) => id)).size, 452);
   assert.ok(result.actions.every(({ source, enabled }) => source === 'baseline' && enabled === true));

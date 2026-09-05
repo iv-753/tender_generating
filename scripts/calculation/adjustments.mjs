@@ -205,7 +205,7 @@ export function applyAdjustments(baseline, adjustments) {
     ...baseline,
     calculatedAt: new Date().toISOString(),
     ...(baseline.version === 2 ? { activeActionCount } : {}),
-    totalActionCount: activeActionCount,
+    totalActionCount: actions.length,
     totalHeadcount: categories.reduce((sum, item) => sum + item.headcount, 0) + managementHeadcount,
     annualCost: categories.reduce((sum, item) => sum + item.annualCost, 0) + managementAnnualCost,
     workloadAnnualCost: actions.filter((item) => item.enabled !== false).reduce((sum, item) => sum + item.annualCost, 0),

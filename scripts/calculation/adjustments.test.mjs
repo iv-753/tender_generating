@@ -72,8 +72,9 @@ test('disabling an action zeros its workload cost', () => {
   assert.equal(disabled.annualFrequency, 0);
   assert.equal(disabled.annualHours, 0);
   assert.equal(disabled.annualCost, 0);
-  assert.equal(after.totalActionCount, 451);
+  assert.equal(after.totalActionCount, 452);
   assert.equal(after.activeActionCount, 451);
+  assert.equal(after.totalActionCount, after.actions.length);
   assert.ok(after.workloadAnnualCost < before.actions.reduce((sum, item) => sum + item.annualCost, 0));
 });
 
@@ -91,6 +92,7 @@ test('a custom action adds workload cost and participates in rounded staffing', 
   assert.equal(custom.annualCost, 500 * 30);
   assert.equal(after.totalActionCount, 453);
   assert.equal(after.activeActionCount, 453);
+  assert.equal(after.totalActionCount, after.actions.length);
   assert.ok(after.workloadAnnualCost > before.actions.reduce((sum, item) => sum + item.annualCost, 0));
 });
 
