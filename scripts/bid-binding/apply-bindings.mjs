@@ -85,6 +85,14 @@ function replaceInNode(root, values) {
   for (const paragraph of descendants(root, 'p')) replaceInParagraph(paragraph, values);
 }
 
+function includeStandardActionCount(document, value) {
+  const anchor = '服务标准和对应服务动作为基础';
+  const replacement = `服务标准、${value}项标准动作为基础`;
+  const node = descendants(document, 't').find((item) => (item.textContent ?? '').includes(anchor));
+  if (!node) throw new Error('Word模板缺少标准动作数摘要位置');
+  setText(node, (node.textContent ?? '').replace(anchor, replacement));
+}
+
 function normalized(value) {
   return String(value ?? '').replace(/[\s/（）()]/g, '');
 }
@@ -154,6 +162,7 @@ export async function bindBidTemplate(templatePath, bindings) {
 
   const named = Object.fromEntries(Object.entries(bindings.named).map(([key, value]) => [key, String(value)]));
   for (const document of documents.values()) replaceInNode(document, named);
+  includeStandardActionCount(mainDocument, named['标准动作数']);
 
   const unresolved = new Set();
   for (const document of documents.values()) {

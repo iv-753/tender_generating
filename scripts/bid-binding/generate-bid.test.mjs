@@ -35,6 +35,7 @@ test('generates a complete Word bid from the current calculation result', async 
     const xmlFiles = Object.keys(zip.files).filter((name) => /^word\/.*\.xml$/.test(name));
     const text = (await Promise.all(xmlFiles.map((name) => zip.file(name).async('string')))).join('\n');
     assert.equal(text.includes('增城示范花园'), true);
+    assert.equal(text.includes('452项标准动作'), true);
     assert.equal(text.includes('{{'), false);
     const document = new DOMParser().parseFromString(await zip.file('word/document.xml').async('string'), 'application/xml');
     const textNodes = Array.from(document.getElementsByTagNameNS(
