@@ -5,6 +5,7 @@ import {
   resolveAdvancedParameters,
 } from './advanced-parameters.mjs';
 import { CATEGORY_CONFIG, STANDARD_ACTION_COUNT } from './category-config.mjs';
+import { summarizeCategory } from './category-cost-model.mjs';
 import { calculateFullCostModules } from './full-cost-calculators.mjs';
 import { ASSISTANCE_RULES } from './rules/assistance-rules.mjs';
 import { CLEANING_RULES } from './rules/cleaning-rules.mjs';
@@ -18,7 +19,6 @@ import {
   SERVICE_ANNUAL_HOURS,
   SERVICE_HOURLY_RATE,
   WORKDAY_HOURS,
-  WORKDAYS_PER_YEAR,
 } from './rules/constants.mjs';
 import { GREENING_RULES } from './rules/greening-rules.mjs';
 import { SERVICE_RULES } from './rules/service-rules.mjs';
@@ -73,19 +73,9 @@ function calculateService(metrics, grade, factor) {
   const actions = SERVICE_RULES.map((rule) => {
     const annualFrequency = finite(serviceDemand(rule, metrics, grade), `${rule.id}.annualFrequency`);
     const annualHours = finite(annualFrequency * serviceUnitHours(rule, grade), `${rule.id}.annualHours`);
-    return { id: rule.id, category: 'service', action: rule.action, property: rule.property, basis: rule.basis, frequency: text(rule.frequency[grade] ?? 0), annualFrequency, annualHours, headcount: annualHours / SERVICE_ANNUAL_HOURS, annualCost: annualHours * SERVICE_HOURLY_RATE * factor };
+    return { id: rule.id, category: 'service', action: rule.action, property: rule.property, basis: rule.basis, frequency: text(rule.frequency[grade] ?? 0), annualFrequency, hoursPerFrequency: serviceUnitHours(rule, grade), annualHours, headcount: annualHours / SERVICE_ANNUAL_HOURS, annualCost: annualHours * SERVICE_HOURLY_RATE * factor };
   });
-  const workloadEquivalentHeadcount = actions.reduce((sum, item) => sum + item.headcount, 0);
-  const headcount = Math.ceil(workloadEquivalentHeadcount);
-  return { actions, summary: {
-    category: 'service',
-    title: '服务',
-    actionCount: 17,
-    headcount,
-    annualCost: headcount * SERVICE_HOURLY_RATE * WORKDAY_HOURS * WORKDAYS_PER_YEAR * factor,
-    workloadAnnualCost: actions.reduce((sum, item) => sum + item.annualCost, 0),
-    workloadEquivalentHeadcount,
-  } };
+  return { actions, summary: summarizeCategory('service', actions, grade, factor) };
 }
 
 function quantityFor(rule, metrics) {
@@ -102,22 +92,12 @@ function calculateAreaCategory({ rules, category, title, metrics, grade, factor,
     return {
       id: rule.id, category, action: rule.action, property: rule.property, unit: rule.unit, quantity,
       ...(rule.basis === undefined ? {} : { basis: rule.basis }),
-      frequency: text(rule.frequency[grade] ?? 0), annualFrequency, annualHours,
+      frequency: text(rule.frequency[grade] ?? 0), annualFrequency,
+      hoursPerFrequency: calculationQuantity * rule.baseUnitHours * (rule.unitHoursScale ?? 1) * GRADE_CORRECTION[grade], annualHours,
       annualCost: annualHours * (dailyRate / WORKDAY_HOURS) * factor,
     };
   });
-  const totalAnnualHours = actions.reduce((sum, item) => sum + item.annualHours, 0);
-  const workloadEquivalentHeadcount = totalAnnualHours / WORKDAY_HOURS / WORKDAYS_PER_YEAR;
-  const headcount = Math.ceil(workloadEquivalentHeadcount);
-  return { actions, summary: {
-    category,
-    title,
-    actionCount: rules.length,
-    headcount,
-    annualCost: dailyRate * headcount * WORKDAYS_PER_YEAR * factor,
-    workloadAnnualCost: actions.reduce((sum, item) => sum + item.annualCost, 0),
-    workloadEquivalentHeadcount,
-  } };
+  return { actions, summary: summarizeCategory(category, actions, grade, factor) };
 }
 
 function calculateAssistance(metrics, grade, factor) {
@@ -138,17 +118,7 @@ function calculateAssistance(metrics, grade, factor) {
     const headcount = Math.ceil(rawHeadcount);
     return { id: rule.id, category: 'assistance', action: rule.action, property: rule.property, unit: rule.unit, quantity, frequency: text(rule.frequency[grade]), headcount, annualCost: headcount * ASSISTANCE_MONTHLY_RATE * 12 * ASSISTANCE_BUDGET_FACTOR * factor };
   });
-  const headcount = actions.reduce((sum, item) => sum + item.headcount, 0);
-  const annualCost = headcount * ASSISTANCE_MONTHLY_RATE * 12 * ASSISTANCE_BUDGET_FACTOR * factor;
-  return { actions, summary: {
-    category: 'assistance',
-    title: '客助',
-    actionCount: 6,
-    headcount,
-    annualCost,
-    workloadAnnualCost: annualCost,
-    workloadEquivalentHeadcount: headcount,
-  } };
+  return { actions, summary: summarizeCategory('assistance', actions, grade, factor) };
 }
 
 export function calculateProject(project) {

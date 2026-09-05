@@ -40,6 +40,86 @@ test('changing annual frequency recalculates hours and workload cost', () => {
   assert.ok(changed.annualCost < source.annualCost);
 });
 
+for (const category of ['engineeringRoutine', 'engineeringOutsourced', 'pestControl']) {
+  test(`changing ${category} frequency updates action, category, and project costs`, () => {
+    const before = baseline();
+    const source = before.actions.find((item) => item.category === category && item.annualHours > 0);
+    const beforeSummary = before.categories.find((item) => item.category === category);
+    const adjustedFrequency = source.annualFrequency + 1200;
+    const after = applyAdjustments(before, {
+      ...emptyAdjustments(),
+      overrides: { [source.id]: { annualFrequency: adjustedFrequency } },
+    });
+    const changed = after.actions.find((item) => item.id === source.id);
+    const afterSummary = after.categories.find((item) => item.category === category);
+
+    assert.equal(changed.annualFrequency, adjustedFrequency);
+    assert.notEqual(changed.annualHours, source.annualHours);
+    assert.notEqual(changed.annualCost, source.annualCost);
+    assert.notEqual(afterSummary.workloadAnnualCost, beforeSummary.workloadAnnualCost);
+    assert.notEqual(after.annualCost, before.annualCost);
+  });
+}
+
+for (const category of ['engineeringRoutine', 'engineeringOutsourced', 'pestControl']) {
+  test(`changing ${category} annual hours updates workload and rounded project budget`, () => {
+    const before = baseline();
+    const source = before.actions.find((item) => item.category === category && item.annualHours > 0);
+    const beforeSummary = before.categories.find((item) => item.category === category);
+    const after = applyAdjustments(before, {
+      ...emptyAdjustments(), overrides: { [source.id]: { annualHours: 12000 } },
+    });
+    const changed = after.actions.find((item) => item.id === source.id);
+    const afterSummary = after.categories.find((item) => item.category === category);
+
+    assert.equal(changed.annualHours, 12000);
+    assert.notEqual(changed.annualCost, source.annualCost);
+    assert.notEqual(afterSummary.workloadAnnualCost, beforeSummary.workloadAnnualCost);
+    assert.notEqual(afterSummary.annualCost, beforeSummary.annualCost);
+    assert.notEqual(after.annualCost, before.annualCost);
+  });
+}
+
+test('engineering summaries use effective total hours and preserve direct outsourced workload cost', () => {
+  const before = baseline();
+  const routine = before.actions.find((item) => item.category === 'engineeringRoutine' && item.annualHours > 0);
+  const outsourced = before.actions.find((item) => item.category === 'engineeringOutsourced' && item.annualHours > 0);
+  const after = applyAdjustments(before, {
+    ...emptyAdjustments(),
+    overrides: {
+      [routine.id]: { annualHours: 3000 },
+      [outsourced.id]: { annualHours: 100, annualCost: 1234.56 },
+    },
+  });
+  const routineSummary = after.categories.find((item) => item.category === 'engineeringRoutine');
+  const outsourcedSummary = after.categories.find((item) => item.category === 'engineeringOutsourced');
+  const changedOutsourced = after.actions.find((item) => item.id === outsourced.id);
+  const effectiveRoutineHours = after.actions.filter((item) => item.category === 'engineeringRoutine' && item.enabled !== false).reduce((sum, item) => sum + item.annualHours, 0);
+
+  assert.equal(routineSummary.workloadEquivalentHeadcount, effectiveRoutineHours / 2880);
+  assert.equal(routineSummary.headcount, Math.ceil(effectiveRoutineHours / 2880));
+  assert.equal(changedOutsourced.annualCost, 1234.56);
+  assert.equal(outsourcedSummary.workloadAnnualCost, after.actions.filter((item) => item.category === 'engineeringOutsourced' && item.enabled !== false).reduce((sum, item) => sum + item.annualCost, 0));
+});
+
+test('pest shared workload responds to every effective row instead of reading only the first row', () => {
+  const before = baseline();
+  const pestActions = before.actions.filter((item) => item.category === 'pestControl');
+  const target = pestActions[1];
+  const beforeSummary = before.categories.find((item) => item.category === 'pestControl');
+  const after = applyAdjustments(before, {
+    ...emptyAdjustments(),
+    overrides: { [target.id]: { disabled: true } },
+  });
+  const afterSummary = after.categories.find((item) => item.category === 'pestControl');
+  const effectiveHours = after.actions.filter((item) => item.category === 'pestControl' && item.enabled !== false).reduce((sum, item) => sum + item.annualHours, 0);
+
+  assert.equal(afterSummary.annualHours, effectiveHours);
+  assert.equal(afterSummary.headcount, effectiveHours / 2880);
+  assert.ok(afterSummary.workloadAnnualCost < beforeSummary.workloadAnnualCost);
+  assert.ok(afterSummary.annualCost < beforeSummary.annualCost);
+});
+
 test('an annual-hours override is authoritative', () => {
   const after = applyAdjustments(baseline(), {
     ...emptyAdjustments(),
@@ -73,6 +153,7 @@ test('disabling an action zeros its workload cost', () => {
   assert.equal(disabled.annualHours, 0);
   assert.equal(disabled.annualCost, 0);
   assert.equal(after.totalActionCount, 452);
+  assert.equal(after.standardActionCount, 452);
   assert.equal(after.activeActionCount, 451);
   assert.equal(after.totalActionCount, after.actions.length);
   assert.ok(after.workloadAnnualCost < before.actions.reduce((sum, item) => sum + item.annualCost, 0));
@@ -91,9 +172,60 @@ test('a custom action adds workload cost and participates in rounded staffing', 
   assert.equal(custom.source, 'custom');
   assert.equal(custom.annualCost, 500 * 30);
   assert.equal(after.totalActionCount, 453);
+  assert.equal(after.standardActionCount, 452);
   assert.equal(after.activeActionCount, 453);
   assert.equal(after.totalActionCount, after.actions.length);
   assert.ok(after.workloadAnnualCost > before.actions.reduce((sum, item) => sum + item.annualCost, 0));
+});
+
+for (const category of ['service', 'cleaning', 'greening', 'pestControl', 'engineeringOutsourced', 'engineeringRoutine']) {
+  test(`adds a custom ${category} workload action using its category cost model`, () => {
+    const before = baseline();
+    const after = applyAdjustments(before, {
+      ...emptyAdjustments(),
+      customActions: [{
+        id: `custom-${category}-cost`, category, action: '自定义工作量', property: '自定义', annualFrequency: 12, annualHours: 24,
+      }],
+    });
+    const custom = after.actions.find((item) => item.id === `custom-${category}-cost`);
+    const summary = after.categories.find((item) => item.category === category);
+
+    assert.equal(custom.source, 'custom');
+    assert.ok(custom.annualCost > 0);
+    if (category === 'engineeringOutsourced') assert.equal(custom.annualCost, 24 * (7500 / 30 / 8));
+    assert.equal(summary.workloadAnnualCost, after.actions.filter((item) => item.category === category && item.enabled !== false).reduce((sum, item) => sum + item.annualCost, 0));
+    assert.equal(after.totalActionCount, 453);
+    assert.equal(after.standardActionCount, 452);
+  });
+}
+
+test('normalizes editable workload decimals and requires whole annual frequency', () => {
+  const before = baseline();
+  const action = before.actions.find((item) => item.category === 'engineeringRoutine' && item.annualHours > 0);
+  const after = applyAdjustments(before, {
+    ...emptyAdjustments(),
+    overrides: { [action.id]: { annualHours: 12.345, annualCost: 456.789 } },
+  });
+  const changed = after.actions.find((item) => item.id === action.id);
+
+  assert.equal(changed.annualHours, 12.35);
+  assert.equal(changed.annualCost, 456.79);
+  assert.throws(() => applyAdjustments(before, {
+    ...emptyAdjustments(), overrides: { [action.id]: { annualFrequency: 1.5 } },
+  }), /年频次必须为整数/);
+});
+
+test('management is unchanged and project totals include it exactly once', () => {
+  const before = baseline();
+  const target = before.actions.find((item) => item.category === 'engineeringRoutine' && item.annualHours > 0);
+  const after = applyAdjustments(before, {
+    ...emptyAdjustments(), overrides: { [target.id]: { disabled: true } },
+  });
+
+  assert.deepEqual(after.management, before.management);
+  assert.equal(after.totalHeadcount, after.categories.reduce((sum, item) => sum + item.headcount, 0) + before.management.headcount);
+  assert.equal(after.annualCost, after.categories.reduce((sum, item) => sum + item.annualCost, 0) + before.management.annualCost);
+  assert.equal(after.workloadAnnualCost, after.categories.reduce((sum, item) => sum + item.workloadAnnualCost, 0));
 });
 
 test('assistance custom actions use whole posts and monthly pricing', () => {
@@ -118,4 +250,8 @@ test('rejects invalid numbers, unknown ids, and duplicate custom ids', () => {
     ...emptyAdjustments(),
     customActions: [{ id: 'custom-assistance-1', category: 'assistance', action: '半个人', property: '自定义', headcount: 1.5 }],
   }), /整数/);
+  assert.throws(() => applyAdjustments(baseline(), {
+    ...emptyAdjustments(),
+    customActions: [{ id: 'bad-cost', category: 'engineeringRoutine', action: '错误成本', property: '自定义', annualHours: 1, annualCost: Number.NaN }],
+  }), /非负/);
 });

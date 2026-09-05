@@ -1,21 +1,16 @@
 import { ENGINEERING_OUTSOURCED_RULES } from './rules/engineering-outsourced-rules.mjs';
 import { ENGINEERING_ROUTINE_RULES } from './rules/engineering-routine-rules.mjs';
 import { PEST_CONTROL_RULES } from './rules/pest-control-rules.mjs';
+import { summarizeCategory } from './category-cost-model.mjs';
 import {
-  ENGINEERING_ANNUAL_CAPACITY_HOURS,
-  ENGINEERING_BUDGET_FACTOR,
-  ENGINEERING_OUTSOURCED_MONTHLY_RATE,
   ENGINEERING_ROUTINE_MONTHLY_RATE,
   FULL_MODEL_COST_FACTORS,
   MANAGEMENT_BUDGET_FACTOR,
   PEST_WORKDAY_RATE,
   WORKDAY_HOURS,
-  WORKDAYS_PER_YEAR,
 } from './rules/constants.mjs';
 
 const GRADES = new Set(['A', 'B', 'C', 'D']);
-const PEST_WORKDAYS_PER_STAFF_YEAR = 12 * 30;
-const INTEGER_SNAP_TOLERANCE = 1e-12;
 const MANAGEMENT_ROLES = Object.freeze([
   Object.freeze({ title: '项目经理', monthlyRate: 18000, headcount: 1 }),
   Object.freeze({ title: '管家主任', monthlyRate: 10000, headcount: 1 }),
@@ -28,12 +23,6 @@ function finiteNonNegative(value, label) {
     throw new Error(`${label}必须为有限非负数`);
   }
   return value;
-}
-
-function ceilWithTolerance(value) {
-  const nearestInteger = Math.round(value);
-  const tolerance = INTEGER_SNAP_TOLERANCE * Math.max(1, Math.abs(value));
-  return Math.ceil(Math.abs(value - nearestInteger) <= tolerance ? nearestInteger : value);
 }
 
 function requiredGradeValue(values, grade, label) {
@@ -84,6 +73,7 @@ function workloadAction(rule, category, grade, quantity, hourlyRate, options = {
     frequency: String(rule.frequency[grade]),
     annualFrequency,
     unitHours,
+    hoursPerFrequency: quantity * unitHours,
     annualHours,
     annualCost: finiteNonNegative(annualHours * rate, `${rule.id}.annualCost`),
     ...(options.sharedWorkloadGroup === undefined ? {} : {
@@ -113,34 +103,6 @@ function calculateActions(
   ));
 }
 
-function engineeringSummary(category, title, actions, monthlyRate, costFactor) {
-  const annualHours = finiteNonNegative(
-    actions.reduce((sum, item) => sum + item.annualHours, 0),
-    `${category}.annualHours`,
-  );
-  const workloadEquivalentHeadcount = finiteNonNegative(
-    annualHours / ENGINEERING_ANNUAL_CAPACITY_HOURS,
-    `${category}.workloadEquivalentHeadcount`,
-  );
-  const headcount = ceilWithTolerance(workloadEquivalentHeadcount);
-  return {
-    category,
-    title,
-    actionCount: actions.length,
-    annualHours,
-    headcount,
-    annualCost: finiteNonNegative(
-      headcount * monthlyRate * 12 * ENGINEERING_BUDGET_FACTOR * costFactor,
-      `${category}.annualCost`,
-    ),
-    workloadAnnualCost: finiteNonNegative(
-      actions.reduce((sum, item) => sum + item.annualCost, 0),
-      `${category}.workloadAnnualCost`,
-    ),
-    workloadEquivalentHeadcount,
-  };
-}
-
 function calculatePest(grade, parameters, costFactor) {
   const allocationRatio = 1 / PEST_CONTROL_RULES.length;
   // Excel only supplies one unit workload in a merged range for all seven labels.
@@ -157,49 +119,18 @@ function calculatePest(grade, parameters, costFactor) {
       sharedWorkloadGroup: 'pest-control',
     },
   );
-  const annualHours = finiteNonNegative(
-    actions.reduce((sum, action) => sum + action.annualHours, 0),
-    'pestControl.annualHours',
-  );
-  const workloadAnnualCost = finiteNonNegative(
-    actions.reduce((sum, action) => sum + action.annualCost, 0),
-    'pestControl.workloadAnnualCost',
-  );
-  const annualWorkdays = finiteNonNegative(
-    annualHours / WORKDAY_HOURS,
-    'pestControl.annualWorkdays',
-  );
-  const headcount = finiteNonNegative(
-    annualWorkdays / PEST_WORKDAYS_PER_STAFF_YEAR,
-    'pestControl.headcount',
-  );
   return {
     actions,
-    summary: {
-      category: 'pestControl',
-      title: '四害消杀',
-      actionCount: actions.length,
-      annualHours,
-      annualWorkdays,
-      headcount,
-      annualCost: finiteNonNegative(
-        headcount * PEST_WORKDAY_RATE * WORKDAYS_PER_YEAR * costFactor,
-        'pestControl.annualCost',
-      ),
-      workloadAnnualCost,
-      workloadEquivalentHeadcount: headcount,
-    },
+    summary: summarizeCategory('pestControl', actions, grade, costFactor),
   };
 }
 
 function calculateEngineering({
   rules,
   category,
-  title,
   grade,
   parameters,
   workloadMonthlyRateFor,
-  budgetMonthlyRate,
   costFactor,
 }) {
   const actions = calculateActions(
@@ -215,7 +146,7 @@ function calculateEngineering({
   );
   return {
     actions,
-    summary: engineeringSummary(category, title, actions, budgetMonthlyRate, costFactor),
+    summary: summarizeCategory(category, actions, grade, costFactor),
   };
 }
 
@@ -255,21 +186,17 @@ export function calculateFullCostModules(project, parameters) {
     calculateEngineering({
       rules: ENGINEERING_OUTSOURCED_RULES,
       category: 'engineeringOutsourced',
-      title: '工程委外',
       grade,
       parameters,
       workloadMonthlyRateFor: (rule) => rule.monthlyRate,
-      budgetMonthlyRate: ENGINEERING_OUTSOURCED_MONTHLY_RATE,
       costFactor,
     }),
     calculateEngineering({
       rules: ENGINEERING_ROUTINE_RULES,
       category: 'engineeringRoutine',
-      title: '工程常规',
       grade,
       parameters,
       workloadMonthlyRateFor: () => ENGINEERING_ROUTINE_MONTHLY_RATE,
-      budgetMonthlyRate: ENGINEERING_ROUTINE_MONTHLY_RATE,
       costFactor,
     }),
   ];

@@ -12,6 +12,11 @@ class ResizeObserverMock {
 }
 
 Object.defineProperty(globalThis, 'ResizeObserver', { configurable: true, value: ResizeObserverMock });
+const getComputedStyle = window.getComputedStyle.bind(window);
+Object.defineProperty(window, 'getComputedStyle', {
+  configurable: true,
+  value: (element: Element) => getComputedStyle(element),
+});
 Object.defineProperty(window, 'matchMedia', {
   configurable: true,
   value: vi.fn().mockImplementation((query: string) => ({
@@ -79,5 +84,56 @@ test('adds a custom service action with frequency and annual hours', () => {
 
   expect(onChange).toHaveBeenCalledWith(expect.objectContaining({
     customActions: [expect.objectContaining({ category: 'service', action: '夜间客户关怀', annualFrequency: 120, annualHours: 60 })],
+  }));
+});
+
+test('edits frequency, hours, and workload cost for a complete-model category', () => {
+  const onChange = vi.fn();
+  const engineeringAction: ServiceActionResult = {
+    ...action,
+    id: 'engineering-outsourced-5',
+    category: 'engineeringOutsourced',
+    action: '设备检测',
+    annualFrequency: 12,
+    annualHours: 349.272,
+    annualCost: 10573.322,
+  };
+  render(<ActionEditor category="engineeringOutsourced" actions={[engineeringAction]} adjustments={empty} onChange={onChange} />);
+
+  expect(screen.getByText('工作量成本为动作核算值；分类/项目预算按取整用工口径重算')).toBeTruthy();
+  fireEvent.change(screen.getByLabelText('设备检测年频次'), { target: { value: '13.6' } });
+  expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ overrides: { 'engineering-outsourced-5': { annualFrequency: 14 } } }));
+  fireEvent.change(screen.getByLabelText('设备检测年工时'), { target: { value: '12.345' } });
+  expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ overrides: { 'engineering-outsourced-5': { annualHours: 12.35 } } }));
+  fireEvent.change(screen.getByLabelText('设备检测年工作量成本'), { target: { value: '456.789' } });
+  expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ overrides: { 'engineering-outsourced-5': { annualCost: 456.79 } } }));
+});
+
+test('assistance remains the only dedicated-post category', () => {
+  const assistanceAction: ServiceActionResult = {
+    ...action, id: 'assistance-4', category: 'assistance', action: '门岗', headcount: 2,
+  };
+  render(<ActionEditor category="assistance" actions={[assistanceAction]} adjustments={empty} onChange={vi.fn()} />);
+
+  expect(screen.getByLabelText('门岗配置人数')).toBeTruthy();
+  expect(screen.queryByLabelText('门岗年频次')).toBeNull();
+  expect(screen.queryByLabelText('门岗年工时')).toBeNull();
+  expect(screen.queryByLabelText('门岗年工作量成本')).toBeNull();
+});
+
+test('adds a custom pest action with editable workload cost', () => {
+  const onChange = vi.fn();
+  const pestAction: ServiceActionResult = { ...action, id: 'pest-control-5', category: 'pestControl', action: '四害防蚊喷药' };
+  render(<ActionEditor category="pestControl" actions={[pestAction]} adjustments={empty} onChange={onChange} />);
+
+  fireEvent.click(screen.getByRole('button', { name: /添加服务动作/ }));
+  fireEvent.change(screen.getByLabelText('自定义动作名称'), { target: { value: '补充消杀' } });
+  fireEvent.change(screen.getByLabelText('自定义动作年频次'), { target: { value: '12' } });
+  fireEvent.change(screen.getByLabelText('自定义动作年工时'), { target: { value: '24.125' } });
+  fireEvent.change(screen.getByLabelText('自定义动作年工作量成本'), { target: { value: '1800.555' } });
+  fireEvent.click(screen.getByRole('button', { name: '确认添加' }));
+
+  expect(onChange).toHaveBeenCalledWith(expect.objectContaining({
+    customActions: [expect.objectContaining({ category: 'pestControl', action: '补充消杀', annualFrequency: 12, annualHours: 24.13, annualCost: 1800.56 })],
   }));
 });
