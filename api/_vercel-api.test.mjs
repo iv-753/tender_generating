@@ -7,14 +7,14 @@ import { createCalculateHandler } from './calculate.mjs';
 import { createExcelRecognitionHandler } from './excel/recognize.mjs';
 import { createGenerationHandler } from './_lib/generation-handler.mjs';
 import { createPrivateArtifactStore } from './_lib/blob-store.mjs';
+import { resultValidationError } from './_lib/result-validation.mjs';
+import { cloneResult, fullResult } from '../scripts/test-fixtures/full-result.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
-const RESULT_FIXTURE = path.resolve(ROOT, '..', 'tmp', 'bid-binding-v1', 'demo-result.json');
-
 test('Vercel calculation endpoint calls the pure calculator without loading a model', async () => {
   let calls = 0;
   const handler = createCalculateHandler({
-    calculate: (project) => { calls += 1; return { project, totalActionCount: 122 }; },
+    calculate: (project) => { calls += 1; return { project, version: 2, standardActionCount: 452 }; },
     validate: () => undefined,
   });
   const project = { projectName: '演示项目' };
@@ -24,7 +24,7 @@ test('Vercel calculation endpoint calls the pure calculator without loading a mo
     body: JSON.stringify(project),
   }));
   assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), { project, totalActionCount: 122 });
+  assert.deepEqual(await response.json(), { project, version: 2, standardActionCount: 452 });
   assert.equal(calls, 1);
 });
 
@@ -65,7 +65,7 @@ test('Vercel Excel endpoint rejects non-xlsx input before AI recognition', async
 });
 
 test('Vercel document endpoint finishes in one invocation and returns a private download URL', async () => {
-  const result = JSON.parse(await readFile(RESULT_FIXTURE, 'utf8'));
+  const result = fullResult();
   const stored = [];
   const handler = createGenerationHandler({
     kind: 'presentation',
@@ -93,15 +93,21 @@ test('Vercel document endpoint finishes in one invocation and returns a private 
   assert.equal(stored[0].downloadFileName, '增城示范花园-路演方案.pptx');
 });
 
-test('generation accepts adjusted results while preserving the original 122-action inventory', async () => {
-  const result = JSON.parse(await readFile(RESULT_FIXTURE, 'utf8'));
+test('generation accepts stopped standard actions and custom actions while preserving the 452-action inventory', async () => {
+  const result = fullResult();
   result.actions = [
     ...result.actions.map((item) => item.id === 'service-5'
       ? { ...item, source: 'baseline', enabled: false, annualFrequency: 0, annualCost: 0 }
       : { ...item, source: 'baseline', enabled: true }),
     { id: 'custom-service-demo', category: 'service', action: '自定义动作', source: 'custom', enabled: true, annualCost: 100 },
   ];
-  result.totalActionCount = 122;
+  result.totalActionCount = result.actions.length;
+  result.activeActionCount = result.actions.filter((item) => item.enabled !== false).length;
+  result.categories = result.categories.map((summary) => summary.category === 'service'
+    ? { ...summary, actionCount: summary.actionCount, annualCost: summary.annualCost + 100, workloadAnnualCost: summary.workloadAnnualCost + 100 }
+    : summary);
+  result.annualCost += 100;
+  result.workloadAnnualCost += 100;
   const handler = createGenerationHandler({
     kind: 'bid', extension: 'docx', fileLabel: '投标标书', contentType: 'application/test',
     generate: async () => ({ bytes: Buffer.from('docx'), actionCount: 109 }),
@@ -113,6 +119,85 @@ test('generation accepts adjusted results while preserving the original 122-acti
   }));
 
   assert.equal(response.status, 200);
+});
+
+test('accepts an authentic complete V2 result', () => {
+  const result = fullResult();
+  assert.equal(result.advancedParameters.length, 90);
+  assert.equal(resultValidationError(result), undefined);
+});
+
+const invalidCases = [
+  ['少一个标准动作', (result) => { result.actions.pop(); result.totalActionCount -= 1; result.activeActionCount -= 1; }, /标准动作必须完整包含 452 项/],
+  ['标准动作编号重复', (result) => { result.actions[1].id = result.actions[0].id; }, /标准动作编号必须唯一/],
+  ['缺少一个分类', (result) => { result.categories.pop(); }, /服务分类必须完整包含 7 类/],
+  ['标准动作数声明错误', (result) => { result.standardActionCount = 451; }, /标准动作数必须为 452/],
+  ['契约版本不是 2', (result) => { result.version = 1; }, /测算结果版本必须为 2/],
+  ['缺少高级参数快照', (result) => { delete result.advancedParameters; }, /缺少高级参数快照/],
+  ['缺少管理成本', (result) => { delete result.management; }, /缺少有效管理成本/],
+];
+
+for (const [name, mutate, expected] of invalidCases) {
+  test(`rejects V2 result when ${name}`, () => {
+    const result = cloneResult();
+    mutate(result);
+    assert.match(resultValidationError(result), expected);
+  });
+}
+
+test('rejects inconsistent V2 totals with a clear Chinese error', () => {
+  const result = fullResult();
+  result.annualCost += 1;
+  assert.match(resultValidationError(result), /年度总成本与分类及管理成本不一致/);
+});
+
+test('rejects unstable categories, duplicate advanced keys, and invalid snapshot values', () => {
+  const unstable = fullResult();
+  unstable.actions[0].category = 'cleaning';
+  assert.match(resultValidationError(unstable), /标准动作编号或分类不稳定/);
+
+  const duplicateParameter = fullResult();
+  duplicateParameter.advancedParameters[1].key = duplicateParameter.advancedParameters[0].key;
+  assert.match(resultValidationError(duplicateParameter), /高级参数编号重复/);
+
+  const invalidParameter = fullResult();
+  invalidParameter.advancedParameters[0].value = -1;
+  assert.match(resultValidationError(invalidParameter), /高级参数快照值无效/);
+});
+
+test('rejects mismatched total, active, category, and headcount summaries', () => {
+  const total = fullResult();
+  total.totalActionCount -= 1;
+  assert.match(resultValidationError(total), /动作总数与动作明细不一致/);
+
+  const active = fullResult();
+  active.activeActionCount -= 1;
+  assert.match(resultValidationError(active), /当前启用动作数与动作明细不一致/);
+
+  const category = fullResult();
+  category.categories[0].actionCount -= 1;
+  assert.match(resultValidationError(category), /服务分类动作数量不一致/);
+
+  const headcount = fullResult();
+  headcount.totalHeadcount += 1;
+  assert.match(resultValidationError(headcount), /项目总人数与分类及管理人数不一致/);
+});
+
+test('accepts any number of custom actions without counting them toward the 452 standards', () => {
+  for (const customCount of [0, 1, 3]) {
+    const result = fullResult();
+    const customActions = Array.from({ length: customCount }, (_, index) => ({
+      ...result.actions[0],
+      id: `custom-service-${index}`,
+      source: 'custom',
+      annualCost: 0,
+    }));
+    result.actions.push(...customActions);
+    result.totalActionCount = result.actions.length;
+    result.activeActionCount = result.actions.filter((item) => item.enabled !== false).length;
+    result.categories[0].actionCount += customCount;
+    assert.equal(resultValidationError(result), undefined);
+  }
 });
 
 test('production calculation source has no workbook model loading path', async () => {

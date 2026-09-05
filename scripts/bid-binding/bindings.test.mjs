@@ -2,162 +2,65 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { buildBidBindings } from './bindings.mjs';
+import { fullResult } from '../test-fixtures/full-result.mjs';
 
-const range = (start, end) => Array.from({ length: end - start + 1 }, (_, index) => start + index);
-
-function action(id, category, overrides = {}) {
-  return {
-    id,
-    category,
-    action: `${id} 动作`,
-    property: '基础',
-    basis: `${id}适用范围`,
-    frequency: `${id}频次`,
-    quantity: 100,
-    unit: '平方米',
-    headcount: category === 'assistance' ? 1.2 : undefined,
-    annualCost: 1000,
-    ...overrides,
-  };
-}
-
-function result(overrides = {}) {
-  const actions = [
-    ...range(5, 21).map((row) => action(`service-${row}`, 'service')),
-    ...range(5, 52).map((row) => action(`cleaning-${row}`, 'cleaning')),
-    ...range(5, 55).map((row) => action(`greening-${row}`, 'greening')),
-    ...[4, 5, 7, 8, 9, 10].map((row) => action(`assistance-${row}`, 'assistance')),
-  ];
-  return {
-    version: 1,
-    calculatedAt: '2026-09-03T00:00:00.000Z',
-    project: {
-      projectName: '甲项目',
-      region: '广东省广州市增城区',
-      city: '广州',
-      serviceGrade: 'C',
-      totalBuildingArea: 200000,
-      residentialChargeArea: 100000,
-      deliveredHouseholds: 1800,
-      receivedHouseholds: 1500,
-      occupiedHouseholds: 1200,
-      perimeterEntrances: 500,
-      gatehouses: 2,
-      pavedRoadArea: 26000,
-      greenArea: 25000,
-      lawnRatio: 0.5,
-      seasonalFlowerArea: 0,
-      winterProtectionArea: 0,
-      buildings: [{ buildingCount: 8 }],
-      garageFloorArea: 40000,
-      garageFloors: 2,
-    },
-    totalActionCount: 122,
-    totalHeadcount: 22.2,
-    annualCost: 1200000,
-    categories: [
-      { category: 'service', title: '服务', actionCount: 17, headcount: 4.2, annualCost: 240000 },
-      { category: 'cleaning', title: '清洁', actionCount: 48, headcount: 8.2, annualCost: 360000 },
-      { category: 'greening', title: '绿化', actionCount: 51, headcount: 3.1, annualCost: 180000 },
-      { category: 'assistance', title: '客助', actionCount: 6, headcount: 6.7, annualCost: 420000 },
-    ],
-    actions,
-    ...overrides,
-  };
-}
-
-test('builds the cleaned template inventory from the current 122-action result', () => {
-  const bindings = buildBidBindings(result(), new Date('2026-09-03T08:00:00+08:00'));
+test('builds representative Word rows from a complete V2 result', () => {
+  const result = fullResult();
+  const bindings = buildBidBindings(result, new Date('2026-09-03T08:00:00+08:00'));
 
   assert.equal(bindings.actionRows.length, 109);
   assert.equal(bindings.staffingRows.length, 6);
-  assert.equal(bindings.actionRows[0].id, 'service-5');
-  assert.equal(bindings.actionRows.at(-1).id, 'greening-52');
-  assert.equal(bindings.named['项目名称'], '甲项目');
-  assert.equal(bindings.named['年度运营成本'], '120.00');
-  assert.equal(bindings.named['综合单价'], '1.00');
-  assert.equal(bindings.named['客户服务人数'], '5');
-  assert.equal(bindings.named['人员总数'], '23');
+  assert.equal(bindings.named['项目名称'], result.project.projectName);
+  assert.equal(bindings.named['年度运营成本'], (result.annualCost / 10000).toFixed(2));
+  assert.equal(bindings.named['综合单价'], (result.annualCost / result.project.residentialChargeArea / 12).toFixed(2));
+  assert.equal(bindings.named['人员总数'], String(Math.ceil(result.totalHeadcount)));
+  assert.equal(bindings.named['标准动作数'], '452');
+  assert.deepEqual(bindings.summary, {
+    annualCost: result.annualCost,
+    unitPrice: result.annualCost / result.project.residentialChargeArea / 12,
+    headcount: result.totalHeadcount,
+    actionCount: result.standardActionCount,
+  });
+  assert.equal(bindings.actionRows.find((item) => item.id === 'cleaning-47').scope, '80,121平方米');
+  assert.equal(bindings.staffingRows.find((item) => item.id === 'assistance-8').basis, '252,481平方米');
 });
 
-test('uses the supplied calculation result rather than fixed demo values', () => {
-  const first = result();
-  const second = result({
-    project: { ...first.project, projectName: '乙项目', residentialChargeArea: 200000 },
-    annualCost: 3600000,
-    totalHeadcount: 31.1,
-    actions: first.actions.map((item) => item.id === 'service-5'
-      ? { ...item, basis: '乙项目动态范围', frequency: '乙项目动态频次' }
-      : item.id === 'assistance-4'
-        ? { ...item, headcount: 4.1 }
-        : item),
-  });
+test('uses supplied V2 values instead of fixed demo values', () => {
+  const result = fullResult({ projectName: '乙项目', residentialChargeArea: 200000 });
+  const target = result.actions.find((item) => item.id === 'service-5');
+  target.basis = '乙项目动态范围';
+  target.frequency = '乙项目动态频次';
 
-  const bindings = buildBidBindings(second);
+  const bindings = buildBidBindings(result);
   assert.equal(bindings.named['项目名称'], '乙项目');
-  assert.equal(bindings.named['综合单价'], '1.50');
-  assert.equal(bindings.named['人员总数'], '32');
+  assert.equal(bindings.named['综合单价'], (result.annualCost / 200000 / 12).toFixed(2));
   assert.equal(bindings.actionRows[0].scope, '乙项目动态范围');
   assert.equal(bindings.actionRows[0].frequency, '乙项目动态频次');
-  assert.equal(bindings.staffingRows[0].headcount, '5');
 });
 
-test('removes meaningless decimals from customer-facing quantities without changing source values', () => {
-  const current = result();
-  current.project = {
-    ...current.project,
-    totalBuildingArea: 252480.75,
-    garageFloorArea: 40060.27,
-    garageFloors: 2,
-  };
-  current.actions = current.actions.map((item) => {
-    if (item.id === 'cleaning-47') return { ...item, quantity: 80120.54, unit: '平方米' };
-    if (item.id === 'greening-48') return { ...item, quantity: 908.72, unit: '株' };
-    if (item.id === 'assistance-8') return { ...item, quantity: 252480.75, unit: 'm2' };
-    return item;
-  });
+test('rejects incomplete and non-V2 calculation results', () => {
+  const incomplete = fullResult();
+  incomplete.actions.pop();
+  incomplete.totalActionCount -= 1;
+  incomplete.activeActionCount -= 1;
+  assert.throws(() => buildBidBindings(incomplete), /标准动作必须完整包含 452 项/);
 
-  const bindings = buildBidBindings(current);
-
-  assert.equal(bindings.named['总建筑面积'], '252,481');
-  assert.equal(bindings.named['车库面积'], '80,121');
-  assert.equal(bindings.actionRows.find((item) => item.id === 'cleaning-47').scope, '80,121平方米');
-  assert.equal(bindings.actionRows.find((item) => item.id === 'greening-48').scope, '909株');
-  assert.equal(bindings.staffingRows.find((item) => item.id === 'assistance-8').basis, '252,481平方米');
-  assert.equal(current.actions.find((item) => item.id === 'cleaning-47').quantity, 80120.54);
+  const legacy = fullResult();
+  legacy.version = 1;
+  assert.throws(() => buildBidBindings(legacy), /测算结果版本必须为 2/);
 });
 
-test('rejects incomplete calculation results instead of silently inserting defaults', () => {
-  const current = result();
-  current.actions = current.actions.filter((item) => item.id !== 'cleaning-12');
+test('accepts stopped standards and custom actions for fixed-template export', () => {
+  const result = fullResult();
+  const stopped = result.actions.find((item) => item.id === 'service-5');
+  stopped.enabled = false;
+  stopped.annualFrequency = 0;
+  stopped.annualHours = 0;
+  stopped.annualCost = 0;
+  result.activeActionCount -= 1;
+  result.categories[0].actionCount -= 1;
 
-  assert.throws(() => buildBidBindings(current), /缺少测算动作 cleaning-12/);
-});
-
-test('marks services without a configured frequency as disabled', () => {
-  const current = result();
-  current.actions = current.actions.map((item) => item.id === 'service-5'
-    ? { ...item, frequency: '不设置', annualFrequency: 0 }
-    : item);
-
-  const bindings = buildBidBindings(current);
-
+  const bindings = buildBidBindings(result);
   assert.equal(bindings.actionRows.find((item) => item.id === 'service-5').enabled, false);
-  assert.equal(bindings.actionRows.find((item) => item.id === 'service-6').enabled, true);
-});
-
-test('accepts stopped baseline actions and extra custom actions for fixed-template export', () => {
-  const current = result();
-  current.actions = [
-    ...current.actions.map((item) => item.id === 'service-5'
-      ? { ...item, enabled: false, annualFrequency: 0, annualCost: 0 }
-      : { ...item, source: 'baseline', enabled: true }),
-    action('custom-service-demo', 'service', { source: 'custom', enabled: true }),
-  ];
-  current.totalActionCount = 122;
-
-  const bindings = buildBidBindings(current);
-
-  assert.equal(bindings.actionRows.find((item) => item.id === 'service-5').enabled, false);
-  assert.equal(bindings.actionRows.length, 109);
+  assert.equal(bindings.named['标准动作数'], '452');
 });

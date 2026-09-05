@@ -21,15 +21,48 @@ const adjustments: CalculationAdjustments = {
 };
 
 function result(projectName: string, calculatedAt: string, annualCost = 481800): CalculationResult {
+  const categoryCounts = [
+    ['service', 17], ['cleaning', 48], ['greening', 51], ['assistance', 6],
+    ['pestControl', 7], ['engineeringOutsourced', 95], ['engineeringRoutine', 228],
+  ] as const;
+  const actions = categoryCounts.flatMap(([category, count]) => Array.from({ length: count }, (_, index) => ({
+    id: `${category}-${index + 1}`,
+    category,
+    action: `${category}动作${index + 1}`,
+    property: '基础',
+    annualCost: 0,
+    source: 'baseline' as const,
+    enabled: true,
+  })));
   return {
-    version: 1,
+    version: 2,
     calculatedAt,
-    project: { ...EXAMPLE_PROJECT, projectName },
-    totalActionCount: 122,
+    project: { ...EXAMPLE_PROJECT, projectName, advancedParameterOverrides: { 'basement.fireShutterCount': 300 } },
+    advancedParameterVersion: 'test-v2',
+    advancedParameters: Array.from({ length: 90 }, (_, index) => ({
+      key: `parameter-${index + 1}`,
+      label: `高级参数${index + 1}`,
+      group: 'basement' as const,
+      unit: '项',
+      defaultValue: index,
+      value: index,
+      source: 'template' as const,
+      affectedActionIds: [],
+    })),
+    standardActionCount: 452,
+    activeActionCount: 452,
+    totalActionCount: 452,
     totalHeadcount: 34,
     annualCost,
-    categories: [],
-    actions: [],
+    management: { headcount: 4, annualCost: 120000 },
+    categories: categoryCounts.map(([category, actionCount]) => ({
+      category,
+      title: category,
+      actionCount,
+      headcount: category === 'service' ? 30 : 0,
+      annualCost: category === 'service' ? annualCost - 120000 : 0,
+    })),
+    actions,
   };
 }
 
@@ -61,6 +94,37 @@ describe('project storage', () => {
     storage.saveCalculatedProject(result('项目二', '2026-09-03T09:00:00.000Z'));
 
     expect(storage.loadProjects().map((item) => item.result.project.projectName)).toEqual(['项目二', '项目一']);
+  });
+
+  test('preserves V2 advanced overrides and the complete result when saving and loading', () => {
+    const complete = result('完整项目', '2026-09-03T08:00:00.000Z');
+    storage.saveCalculatedProject(complete);
+
+    expect(storage.loadDraft()?.advancedParameterOverrides).toEqual({ 'basement.fireShutterCount': 300 });
+    const loaded = storage.loadResult();
+    expect(loaded?.version).toBe(2);
+    expect(loaded?.actions).toHaveLength(452);
+    expect(loaded?.version === 2 ? loaded.advancedParameters : []).toHaveLength(90);
+  });
+
+  test('starting a new project only clears active project state and keeps company, template, and asset data', () => {
+    const profile = {
+      companyName: '安序物业', socialCreditCode: '91440000TEST', legalRepresentative: '张三',
+      registeredAddress: '广东省广州市', contactName: '李经理', contactPhone: '13800000000', companyProfile: '专注住宅物业服务。',
+    };
+    storage.saveCompanyProfile(profile);
+    localStorage.setItem('property-calculator:templates:v1', 'template-data');
+    localStorage.setItem('property-calculator:assets:v1', 'asset-data');
+    storage.saveCalculatedProject(result('活动项目', '2026-09-03T08:00:00.000Z'));
+
+    storage.startNewProject();
+
+    expect(storage.getActiveProjectId()).toBeNull();
+    expect(storage.loadDraft()).toBeNull();
+    expect(storage.loadResult()).toBeNull();
+    expect(storage.loadCompanyProfile()).toEqual(profile);
+    expect(localStorage.getItem('property-calculator:templates:v1')).toBe('template-data');
+    expect(localStorage.getItem('property-calculator:assets:v1')).toBe('asset-data');
   });
 
   test('selects and duplicates a saved project without changing the original', () => {

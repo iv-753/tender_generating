@@ -1,3 +1,5 @@
+import { resultValidationError } from '../../api/_lib/result-validation.mjs';
+
 const range = (start, end) => Array.from({ length: end - start + 1 }, (_, index) => start + index);
 
 export const ACTION_ROW_IDS = [
@@ -82,10 +84,8 @@ function percent(part, total) {
 }
 
 export function buildBidBindings(result, generatedAt = new Date(), supplemental = {}) {
-  if (!result?.project || !Array.isArray(result.actions)) {
-    throw new Error('标书生成需要完整的122项测算结果');
-  }
-  if (!Number.isFinite(result.annualCost) || result.annualCost < 0) throw new Error('测算结果缺少有效年成本');
+  const validationError = resultValidationError(result);
+  if (validationError) throw new Error(validationError);
 
   const project = result.project;
   const service = findCategory(result, 'service');
@@ -124,6 +124,7 @@ export function buildBidBindings(result, generatedAt = new Date(), supplemental 
     '环境清洁人数': String(Math.ceil(cleaning.headcount)),
     '绿化养护人数': String(Math.ceil(greening.headcount)),
     '人员总数': String(Math.ceil(result.totalHeadcount)),
+    '标准动作数': String(result.standardActionCount),
     '客户服务成本': (service.annualCost / 10000).toFixed(2),
     '客户服务占比': percent(service.annualCost, result.annualCost),
     '客助服务成本': (assistance.annualCost / 10000).toFixed(2),
@@ -158,11 +159,12 @@ export function buildBidBindings(result, generatedAt = new Date(), supplemental 
         enabled: Number(item.headcount || 0) > 0,
       };
     }),
+    summary: {
+      annualCost: result.annualCost,
+      unitPrice,
+      headcount: result.totalHeadcount,
+      actionCount: result.standardActionCount,
+    },
   };
-  const baselineActions = result.actions.filter((item) => item.source !== 'custom');
-  const activeActionCount = result.actions.filter((item) => item.enabled !== false).length;
-  if (baselineActions.length !== 122 || new Set(baselineActions.map((item) => item.id)).size !== 122 || result.totalActionCount !== activeActionCount) {
-    throw new Error('标书生成需要完整的122项测算结果');
-  }
   return bindings;
 }

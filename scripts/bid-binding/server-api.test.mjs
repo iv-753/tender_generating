@@ -1,11 +1,10 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import test, { after, before } from 'node:test';
+import { fullResult } from '../test-fixtures/full-result.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '..', '..');
-const FIXTURE = path.resolve(ROOT, '..', 'tmp', 'bid-binding-v1', 'demo-result.json');
 const PORT = 43000 + (process.pid % 1000);
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 let server;
@@ -23,7 +22,7 @@ before(async () => {
   server.stderr.on('data', (chunk) => { logs += chunk; });
   for (let attempt = 0; attempt < 50; attempt += 1) {
     try {
-      if ((await fetch(`${BASE_URL}/`)).ok) return;
+      if ((await fetch(`${BASE_URL}/api/bid/jobs/not-running`)).status === 404) return;
     } catch {
       // Server is still starting.
     }
@@ -35,7 +34,7 @@ before(async () => {
 after(() => server?.kill());
 
 test('creates, completes, and downloads a Word bid job', async () => {
-  const result = JSON.parse(await readFile(FIXTURE, 'utf8'));
+  const result = fullResult();
   const createdResponse = await fetch(`${BASE_URL}/api/bid/jobs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -62,7 +61,7 @@ test('creates, completes, and downloads a Word bid job', async () => {
 });
 
 test('rejects an incomplete bid result', async () => {
-  const result = JSON.parse(await readFile(FIXTURE, 'utf8'));
+  const result = fullResult();
   result.actions.pop();
   const response = await fetch(`${BASE_URL}/api/bid/jobs`, {
     method: 'POST',

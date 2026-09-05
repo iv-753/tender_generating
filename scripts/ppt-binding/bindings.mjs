@@ -1,3 +1,5 @@
+import { resultValidationError } from '../../api/_lib/result-validation.mjs';
+
 const ACTION_CODE = /^[A-Z]+-[A-Z]+-\d+\s+/;
 
 function formatNumber(value, maximumFractionDigits = 2) {
@@ -57,9 +59,9 @@ function dateLabel(date) {
 }
 
 export function buildPresentationBindings(result, generatedAt = new Date()) {
+  const validationError = resultValidationError(result);
+  if (validationError) throw new Error(validationError);
   const project = result.project;
-  if (!project) throw new Error('测算结果缺少项目数据');
-  if (!Number.isFinite(result.annualCost) || result.annualCost < 0) throw new Error('测算结果缺少有效年成本');
 
   const totalBuildings = project.buildings.reduce((sum, building) => sum + building.buildingCount, 0);
   const totalLobbyArea = project.buildings.reduce(
@@ -202,8 +204,14 @@ export function buildPresentationBindings(result, generatedAt = new Date()) {
       'field-unit-price': unitPrice.toFixed(2),
       'field-annual-cost': (result.annualCost / 10000).toFixed(2),
       'field-headcount': String(Math.ceil(result.totalHeadcount)),
-      'field-action-count': String(result.totalActionCount),
+      'field-action-count': String(result.standardActionCount),
     },
     cards,
+    summary: {
+      annualCost: result.annualCost,
+      unitPrice,
+      headcount: result.totalHeadcount,
+      actionCount: result.standardActionCount,
+    },
   };
 }
