@@ -64,7 +64,8 @@ test('Vercel document endpoint finishes in one invocation and returns a private 
   assert.equal(job.downloadUrl, 'https://private.example/signed');
   assert.match(job.fileName, /增城示范花园-路演方案\.pptx$/);
   assert.equal(stored[0].access, 'private');
-  assert.match(stored[0].pathname, /\/增城示范花园-路演方案\.pptx$/);
+  assert.match(stored[0].pathname, /^generated\/presentation\/[0-9a-f-]+\/artifact\.pptx$/);
+  assert.doesNotMatch(stored[0].pathname, /[^\x00-\x7F]/);
 });
 
 test('production calculation source has no workbook model loading path', async () => {

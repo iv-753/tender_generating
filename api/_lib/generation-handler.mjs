@@ -16,7 +16,7 @@ export function createGenerationHandler({ kind, extension, fileLabel, contentTyp
         const output = await generate(result);
         const stored = await store({
           access: 'private',
-          pathname: `generated/${kind}/${jobId}/${fileName}`,
+          pathname: `generated/${kind}/${jobId}/artifact.${extension}`,
           bytes: output.bytes,
           contentType,
         });
