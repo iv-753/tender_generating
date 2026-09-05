@@ -98,6 +98,33 @@ describe('project storage', () => {
     expect(storage.loadProjects()[0].bidDocument?.fileName).toBe('云山府-投标标书.docx');
   });
 
+  test('saves adjusted result and adjustment record on the active project', () => {
+    const project = storage.saveCalculatedProject(result('湖畔家园', '2026-09-03T08:00:00.000Z'));
+    storage.saveProjectAdjustments(project.id, adjustments, result('湖畔家园', '2026-09-03T09:00:00.000Z', 420000));
+
+    expect(storage.loadActiveProject()?.adjustments).toEqual(adjustments);
+    expect(storage.loadActiveAdjustments()).toEqual(adjustments);
+    expect(storage.loadResult()?.annualCost).toBe(420000);
+  });
+
+  test('clears adjustments and restores the supplied baseline result', () => {
+    const project = storage.saveCalculatedProject(result('湖畔家园', '2026-09-03T08:00:00.000Z'));
+    storage.saveProjectAdjustments(project.id, adjustments, result('湖畔家园', '2026-09-03T09:00:00.000Z', 420000));
+    storage.clearProjectAdjustments(project.id, result('湖畔家园', '2026-09-03T10:00:00.000Z', 481800));
+
+    expect(storage.loadActiveProject()?.adjustments).toBeUndefined();
+    expect(storage.loadResult()?.annualCost).toBe(481800);
+  });
+
+  test('duplicates adjustments without sharing object references', () => {
+    const project = storage.saveCalculatedProject(result('湖畔家园', '2026-09-03T08:00:00.000Z'));
+    storage.saveProjectAdjustments(project.id, adjustments, result('湖畔家园', '2026-09-03T09:00:00.000Z'));
+    const copy = storage.duplicateProject(project.id)!;
+
+    expect(copy.adjustments).toEqual(adjustments);
+    expect(copy.adjustments).not.toBe(storage.loadProjects().find((item) => item.id === project.id)?.adjustments);
+  });
+
   test('deletes a project and clears the active result when that project is open', () => {
     const project = storage.saveCalculatedProject(result('待删除项目', '2026-09-03T08:00:00.000Z'));
 

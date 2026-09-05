@@ -1,4 +1,4 @@
-import type { BidDocumentRecord, CalculationResult, CompanyProfile, PresentationRecord, ProjectData, ProjectRecord } from './types';
+import type { BidDocumentRecord, CalculationAdjustments, CalculationResult, CompanyProfile, PresentationRecord, ProjectData, ProjectRecord } from './types';
 
 const DRAFT_KEY = 'property-calculator:draft:v1';
 const RESULT_KEY = 'property-calculator:result:v1';
@@ -50,8 +50,11 @@ function saveCalculatedProject(result: CalculationResult) {
   const projects = loadStoredProjects();
   const activeId = localStorage.getItem(ACTIVE_PROJECT_KEY);
   const active = projects.find((item) => item.id === activeId);
+  const activeWithoutAdjustments = active
+    ? (({ adjustments: _adjustments, ...record }) => record)(active)
+    : null;
   const record: ProjectRecord = active
-    ? { ...active, updatedAt: result.calculatedAt, result }
+    ? { ...activeWithoutAdjustments!, updatedAt: result.calculatedAt, result }
     : { id: makeId(), createdAt: result.calculatedAt, updatedAt: result.calculatedAt, result };
   const next = active
     ? projects.map((item) => item.id === active.id ? record : item)
@@ -88,9 +91,43 @@ export const storage = {
     const activeId = localStorage.getItem(ACTIVE_PROJECT_KEY);
     return loadProjects().find((item) => item.id === activeId) ?? null;
   },
+  loadActiveAdjustments: () => {
+    const activeId = localStorage.getItem(ACTIVE_PROJECT_KEY);
+    return loadProjects().find((item) => item.id === activeId)?.adjustments;
+  },
   loadCompanyProfile: () => load<CompanyProfile>(COMPANY_PROFILE_KEY),
   saveCompanyProfile: (data: CompanyProfile) => save(COMPANY_PROFILE_KEY, data),
   saveCalculatedProject,
+  saveProjectAdjustments: (id: string, adjustments: CalculationAdjustments, result: CalculationResult) => {
+    const projects = loadProjects();
+    const current = projects.find((item) => item.id === id);
+    if (!current) return false;
+    const record: ProjectRecord = {
+      ...current,
+      updatedAt: result.calculatedAt,
+      result,
+      adjustments: structuredClone(adjustments),
+    };
+    saveProjects(sortProjects(projects.map((item) => item.id === id ? record : item)));
+    if (localStorage.getItem(ACTIVE_PROJECT_KEY) === id) {
+      save(DRAFT_KEY, result.project);
+      save(RESULT_KEY, result);
+    }
+    return true;
+  },
+  clearProjectAdjustments: (id: string, result: CalculationResult) => {
+    const projects = loadProjects();
+    const current = projects.find((item) => item.id === id);
+    if (!current) return false;
+    const { adjustments: _adjustments, ...withoutAdjustments } = current;
+    const record: ProjectRecord = { ...withoutAdjustments, updatedAt: result.calculatedAt, result };
+    saveProjects(sortProjects(projects.map((item) => item.id === id ? record : item)));
+    if (localStorage.getItem(ACTIVE_PROJECT_KEY) === id) {
+      save(DRAFT_KEY, result.project);
+      save(RESULT_KEY, result);
+    }
+    return true;
+  },
   getActiveProjectId: () => localStorage.getItem(ACTIVE_PROJECT_KEY),
   startNewProject: () => {
     localStorage.removeItem(ACTIVE_PROJECT_KEY);
@@ -120,6 +157,7 @@ export const storage = {
           projectName: `${source.result.project.projectName}（副本）`,
         },
       },
+      adjustments: source.adjustments ? structuredClone(source.adjustments) : undefined,
     };
     saveProjects(sortProjects([copy, ...projects]));
     return copy;
