@@ -90,6 +90,36 @@ class StrictParsingTests(unittest.TestCase):
                         "building.exampleCount",
                     )
 
+    def test_rules_reject_missing_or_blank_frequency(self):
+        formula_values = {
+            (5, 1): "A-SS-50 动作",
+            (5, 2): "系统",
+            (5, 3): "个",
+            (5, 5): GRADE_FORMULA,
+            (5, 7): "=E5*0.1",
+        }
+        value_values = {(5, 4): 0, (5, 14): 0, (5, 16): 0}
+        for frequency in (None, "", "   "):
+            with self.subTest(rule="engineering", frequency=frequency):
+                with self.assertRaisesRegex(ValueError, "频率不能为空"):
+                    MODULE.engineering_rule(
+                        FakeSheet("工程常规", {**formula_values, (5, 11): frequency}),
+                        FakeSheet("工程常规", value_values),
+                        FakePriceSheet(),
+                        5,
+                        "engineering-routine",
+                        "building.exampleCount",
+                    )
+
+            with self.subTest(rule="pest", frequency=frequency):
+                with self.assertRaisesRegex(ValueError, "频率不能为空"):
+                    MODULE.pest_control_rules(
+                        FakeSheet("四害消杀", {(5, 10): frequency}),
+                        FakeSheet("四害消杀", {}),
+                        FakePriceSheet(),
+                        {},
+                    )
+
     def test_grade_unit_hours_rejects_bad_references_and_nonfinite_inputs(self):
         bad_formula = GRADE_FORMULA.replace("!Y7", "!Y8")
         with self.assertRaisesRegex(ValueError, "无法读取四档标准工时"):

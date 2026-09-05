@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import { ADVANCED_PARAMETER_DEFINITIONS } from './rules/advanced-parameter-definitions.mjs';
 import { ASSISTANCE_RULES } from './rules/assistance-rules.mjs';
@@ -166,11 +168,35 @@ test('独立快照锁定 330 行来源映射与关键数值摘要', async () => 
     key: rule.quantityParameterKey,
     quantity: rule.templateQuantity,
     unitHours: rule.unitHours,
+    frequency: rule.frequency,
     annualFrequency: rule.annualFrequency,
     monthlyRate: rule.monthlyRate,
   }));
   const digest = createHash('sha256').update(JSON.stringify(criticalValues)).digest('hex');
   assert.equal(digest, snapshot.criticalValuesSha256);
+});
+
+test('默认测试链显式执行跨平台迁移解析测试', async () => {
+  const packageUrl = new URL('../../package.json', import.meta.url);
+  const runnerUrl = new URL('./migration/run-tests.mjs', import.meta.url);
+  const packageDocument = JSON.parse(await readFile(packageUrl, 'utf8'));
+  assert.ok(packageDocument.scripts.test.startsWith('npm run test:migration && '));
+  assert.equal(
+    packageDocument.scripts['test:migration'],
+    'node scripts/calculation/migration/run-tests.mjs',
+  );
+  const runner = await readFile(runnerUrl, 'utf8');
+  assert.doesNotMatch(
+    runner,
+    /(?:[A-Z]:[\\/]|\\\\|['"]\/(?:home|opt|usr|Users)\/)/i,
+  );
+
+  const result = spawnSync(process.execPath, [fileURLToPath(runnerUrl)], {
+    cwd: fileURLToPath(new URL('../..', import.meta.url)),
+    encoding: 'utf8',
+    windowsHide: true,
+  });
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
 });
 
 test('330 行参数映射完整且静态目录不泄漏公式或工作簿路径', async () => {

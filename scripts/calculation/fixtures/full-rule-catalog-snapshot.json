@@ -1,7 +1,7 @@
 {
   "version": "2026-09-full-model-v1",
   "workbookSha256": "dfcd85e1e5666134359004423927fd28dd64c8037b0fcfca2dda46d51fbfab7d",
-  "criticalValuesSha256": "5c0f439285c2d99471f04410b54275934920ca2fc6f6fcea673b9cc1d26b44e3",
+  "criticalValuesSha256": "e9c7c6be8d291243ff9c137479d0d07d859102e7adf7826787b7b8f615bdff06",
   "rows": {
     "四害消杀:5": [
       "pest-control-5",

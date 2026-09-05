@@ -148,6 +148,12 @@ def required_number(value: object, label: str) -> float:
     return number
 
 
+def required_frequency(value: object, label: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{label}频率不能为空")
+    return value
+
+
 def validate_workbook_hash(workbook: Path, expected_sha256: str) -> None:
     actual_sha256 = hashlib.sha256(workbook.read_bytes()).hexdigest()
     if actual_sha256 != expected_sha256:
@@ -403,7 +409,9 @@ def engineering_rule(
     parameter_key: str,
 ) -> dict:
     action = formula_sheet.cell(row, 1).value
-    frequency = formula_sheet.cell(row, 11).value or "0"
+    frequency = required_frequency(
+        formula_sheet.cell(row, 11).value, f"{formula_sheet.title}!K{row}"
+    )
     annual_frequency = required_number(
         value_sheet.cell(row, 14).value, f"{value_sheet.title}!N{row}"
     )
@@ -429,7 +437,9 @@ def engineering_rule(
 
 def pest_control_rules(formula_sheet, value_sheet, price_sheet, mapping: dict[str, str]) -> list[dict]:
     anchor_row = 5
-    frequency = formula_sheet.cell(anchor_row, 10).value or "0"
+    frequency = required_frequency(
+        formula_sheet.cell(anchor_row, 10).value, f"{formula_sheet.title}!J{anchor_row}"
+    )
     annual_frequency = required_number(
         value_sheet.cell(anchor_row, 11).value, f"{value_sheet.title}!K{anchor_row}"
     )
