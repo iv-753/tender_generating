@@ -38,6 +38,16 @@ function findAction(result, id) {
   return item;
 }
 
+function findCategory(result, category) {
+  const item = result.categories.find((candidate) => candidate.category === category);
+  if (!item) throw new Error(`缺少测算分类 ${category}`);
+  return item;
+}
+
+function staffingCount(value) {
+  return `${Math.ceil(Number(value || 0))}人`;
+}
+
 function compactArea(value) {
   return `${formatWholeNumber(value)}㎡`;
 }
@@ -62,6 +72,13 @@ export function buildPresentationBindings(result, generatedAt = new Date()) {
   const validationError = resultValidationError(result);
   if (validationError) throw new Error(validationError);
   const project = result.project;
+  const service = findCategory(result, 'service');
+  const cleaning = findCategory(result, 'cleaning');
+  const greening = findCategory(result, 'greening');
+  const assistance = findCategory(result, 'assistance');
+  const pestControl = findCategory(result, 'pestControl');
+  const engineeringOutsourced = findCategory(result, 'engineeringOutsourced');
+  const engineeringRoutine = findCategory(result, 'engineeringRoutine');
 
   const totalBuildings = project.buildings.reduce((sum, building) => sum + building.buildingCount, 0);
   const totalLobbyArea = project.buildings.reduce(
@@ -205,6 +222,13 @@ export function buildPresentationBindings(result, generatedAt = new Date()) {
       'field-annual-cost': (result.annualCost / 10000).toFixed(2),
       'field-headcount': String(Math.ceil(result.totalHeadcount)),
       'field-action-count': String(result.standardActionCount),
+      'field-staffing-summary': `配置8类人员，共${staffingCount(result.totalHeadcount)}。`,
+      'field-staffing-management': result.management.roles
+        .map((role) => `${role.title}${staffingCount(role.headcount)}`)
+        .join('、'),
+      'field-staffing-customer': `客户服务${staffingCount(service.headcount)}、客助服务${staffingCount(assistance.headcount)}`,
+      'field-staffing-environment': `环境清洁${staffingCount(cleaning.headcount)}、绿化养护${staffingCount(greening.headcount)}、四害消杀${staffingCount(pestControl.headcount)}`,
+      'field-staffing-engineering': `工程委外${staffingCount(engineeringOutsourced.headcount)}、工程常规${staffingCount(engineeringRoutine.headcount)}`,
     },
     cards,
     summary: {

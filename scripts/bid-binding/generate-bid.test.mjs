@@ -36,6 +36,9 @@ test('generates a complete Word bid from the current calculation result', async 
     const text = (await Promise.all(xmlFiles.map((name) => zip.file(name).async('string')))).join('\n');
     assert.equal(text.includes('增城示范花园'), true);
     assert.equal(text.includes('452项标准动作'), true);
+    for (const label of ['客户服务', '客助服务', '环境清洁', '绿化养护', '四害消杀', '工程委外', '工程常规', '管理人员']) {
+      assert.equal(text.includes(label), true, `人员配置表缺少${label}`);
+    }
     assert.equal(text.includes('{{'), false);
     const document = new DOMParser().parseFromString(await zip.file('word/document.xml').async('string'), 'application/xml');
     const textNodes = Array.from(document.getElementsByTagNameNS(

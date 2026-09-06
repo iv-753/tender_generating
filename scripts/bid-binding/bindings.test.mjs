@@ -14,6 +14,17 @@ test('builds representative Word rows from a complete V2 result', () => {
   assert.equal(bindings.named['年度运营成本'], (result.annualCost / 10000).toFixed(2));
   assert.equal(bindings.named['综合单价'], (result.annualCost / result.project.residentialChargeArea / 12).toFixed(2));
   assert.equal(bindings.named['人员总数'], String(Math.ceil(result.totalHeadcount)));
+  assert.equal(bindings.named['四害消杀人数'], '1');
+  assert.equal(bindings.named['工程委外人数'], '4');
+  assert.equal(bindings.named['工程常规人数'], '5');
+  assert.equal(bindings.named['管理人员人数'], '4');
+  assert.equal(
+    [
+      '客户服务人数', '客助服务人数', '环境清洁人数', '绿化养护人数',
+      '四害消杀人数', '工程委外人数', '工程常规人数', '管理人员人数',
+    ].reduce((sum, key) => sum + Number(bindings.named[key]), 0),
+    Number(bindings.named['人员总数']),
+  );
   assert.equal(bindings.named['标准动作数'], '452');
   assert.deepEqual(bindings.summary, {
     annualCost: result.annualCost,
