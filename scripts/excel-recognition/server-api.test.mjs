@@ -35,6 +35,7 @@ before(async () => {
       AI_BASE_URL: `http://127.0.0.1:${MODEL_PORT}/v1`,
       AI_MODEL: 'fixture-model',
       AI_SUPPORTS_JSON_SCHEMA: 'false',
+      INSTANCE_ID: 'fixture-instance',
     },
     windowsHide: true,
   });
@@ -56,6 +57,15 @@ before(async () => {
 after(async () => {
   appServer?.kill();
   await new Promise((resolve) => modelServer?.close(resolve));
+});
+
+test('reports the local process identity through the health endpoint', async () => {
+  const response = await fetch(`${BASE_URL}/api/health`);
+  assert.equal(response.status, 200);
+  const result = await response.json();
+  assert.equal(result.status, 'ok');
+  assert.equal(result.instanceId, 'fixture-instance');
+  assert.equal(result.pid, appServer.pid);
 });
 
 test('recognizes an uploaded Excel workbook through the provider-neutral API', async () => {

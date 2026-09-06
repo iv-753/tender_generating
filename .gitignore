@@ -13,3 +13,4 @@ __pycache__/
 /.chrome-qa/
 /.qa-*.png
 /.worktrees/
+/release/

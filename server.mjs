@@ -8,18 +8,20 @@ import { fileURLToPath } from 'node:url';
 import { createCalculator, validateProject } from './scripts/calculation/calculator.mjs';
 import { applyAdjustments } from './scripts/calculation/adjustments.mjs';
 import { loadRecognitionConfig } from './scripts/excel-recognition/config.mjs';
-import { recognizeExcel } from './scripts/excel-recognition/recognize-excel.mjs';
+import { recognizeExcel, recognizeExcelWithFallback } from './scripts/excel-recognition/recognize-excel.mjs';
+import { recognizeExcelRemotely } from './scripts/excel-recognition/remote-recognition.mjs';
 import { resultValidationError } from './api/_lib/result-validation.mjs';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const DIST = resolve(ROOT, 'dist');
 const PRESENTATION_TEMPLATE = resolve(ROOT, 'templates', '物业路演PPT_完整24页_v1.pptx');
-const PRESENTATION_OUTPUT = resolve(ROOT, '..', 'output');
+const PRESENTATION_OUTPUT = process.env.OUTPUT_DIR ? resolve(process.env.OUTPUT_DIR) : resolve(ROOT, '..', 'output');
 const PRESENTATION_GENERATOR = resolve(ROOT, 'scripts', 'ppt-binding', 'generate-ppt.mjs');
 const BID_TEMPLATE = resolve(ROOT, 'templates', '安序物业_住宅物业服务投标文件_双括号动态母版_清理版.docx');
 const BID_GENERATOR = resolve(ROOT, 'scripts', 'bid-binding', 'generate-bid.mjs');
 const HOST = '127.0.0.1';
 const PORT = Number(process.env.PORT || 4173);
+const PORTABLE_MODE = process.env.PORTABLE_MODE === '1';
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon' };
 const presentationJobs = new Map();
 const bidJobs = new Map();
@@ -250,6 +252,10 @@ async function serveStatic(request, response, pathname) {
 const server = createServer(async (request, response) => {
   try {
     const url = new URL(request.url || '/', `http://${HOST}:${PORT}`);
+    if (url.pathname === '/api/health') {
+      if (request.method !== 'GET') return json(response, 405, { error: '仅支持 GET 请求' });
+      return json(response, 200, { status: 'ok', pid: process.pid, instanceId: process.env.INSTANCE_ID || '' });
+    }
     if (url.pathname === '/api/calculate') {
       if (request.method !== 'POST') return json(response, 405, { error: '仅支持 POST 请求' });
       const project = await readJson(request);
@@ -273,6 +279,12 @@ const server = createServer(async (request, response) => {
       let bytes;
       try { bytes = await readBody(request, 10_000_000); } catch (error) { return json(response, 413, { error: error.message }); }
       if (!isXlsx(bytes)) return json(response, 400, { error: '文件不是有效的 .xlsx 工作簿' });
+      if (PORTABLE_MODE) {
+        const remoteRecognize = process.env.DISABLE_REMOTE_EXCEL === '1'
+          ? undefined
+          : (workbookBytes) => recognizeExcelRemotely(workbookBytes, { fileName });
+        return json(response, 200, await recognizeExcelWithFallback(bytes, { remoteRecognize }));
+      }
       const config = await loadRecognitionConfig({ projectRoot: resolve(ROOT, '..') });
       return json(response, 200, await recognizeExcel(bytes, { config }));
     }
