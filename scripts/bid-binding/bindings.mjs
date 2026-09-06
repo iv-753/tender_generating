@@ -92,6 +92,9 @@ export function buildBidBindings(result, generatedAt = new Date(), supplemental 
   const cleaning = findCategory(result, 'cleaning');
   const greening = findCategory(result, 'greening');
   const assistance = findCategory(result, 'assistance');
+  const pestControl = findCategory(result, 'pestControl');
+  const engineeringOutsourced = findCategory(result, 'engineeringOutsourced');
+  const engineeringRoutine = findCategory(result, 'engineeringRoutine');
   const totalBuildings = project.buildings.reduce((sum, item) => sum + Number(item.buildingCount || 0), 0);
   const garageArea = Number(project.garageFloorArea || 0) * Number(project.garageFloors || 0);
   const unitPrice = project.residentialChargeArea > 0
@@ -123,6 +126,10 @@ export function buildBidBindings(result, generatedAt = new Date(), supplemental 
     '客助服务人数': String(Math.ceil(assistance.headcount)),
     '环境清洁人数': String(Math.ceil(cleaning.headcount)),
     '绿化养护人数': String(Math.ceil(greening.headcount)),
+    '四害消杀人数': String(Math.ceil(pestControl.headcount)),
+    '工程委外人数': String(Math.ceil(engineeringOutsourced.headcount)),
+    '工程常规人数': String(Math.ceil(engineeringRoutine.headcount)),
+    '管理人员人数': String(Math.ceil(result.management.headcount)),
     '人员总数': String(Math.ceil(result.totalHeadcount)),
     '标准动作数': String(result.standardActionCount),
     '客户服务成本': (service.annualCost / 10000).toFixed(2),

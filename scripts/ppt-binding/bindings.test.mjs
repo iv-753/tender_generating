@@ -13,6 +13,11 @@ test('binds V2 project totals and the 452 standard-action count', () => {
   assert.equal(bindings.named['field-annual-cost'], (result.annualCost / 10000).toFixed(2));
   assert.equal(bindings.named['field-headcount'], String(Math.ceil(result.totalHeadcount)));
   assert.equal(bindings.named['field-action-count'], String(result.standardActionCount));
+  assert.equal(bindings.named['field-staffing-summary'], '配置8类人员，共48人。');
+  assert.equal(bindings.named['field-staffing-management'], '项目经理1人、管家主任1人、工程主任1人、客助主任1人');
+  assert.equal(bindings.named['field-staffing-customer'], '客户服务5人、客助服务11人');
+  assert.equal(bindings.named['field-staffing-environment'], '环境清洁15人、绿化养护3人、四害消杀1人');
+  assert.equal(bindings.named['field-staffing-engineering'], '工程委外4人、工程常规5人');
   assert.deepEqual(bindings.summary, {
     annualCost: result.annualCost,
     unitPrice: result.annualCost / result.project.residentialChargeArea / 12,
