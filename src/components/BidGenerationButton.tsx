@@ -1,6 +1,8 @@
-import { FileTextOutlined, LoadingOutlined } from '@ant-design/icons';
-import { Button, Modal, Progress, Result, Space, Steps, Typography } from 'antd';
+import { FileTextOutlined } from '@ant-design/icons';
+import { Button, Modal, Result, Space } from 'antd';
 import { useState } from 'react';
+import GenerationProgress from './GenerationProgress';
+import { ARTIFACT_MINIMUM_MS, waitForMinimumDuration } from '../progressTiming';
 import { storage } from '../storage';
 import type { CalculationResult } from '../types';
 
@@ -30,15 +32,18 @@ function customerFacingError(error: unknown) {
 export default function BidGenerationButton({ result, label = '生成投标标书', onComplete }: { result: CalculationResult; label?: string; onComplete?: () => void }) {
   const [open, setOpen] = useState(false);
   const [job, setJob] = useState<Job>({ status: 'idle', stage: 'validating' });
+  const [startedAt, setStartedAt] = useState(0);
 
   const generate = async () => {
+    const generationStartedAt = Date.now();
+    setStartedAt(generationStartedAt);
     setOpen(true);
     setJob({ status: 'running', stage: 'validating' });
     try {
       const createdResponse = await fetch('/api/bid/jobs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(result) });
       const created = await createdResponse.json() as Job;
       if (!createdResponse.ok || !created.jobId) throw new Error(created.error || '无法开始生成投标文件');
-      setJob(created);
+      if (created.status !== 'complete') setJob(created);
       let latest = created;
       while (latest.status === 'running') {
         const response = await fetch(`/api/bid/jobs/${created.jobId}`);
@@ -48,6 +53,8 @@ export default function BidGenerationButton({ result, label = '生成投标标�
         if (latest.status === 'running') await new Promise((resolve) => window.setTimeout(resolve, 500));
       }
       if (latest.status === 'complete' && latest.fileName && latest.downloadUrl) {
+        await waitForMinimumDuration(generationStartedAt, ARTIFACT_MINIMUM_MS);
+        setJob(latest);
         const projectId = storage.getActiveProjectId();
         if (projectId) storage.markBidDocumentGenerated(projectId, {
           fileName: latest.fileName,
@@ -56,17 +63,16 @@ export default function BidGenerationButton({ result, label = '生成投标标�
           generatedAt: new Date().toISOString(),
         });
         onComplete?.();
-      }
+      } else setJob(latest);
     } catch (error) {
       setJob((current) => ({ ...current, status: 'error', error: customerFacingError(error) }));
     }
   };
 
-  const currentStage = job.status === 'complete' ? stages.length : Math.max(0, stages.findIndex((item) => item.key === job.stage));
   return <>
     <Button type="primary" icon={<FileTextOutlined />} loading={job.status === 'running'} onClick={generate}>{label}</Button>
     <Modal className="generation-modal" open={open} title={job.status === 'complete' ? undefined : job.status === 'error' ? '投标文件生成未完成' : '正在生成投标标书'} width={620} centered closable={job.status !== 'running'} mask={{ closable: job.status !== 'running' }} onCancel={() => setOpen(false)} footer={job.status === 'complete' ? <Space><Button onClick={() => setOpen(false)}>返回项目</Button><Button type="primary" icon={<FileTextOutlined />} href={job.downloadUrl} download={job.fileName}>下载标书</Button></Space> : job.status === 'error' ? <Space><Button onClick={() => setOpen(false)}>关闭</Button><Button type="primary" onClick={generate}>重新生成</Button></Space> : null}>
-      {job.status === 'complete' ? <Result status="success" title="投标标书已生成" subTitle={<span className="generated-file"><strong>{job.fileName}</strong><span>项目服务方案已整理</span></span>} /> : job.status === 'error' ? <Result status="error" title="生成失败" subTitle={job.error} /> : <div className="generation-progress"><Typography.Paragraph type="secondary">{result.project.projectName}</Typography.Paragraph><Progress percent={currentStage * 25} showInfo={false} strokeColor="#2f7d73" railColor="#e4ecef" /><Steps orientation="vertical" current={currentStage} items={stages.map((item, index) => ({ title: item.title, content: item.description, icon: index === currentStage ? <LoadingOutlined /> : undefined }))} /></div>}
+      {job.status === 'complete' ? <Result status="success" title="投标标书已生成" subTitle={<span className="generated-file"><strong>{job.fileName}</strong><span>项目服务方案已整理</span></span>} /> : job.status === 'error' ? <Result status="error" title="生成失败" subTitle={job.error} /> : <GenerationProgress startedAt={startedAt} durationMs={ARTIFACT_MINIMUM_MS} stages={stages} subtitle={result.project.projectName} />}
     </Modal>
   </>;
 }

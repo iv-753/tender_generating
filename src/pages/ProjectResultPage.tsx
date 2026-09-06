@@ -1,13 +1,15 @@
 import { ArrowLeftOutlined, CloseOutlined, EditOutlined, FilePptOutlined, InfoCircleOutlined, LoadingOutlined, ReloadOutlined, SaveOutlined, SearchOutlined } from '@ant-design/icons';
-import { Alert, Button, Card, Checkbox, Empty, Input, Modal, Progress, Result, Space, Statistic, Steps, Table, Tabs, Tooltip, Typography } from 'antd';
+import { Alert, Button, Card, Checkbox, Empty, Input, Modal, Result, Space, Statistic, Table, Tabs, Tooltip, Typography } from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { calculateAdjustedProject } from '../adjustedCalculator';
 import ActionEditor from '../components/ActionEditor';
 import BidGenerationButton from '../components/BidGenerationButton';
+import GenerationProgress from '../components/GenerationProgress';
 import { CATEGORY_ORDER, COST_BAND_LABELS, displayActionName, displayQuantity, displayStaffingCount, gradeLabel, showsActionHeadcount } from '../calculation';
 import { formatProjectLocation } from '../cityCatalog';
 import { storage } from '../storage';
+import { ARTIFACT_MINIMUM_MS, waitForMinimumDuration } from '../progressTiming';
 import type { ActionCategory, CalculationAdjustments, CalculationResult, CategorySummary, ServiceActionResult } from '../types';
 
 type ProjectResultPageProps = { onNavigate: () => void };
@@ -93,6 +95,7 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
   const [page, setPage] = useState(1);
   const [generationOpen, setGenerationOpen] = useState(false);
   const [generation, setGeneration] = useState<GenerationJob>({ status: 'idle', stage: 'validating' });
+  const [generationStartedAt, setGenerationStartedAt] = useState(0);
 
   useEffect(() => {
     if (!editing || !savedResult) return;
@@ -187,6 +190,8 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
   };
 
   const generatePresentation = async () => {
+    const startedAt = Date.now();
+    setGenerationStartedAt(startedAt);
     setGenerationOpen(true);
     setGeneration({ status: 'running', stage: 'validating' });
     try {
@@ -197,7 +202,7 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
       });
       const created = await createdResponse.json() as GenerationJob;
       if (!createdResponse.ok || !created.jobId) throw new Error(created.error || '无法开始生成PPT');
-      setGeneration(created);
+      if (created.status !== 'complete') setGeneration(created);
 
       let latest = created;
       while (latest.status === 'running') {
@@ -208,22 +213,20 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
         if (latest.status === 'running') await new Promise((resolve) => window.setTimeout(resolve, 500));
       }
       if (latest.status === 'complete' && latest.fileName && latest.slides) {
+        await waitForMinimumDuration(startedAt, ARTIFACT_MINIMUM_MS);
+        setGeneration(latest);
         const projectId = storage.getActiveProjectId();
         if (projectId) storage.markPresentationGenerated(projectId, {
           fileName: latest.fileName,
           slides: latest.slides,
           generatedAt: new Date().toISOString(),
         });
-      }
+      } else setGeneration(latest);
     } catch (error) {
       setGeneration((current) => ({ ...current, status: 'error', error: error instanceof Error ? error.message : 'PPT生成失败' }));
     }
   };
 
-  const currentStage = generation.status === 'complete'
-    ? generationStages.length
-    : Math.max(0, generationStages.findIndex((item) => item.key === generation.stage));
-  const progress = generation.status === 'complete' ? 100 : currentStage * 25;
   const workloadDirection = workloadDelta < 0 ? '减少' : '增加';
   const budgetDirection = budgetDelta < 0 ? '减少' : '增加';
   return (
@@ -294,19 +297,7 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
         ) : generation.status === 'error' ? (
           <Result status="error" title="生成失败" subTitle={generation.error || '请检查后重新生成'} />
         ) : (
-          <div className="generation-progress">
-            <Typography.Paragraph type="secondary">{savedResult.project.projectName}</Typography.Paragraph>
-            <Progress percent={progress} showInfo={false} strokeColor="#2f7d73" railColor="#e4ecef" />
-            <Steps
-              orientation="vertical"
-              current={currentStage}
-              items={generationStages.map((item, index) => ({
-                title: item.title,
-                content: item.description,
-                icon: index === currentStage ? <LoadingOutlined /> : undefined,
-              }))}
-            />
-          </div>
+          <GenerationProgress startedAt={generationStartedAt} durationMs={ARTIFACT_MINIMUM_MS} stages={generationStages} subtitle={savedResult.project.projectName} />
         )}
       </Modal>
     </main>

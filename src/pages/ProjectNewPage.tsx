@@ -1,17 +1,25 @@
 import { ArrowLeftOutlined, ArrowRightOutlined, DeleteOutlined, FileProtectOutlined, PlusOutlined } from '@ant-design/icons';
-import { Alert, Button, Card, Col, Divider, Form, Input, InputNumber, message, Row, Select, Space, Spin, Steps, Typography } from 'antd';
+import { Alert, Button, Card, Col, Divider, Form, Input, InputNumber, message, Modal, Row, Select, Space, Steps, Typography } from 'antd';
 import { useMemo, useState } from 'react';
 import { COST_BAND_LABELS, gradeLabel, validateProjectData } from '../calculation';
 import { CITY_CATALOG_VERSION, allowedCostBands, cityOptions, getCityRecommendation, normalizeProjectLocation, provinceOptions } from '../cityCatalog';
 import ExcelImportPanel from '../components/ExcelImportPanel';
 import AdvancedParametersDrawer from '../components/AdvancedParametersDrawer';
+import GenerationProgress from '../components/GenerationProgress';
 import { EXAMPLE_PROJECT } from '../exampleProject';
 import { storage } from '../storage';
 import type { AdvancedParameterSnapshot, BuildingTypeInput, ExcelRecognitionResult, ProjectData, ServiceGrade } from '../types';
 import { calculateProject, previewAdvancedParameters } from '../workbookCalculator';
+import { CALCULATION_MINIMUM_MS, waitForMinimumDuration } from '../progressTiming';
 
 type ProjectNewPageProps = { onNavigate: () => void };
 const steps = ['项目概况', '园林概况', '楼栋概况', '地库概况', '测算参数'];
+const calculationStages = [
+  { title: '校验项目参数', description: '核对面积、户数与服务等级' },
+  { title: '匹配服务规则', description: '匹配项目适用的服务动作' },
+  { title: '核算人员与成本', description: '汇总工时、岗位与年度预算' },
+  { title: '生成测算方案', description: '整理项目测算结果' },
+] as const;
 const emptyBuilding: BuildingTypeInput = { buildingCount: 0, lobbyElevatorCount: 0, stiltFloorArea: 0, totalFloors: 0, standardLobbyArea: 0, evacuationStairArea: 0, rooftopArea: 0 };
 const numberRules = [{ required: true, message: '请填写数值' }, { type: 'number' as const, min: 0, message: '不能小于 0' }];
 const fieldSteps: Record<string, number> = {
@@ -38,6 +46,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
   const draft = useMemo(() => normalizeProjectLocation(storage.loadDraft() ?? EXAMPLE_PROJECT), []);
   const [currentStep, setCurrentStep] = useState(0);
   const [calculating, setCalculating] = useState(false);
+  const [calculationStartedAt, setCalculationStartedAt] = useState(0);
   const [error, setError] = useState('');
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [previewingAdvanced, setPreviewingAdvanced] = useState(false);
@@ -118,19 +127,23 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
 
   const startCalculation = async () => {
     setError('');
+    const startedAt = Date.now();
     try {
       const values = await getValidProject();
+      setCalculationStartedAt(startedAt);
       setCalculating(true);
       storage.saveDraft(values);
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-      storage.saveCalculatedProject(await calculateProject(values));
+      const result = await calculateProject(values);
+      await waitForMinimumDuration(startedAt, CALCULATION_MINIMUM_MS);
+      storage.saveCalculatedProject(result);
+      setCalculating(false);
       onNavigate();
     } catch (reason) {
+      setCalculating(false);
       const text = reason instanceof Error ? reason.message : '测算失败，请稍后重试';
       setError(text);
       message.error(text);
-    } finally {
-      setCalculating(false);
     }
   };
 
@@ -147,8 +160,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
       <div className="page-heading blueprint-rule">
         <div><Typography.Title level={2}>新建物业测算项目</Typography.Title><Typography.Paragraph type="secondary">录入项目基础信息，生成服务方案、人员配置与成本测算。</Typography.Paragraph></div>
       </div>
-      <Spin spinning={calculating} tip="正在生成测算结果，请稍候…" size="large">
-        <ExcelImportPanel onApply={applyRecognition} />
+      <ExcelImportPanel onApply={applyRecognition} />
         <div className="input-workspace">
           <aside className="step-rail"><Typography.Text className="panel-kicker">录入进度</Typography.Text><Steps direction="vertical" current={currentStep} items={steps.map((title) => ({ title }))} onChange={setCurrentStep} /></aside>
           <Card className="form-panel" bordered={false}>
@@ -199,8 +211,10 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
           </Card>
           <aside className="profile-panel"><div className="profile-icon"><FileProtectOutlined /></div><Typography.Text className="panel-kicker">实时项目档案</Typography.Text><Typography.Title level={4}>{watched?.projectName || '未命名项目'}</Typography.Title><Typography.Text type="secondary">{watched?.region || '等待录入地区'}</Typography.Text><Divider /><dl className="profile-list"><div><dt>服务等级</dt><dd>{watched?.serviceGrade ? gradeLabel(watched.serviceGrade) : '—'}</dd></div><div><dt>成本档位</dt><dd>{watched?.costBand ? COST_BAND_LABELS[watched.costBand] : '待选择'}</dd></div><div><dt>总建筑面积</dt><dd>{profileNumber(watched?.totalBuildingArea)} ㎡</dd></div><div><dt>楼栋类型</dt><dd>{watched?.buildings?.length ?? 0} 类</dd></div><div><dt>常住户数</dt><dd>{profileNumber(watched?.occupiedHouseholds)} 户</dd></div></dl></aside>
         </div>
-      </Spin>
       <AdvancedParametersDrawer open={advancedOpen} loading={previewingAdvanced} error={advancedError} parameters={advancedParameters} overrides={advancedParameterOverrides} onClose={closeAdvancedParameters} onChange={changeAdvancedParameters} />
+      <Modal className="generation-modal" open={calculating} title="正在生成测算方案" width={620} centered closable={false} mask={{ closable: false }} footer={null}>
+        <GenerationProgress startedAt={calculationStartedAt} durationMs={CALCULATION_MINIMUM_MS} stages={calculationStages} subtitle={watched?.projectName || '当前项目'} />
+      </Modal>
     </main>
   );
 }

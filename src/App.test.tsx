@@ -42,6 +42,8 @@ Object.defineProperty(window, 'matchMedia', {
 
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
   localStorage.clear();
   vi.mocked(recognizeExcelFile).mockReset();
   vi.mocked(calculateProject).mockReset();
@@ -173,6 +175,24 @@ test('includes advanced parameter overrides in the formal calculation', async ()
 
   await waitFor(() => expect(calculateProject).toHaveBeenCalledWith(expect.objectContaining({ advancedParameterOverrides: { 'basement.fireShutterCount': 300 } })));
   await waitFor(() => expect(window.location.pathname).toBe('/project/result'));
+});
+
+test('keeps calculation progress visible for at least eight seconds', async () => {
+  vi.useFakeTimers();
+  vi.mocked(calculateProject).mockResolvedValue(savedResult('湖畔家园', '2026-09-06T00:00:00.000Z', 481800));
+  window.history.replaceState({}, '', '/project/new');
+  render(<App />);
+
+  clickButtonText('开始测算');
+  await act(async () => { await Promise.resolve(); });
+
+  expect(screen.getByText('正在生成测算方案')).toBeTruthy();
+  expect(screen.getByText('匹配服务规则')).toBeTruthy();
+  expect(window.location.pathname).toBe('/project/new');
+  await act(() => vi.advanceTimersByTimeAsync(7_999));
+  expect(window.location.pathname).toBe('/project/new');
+  await act(() => vi.advanceTimersByTimeAsync(1));
+  expect(window.location.pathname).toBe('/project/result');
 });
 
 test('opens a project workspace with five business views', () => {
@@ -541,6 +561,7 @@ test('generates a presentation with real stage feedback and exposes the download
 });
 
 test('accepts an immediately completed serverless presentation job', async () => {
+  vi.useFakeTimers();
   const current = savedResult('湖畔家园', '2026-09-03T08:00:00.000Z', 481800);
   const project = storage.saveCalculatedProject(current);
   const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
@@ -556,10 +577,33 @@ test('accepts an immediately completed serverless presentation job', async () =>
   render(<App />);
 
   fireEvent.click(screen.getByRole('button', { name: /生成路演PPT/ }));
-  expect(await screen.findByText('路演PPT已生成')).toBeTruthy();
+  await act(async () => { await Promise.resolve(); });
+  expect(screen.getByText('正在生成路演PPT')).toBeTruthy();
+  await act(() => vi.advanceTimersByTimeAsync(14_999));
+  expect(screen.queryByText('下载PPT')).toBeNull();
+  await act(() => vi.advanceTimersByTimeAsync(1));
+  expect(screen.getByText('路演PPT已生成')).toBeTruthy();
   expect(fetchMock).toHaveBeenCalledTimes(1);
   expect(storage.loadProjects().find((item) => item.id === project.id)?.presentation?.fileName).toBe('湖畔家园-路演方案.pptx');
   vi.unstubAllGlobals();
+});
+
+test('keeps an immediately completed bid job visible for at least fifteen seconds', async () => {
+  vi.useFakeTimers();
+  storage.saveResult(savedResult('湖畔家园', '2026-09-03T08:00:00.000Z', 481800));
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
+    jobId: 'bid-serverless', status: 'complete', stage: 'complete', fileName: '湖畔家园-投标标书.docx', actionCount: 122, downloadUrl: 'https://private.example/bid',
+  }), { status: 200 })));
+  window.history.replaceState({}, '', '/project/result');
+  render(<App />);
+
+  fireEvent.click(screen.getByRole('button', { name: /生成投标标书/ }));
+  await act(async () => { await Promise.resolve(); });
+  expect(screen.getByText('正在生成投标标书')).toBeTruthy();
+  await act(() => vi.advanceTimersByTimeAsync(14_999));
+  expect(screen.queryByText('下载标书')).toBeNull();
+  await act(() => vi.advanceTimersByTimeAsync(1));
+  expect(screen.getByText('投标标书已生成')).toBeTruthy();
 });
 
 test('generates a bid document from the current result and exposes the download', async () => {
