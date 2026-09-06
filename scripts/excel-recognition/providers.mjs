@@ -30,7 +30,7 @@ export function createRecognitionProvider({
   return {
     provider,
     model,
-    async mapWorkbook(workbookText) {
+    async mapWorkbook(workbookText, candidates) {
       const headers = { 'Content-Type': 'application/json' };
       if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
       const body = {
@@ -38,7 +38,7 @@ export function createRecognitionProvider({
         temperature: 0,
         messages: [
           { role: 'system', content: '你是物业项目Excel字段识别器。严格选择原工作簿单元格作为证据，缺失字段不得猜测。' },
-          { role: 'user', content: recognitionPrompt(workbookText) },
+          { role: 'user', content: recognitionPrompt(workbookText, candidates) },
         ],
       };
       if (supportsJsonSchema) body.response_format = { type: 'json_schema', json_schema: RECOGNITION_JSON_SCHEMA };

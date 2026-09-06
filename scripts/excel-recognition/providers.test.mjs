@@ -13,13 +13,22 @@ test('qwen adapter uses an OpenAI-compatible structured-output request', async (
   const provider = createRecognitionProvider({
     provider: 'qwen', apiKey: 'server-only-secret', baseUrl: 'https://example.test/v1', model: 'qwen3.7-max', fetchImpl,
   });
-  const result = await provider.mapWorkbook('工作表：测试\nA1=项目名称');
+  const result = await provider.mapWorkbook('工作表：测试\nA1=项目名称', {
+    fields: { projectName: [{ sheet: '测试', cell: 'B1', labelCell: 'A1', score: 0.99, reason: '项目名称' }], city: [] },
+    buildings: [],
+    conflicts: [],
+  });
 
   assert.deepEqual(result, { fields: {}, buildings: [] });
   assert.equal(captured.url, 'https://example.test/v1/chat/completions');
   assert.equal(captured.options.headers.Authorization, 'Bearer server-only-secret');
   assert.equal(captured.body.model, 'qwen3.7-max');
   assert.equal(captured.body.response_format.type, 'json_schema');
+  const messages = JSON.stringify(captured.body.messages);
+  assert.match(messages, /规则候选映射/);
+  assert.match(messages, /工作表：测试/);
+  assert.match(messages, /\[\\"测试\\",\\"B1\\",0\.99\]/);
+  assert.doesNotMatch(messages, /labelCell|reason|\\"city\\":\[\]/);
   assert.equal(JSON.stringify(captured.body).includes('server-only-secret'), false);
 });
 

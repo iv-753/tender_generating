@@ -79,8 +79,23 @@ export const RECOGNITION_JSON_SCHEMA = {
   },
 };
 
-export function recognitionPrompt(workbookText) {
+function compactRuleCandidates(candidates) {
+  if (!candidates) return null;
+  const compactFields = (fields = {}) => Object.fromEntries(
+    Object.entries(fields)
+      .filter(([, matches]) => Array.isArray(matches) && matches.length > 0)
+      .map(([field, matches]) => [field, matches.map(({ sheet, cell, score }) => [sheet, cell, score])]),
+  );
+  return {
+    fields: compactFields(candidates.fields),
+    buildings: (candidates.buildings || []).map(({ label, fields }) => ({ label, fields: compactFields(fields) })),
+  };
+}
+
+export function recognitionPrompt(workbookText, candidates) {
   const scalarFields = Object.entries(FIELD_DEFINITIONS).map(([key, [label]]) => `${key}: ${label}`).join('\n');
   const buildingFields = Object.entries(BUILDING_FIELD_DEFINITIONS).map(([key, [label]]) => `${key}: ${label}`).join('\n');
-  return `请把工作簿中的物业项目数据映射到标准字段。只返回字段来源，不要自行计算或改写原值。\n\n标准字段：\n${scalarFields}\n\n每种楼栋类型字段：\n${buildingFields}\n\n规则：\n1. sheet 必须使用原工作表名，cell 必须使用原 A1 地址。\n2. 找不到就把 sheet、cell 设为 null，confidence 设为 0；绝不猜测或补默认值。\n3. 当前有效口径优先；明确标注历史、失效、预算、参考或无关的数据不得采用。\n4. city 没有独立字段时，可引用 region 的单元格。\n5. 楼栋类型按原表有效数据行输出，最多 5 类。\n6. confidence 表示语义匹配把握，note 简述判断依据。\n\n工作簿内容：\n${workbookText}`;
+  const compactCandidates = compactRuleCandidates(candidates);
+  const candidateText = compactCandidates ? JSON.stringify(compactCandidates) : '规则未提供候选，请直接分析完整工作簿';
+  return `请把工作簿中的物业项目数据映射到标准字段。只返回字段来源，不要自行计算或改写原值。\n\n标准字段：\n${scalarFields}\n\n每种楼栋类型字段：\n${buildingFields}\n\n规则候选映射（仅用于加快定位，不是最终答案；每项格式为 [工作表, 单元格, 置信度]）：\n${candidateText}\n\n核对要求：\n1. 完整工作簿是唯一权威来源，必须核对候选；候选错误时应纠正，候选缺失时应结合全文补充。\n2. sheet 必须使用原工作表名，cell 必须使用原 A1 地址。\n3. 找不到就把 sheet、cell 设为 null，confidence 设为 0；绝不猜测或补默认值。\n4. 当前有效口径优先；明确标注历史、失效、预算、参考或无关的数据不得采用。\n5. city 没有独立字段时，可引用 region 的单元格。\n6. 楼栋类型按原表有效数据行输出，最多 5 类。\n7. confidence 表示语义匹配把握，note 简述判断依据。\n\n完整工作簿内容：\n${workbookText}`;
 }
