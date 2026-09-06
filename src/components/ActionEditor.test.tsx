@@ -87,7 +87,7 @@ test('adds a custom service action with frequency and annual hours', () => {
   }));
 });
 
-test('edits frequency, hours, and workload cost for a complete-model category', () => {
+test('edits frequency and hours while workload cost remains system-calculated', () => {
   const onChange = vi.fn();
   const engineeringAction: ServiceActionResult = {
     ...action,
@@ -100,13 +100,15 @@ test('edits frequency, hours, and workload cost for a complete-model category', 
   };
   render(<ActionEditor category="engineeringOutsourced" actions={[engineeringAction]} adjustments={empty} onChange={onChange} />);
 
-  expect(screen.getByText('工作量成本为动作核算值；分类/项目预算按取整用工口径重算')).toBeTruthy();
+  expect(screen.getByText('年工作量成本由年工时和对应人工单价自动计算，不支持直接修改；分类/项目预算按取整用工口径重算')).toBeTruthy();
   fireEvent.change(screen.getByLabelText('设备检测年频次'), { target: { value: '13.6' } });
   expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ overrides: { 'engineering-outsourced-5': { annualFrequency: 14 } } }));
   fireEvent.change(screen.getByLabelText('设备检测年工时'), { target: { value: '12.345' } });
   expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ overrides: { 'engineering-outsourced-5': { annualHours: 12.35 } } }));
-  fireEvent.change(screen.getByLabelText('设备检测年工作量成本'), { target: { value: '456.789' } });
-  expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ overrides: { 'engineering-outsourced-5': { annualCost: 456.79 } } }));
+  const cost = screen.getByLabelText('设备检测年工作量成本');
+  expect(cost.tagName).not.toBe('INPUT');
+  expect(cost.textContent).toContain('¥10,573.32');
+  expect(cost.textContent).toContain('系统计算');
 });
 
 test('assistance remains the only dedicated-post category', () => {
@@ -121,7 +123,7 @@ test('assistance remains the only dedicated-post category', () => {
   expect(screen.queryByLabelText('门岗年工作量成本')).toBeNull();
 });
 
-test('adds a custom pest action with editable workload cost', () => {
+test('adds a custom pest action without accepting a manual workload cost', () => {
   const onChange = vi.fn();
   const pestAction: ServiceActionResult = { ...action, id: 'pest-control-5', category: 'pestControl', action: '四害防蚊喷药' };
   render(<ActionEditor category="pestControl" actions={[pestAction]} adjustments={empty} onChange={onChange} />);
@@ -130,10 +132,10 @@ test('adds a custom pest action with editable workload cost', () => {
   fireEvent.change(screen.getByLabelText('自定义动作名称'), { target: { value: '补充消杀' } });
   fireEvent.change(screen.getByLabelText('自定义动作年频次'), { target: { value: '12' } });
   fireEvent.change(screen.getByLabelText('自定义动作年工时'), { target: { value: '24.125' } });
-  fireEvent.change(screen.getByLabelText('自定义动作年工作量成本'), { target: { value: '1800.555' } });
+  expect(screen.queryByLabelText('自定义动作年工作量成本')).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: '确认添加' }));
 
-  expect(onChange).toHaveBeenCalledWith(expect.objectContaining({
-    customActions: [expect.objectContaining({ category: 'pestControl', action: '补充消杀', annualFrequency: 12, annualHours: 24.13, annualCost: 1800.56 })],
-  }));
+  const next = onChange.mock.calls.at(-1)?.[0] as CalculationAdjustments;
+  expect(next.customActions[0]).toEqual(expect.objectContaining({ category: 'pestControl', action: '补充消杀', annualFrequency: 12, annualHours: 24.13 }));
+  expect(next.customActions[0]).not.toHaveProperty('annualCost');
 });

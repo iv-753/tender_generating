@@ -98,7 +98,6 @@ export interface ManagementCostSummary {
 export interface ActionOverride {
   annualFrequency?: number;
   annualHours?: number;
-  annualCost?: number;
   headcount?: number;
   disabled?: boolean;
 }
@@ -112,7 +111,6 @@ export interface CustomActionInput {
   frequency?: string;
   annualFrequency?: number;
   annualHours?: number;
-  annualCost?: number;
   headcount?: number;
 }
 

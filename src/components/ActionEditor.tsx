@@ -6,6 +6,7 @@ import { displayActionName, displayQuantity } from '../calculation';
 import type { ActionCategory, CalculationAdjustments, CustomActionInput, ServiceActionResult } from '../types';
 
 const currency = new Intl.NumberFormat('zh-CN', { style: 'currency', currency: 'CNY', maximumFractionDigits: 0 });
+const workloadCurrency = new Intl.NumberFormat('zh-CN', { style: 'currency', currency: 'CNY', minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 type Props = {
   category: ActionCategory;
@@ -19,7 +20,6 @@ type CustomDraft = {
   basis: string;
   annualFrequency: number;
   annualHours: number;
-  annualCost?: number;
   headcount: number;
 };
 
@@ -70,7 +70,7 @@ export default function ActionEditor({ category, actions, adjustments, onChange 
       ...(draft.basis.trim() ? { basis: draft.basis.trim() } : {}),
       ...(category === 'assistance'
         ? { headcount: draft.headcount }
-        : { annualFrequency: cleanFrequency(draft.annualFrequency), annualHours: cleanDecimal(draft.annualHours), ...(draft.annualCost === undefined ? {} : { annualCost: cleanDecimal(draft.annualCost) }) }),
+        : { annualFrequency: cleanFrequency(draft.annualFrequency), annualHours: cleanDecimal(draft.annualHours) }),
     };
     onChange({ ...adjustments, customActions: [...adjustments.customActions, item] });
     setAdding(false);
@@ -110,16 +110,12 @@ export default function ActionEditor({ category, actions, adjustments, onChange 
           const custom = adjustments.customActions.find((entry) => entry.id === item.id);
           const overridden = adjustments.overrides[item.id]?.annualHours !== undefined;
           const value = custom?.annualHours ?? adjustments.overrides[item.id]?.annualHours ?? item.annualHours ?? 0;
-          return <Space orientation="vertical" size={1}><InputNumber aria-label={`${displayActionName(item.action)}年工时`} min={0} precision={2} value={cleanDecimal(value)} disabled={item.enabled === false} onChange={(next) => item.source === 'custom' ? updateCustom(item.id, { annualHours: cleanDecimal(Number(next ?? 0)), annualCost: undefined }) : updateOverride(item.id, { annualHours: cleanDecimal(Number(next ?? 0)), annualCost: undefined })} />{overridden && <small className="manual-override">已手动调整</small>}</Space>;
+          return <Space orientation="vertical" size={1}><InputNumber aria-label={`${displayActionName(item.action)}年工时`} min={0} precision={2} value={cleanDecimal(value)} disabled={item.enabled === false} onChange={(next) => item.source === 'custom' ? updateCustom(item.id, { annualHours: cleanDecimal(Number(next ?? 0)) }) : updateOverride(item.id, { annualHours: cleanDecimal(Number(next ?? 0)), annualCost: undefined })} />{overridden && <small className="manual-override">已手动调整</small>}</Space>;
         },
       },
       {
         title: '年工作量成本', key: 'annualCost', width: 150,
-        render: (_: unknown, item: ServiceActionResult) => {
-          const custom = adjustments.customActions.find((entry) => entry.id === item.id);
-          const value = custom?.annualCost ?? adjustments.overrides[item.id]?.annualCost ?? item.annualCost ?? 0;
-          return <InputNumber aria-label={`${displayActionName(item.action)}年工作量成本`} min={0} precision={2} value={cleanDecimal(value)} disabled={item.enabled === false} onChange={(next) => item.source === 'custom' ? updateCustom(item.id, { annualCost: cleanDecimal(Number(next ?? 0)) }) : updateOverride(item.id, { annualCost: cleanDecimal(Number(next ?? 0)) })} />;
-        },
+        render: (_: unknown, item: ServiceActionResult) => <span className="calculated-workload-cost" aria-label={`${displayActionName(item.action)}年工作量成本`}><strong>{workloadCurrency.format(item.annualCost ?? 0)}</strong><small>系统计算</small></span>,
       },
     ]),
     ...(category === 'assistance' ? [{ title: '年岗位成本', dataIndex: 'annualCost', key: 'annualCost', width: 140, align: 'right' as const, render: (value: number) => currency.format(value) }] : []),
@@ -134,7 +130,7 @@ export default function ActionEditor({ category, actions, adjustments, onChange 
   ];
 
   return <>
-    {category !== 'assistance' && <p className="action-editor-note">工作量成本为动作核算值；分类/项目预算按取整用工口径重算</p>}
+    {category !== 'assistance' && <p className="action-editor-note">年工作量成本由年工时和对应人工单价自动计算，不支持直接修改；分类/项目预算按取整用工口径重算</p>}
     <Table<ServiceActionResult> className="action-editor-table" rowKey="id" size="middle" columns={columns} dataSource={actions} pagination={{ pageSize: 12, showSizeChanger: false, showTotal: (total) => `共 ${total} 项` }} scroll={{ x: 1080 }} rowClassName={(item) => item.enabled === false ? 'disabled-action-row' : ''} />
     <Button className="add-action-button" type="dashed" block icon={<PlusOutlined />} onClick={() => setAdding(true)}>添加服务动作</Button>
     <Modal title="添加服务动作" open={adding} onCancel={() => { setAdding(false); setAddError(''); }} footer={<Space><Button onClick={() => setAdding(false)}>取消</Button><Button type="primary" onClick={addCustom}>确认添加</Button></Space>}>
@@ -145,7 +141,7 @@ export default function ActionEditor({ category, actions, adjustments, onChange 
         {category === 'assistance' ? <label>配置人数<InputNumber aria-label="自定义动作配置人数" min={0} precision={0} value={draft.headcount} onChange={(value) => setDraft({ ...draft, headcount: Number(value ?? 0) })} /></label> : <Space wrap>
           <label>年频次<InputNumber aria-label="自定义动作年频次" min={0} precision={0} value={draft.annualFrequency} onChange={(value) => setDraft({ ...draft, annualFrequency: Number(value ?? 0) })} /></label>
           <label>年工时<InputNumber aria-label="自定义动作年工时" min={0} precision={2} value={draft.annualHours} onChange={(value) => setDraft({ ...draft, annualHours: cleanDecimal(Number(value ?? 0)) })} /></label>
-          <label>年工作量成本（选填）<InputNumber aria-label="自定义动作年工作量成本" min={0} precision={2} value={draft.annualCost} onChange={(value) => setDraft({ ...draft, annualCost: value === null ? undefined : cleanDecimal(Number(value)) })} /></label>
+          <small className="custom-action-cost-note">年工作量成本将根据年工时和对应人工单价自动计算</small>
         </Space>}
       </div>
     </Modal>

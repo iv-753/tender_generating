@@ -64,16 +64,14 @@ function applyOverride(action, override, grade, factor) {
     return next;
   }
 
-  if (override.headcount !== undefined) throw new Error('工作量动作只能调整年频次、年工时或年工作量成本');
+  if (override.headcount !== undefined) throw new Error('工作量动作只能调整年频次或年工时');
   if (override.annualFrequency !== undefined) {
     next.annualFrequency = wholeNonNegative(override.annualFrequency, '年频次');
     next.frequency = `${next.annualFrequency}次/年`;
     next.annualHours = decimalNonNegative(next.annualFrequency * sourceHoursPerFrequency(action), '年工时');
   }
   if (override.annualHours !== undefined) next.annualHours = decimalNonNegative(override.annualHours, '年工时');
-  next.annualCost = override.annualCost === undefined
-    ? Number(next.annualHours ?? 0) * sourceHourlyRate(action, grade, factor)
-    : decimalNonNegative(override.annualCost, '年工作量成本');
+  next.annualCost = Number(next.annualHours ?? 0) * sourceHourlyRate(action, grade, factor);
   return next;
 }
 
@@ -102,9 +100,7 @@ function customAction(input, grade, factor, ids) {
   if (input.headcount !== undefined) throw new Error('工作量动作不能填写配置人数');
   const annualFrequency = wholeNonNegative(input.annualFrequency ?? 0, '年频次');
   const annualHours = decimalNonNegative(input.annualHours ?? 0, '年工时');
-  const annualCost = input.annualCost === undefined
-    ? annualHours * defaultActionHourlyRate(input.category, grade, factor)
-    : decimalNonNegative(input.annualCost, '年工作量成本');
+  const annualCost = annualHours * defaultActionHourlyRate(input.category, grade, factor);
   return {
     ...base,
     frequency: input.frequency ? String(input.frequency) : `${annualFrequency}次/年`,

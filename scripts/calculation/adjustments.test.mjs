@@ -80,7 +80,7 @@ for (const category of ['engineeringRoutine', 'engineeringOutsourced', 'pestCont
   });
 }
 
-test('engineering summaries use effective total hours and preserve direct outsourced workload cost', () => {
+test('engineering summaries derive workload cost from effective hours even when legacy input contains a direct cost', () => {
   const before = baseline();
   const routine = before.actions.find((item) => item.category === 'engineeringRoutine' && item.annualHours > 0);
   const outsourced = before.actions.find((item) => item.category === 'engineeringOutsourced' && item.annualHours > 0);
@@ -98,7 +98,7 @@ test('engineering summaries use effective total hours and preserve direct outsou
 
   assert.equal(routineSummary.workloadEquivalentHeadcount, effectiveRoutineHours / 2880);
   assert.equal(routineSummary.headcount, Math.ceil(effectiveRoutineHours / 2880));
-  assert.equal(changedOutsourced.annualCost, 1234.56);
+  assert.ok(Math.abs(changedOutsourced.annualCost - 100 * outsourced.annualCost / outsourced.annualHours) < 1e-9);
   assert.equal(outsourcedSummary.workloadAnnualCost, after.actions.filter((item) => item.category === 'engineeringOutsourced' && item.enabled !== false).reduce((sum, item) => sum + item.annualCost, 0));
 });
 
@@ -164,7 +164,7 @@ test('a custom action adds workload cost and participates in rounded staffing', 
   const after = applyAdjustments(before, {
     ...emptyAdjustments(),
     customActions: [{
-      id: 'custom-service-1', category: 'service', action: '夜间客户关怀', property: '自定义', annualFrequency: 120, annualHours: 500,
+      id: 'custom-service-1', category: 'service', action: '夜间客户关怀', property: '自定义', annualFrequency: 120, annualHours: 500, annualCost: 1,
     }],
   });
   const custom = after.actions.find((item) => item.id === 'custom-service-1');
@@ -199,7 +199,7 @@ for (const category of ['service', 'cleaning', 'greening', 'pestControl', 'engin
   });
 }
 
-test('normalizes editable workload decimals and requires whole annual frequency', () => {
+test('normalizes editable workload decimals, derives cost, and requires whole annual frequency', () => {
   const before = baseline();
   const action = before.actions.find((item) => item.category === 'engineeringRoutine' && item.annualHours > 0);
   const after = applyAdjustments(before, {
@@ -209,7 +209,7 @@ test('normalizes editable workload decimals and requires whole annual frequency'
   const changed = after.actions.find((item) => item.id === action.id);
 
   assert.equal(changed.annualHours, 12.35);
-  assert.equal(changed.annualCost, 456.79);
+  assert.equal(changed.annualCost, 12.35 * action.annualCost / action.annualHours);
   assert.throws(() => applyAdjustments(before, {
     ...emptyAdjustments(), overrides: { [action.id]: { annualFrequency: 1.5 } },
   }), /年频次必须为整数/);
@@ -250,8 +250,4 @@ test('rejects invalid numbers, unknown ids, and duplicate custom ids', () => {
     ...emptyAdjustments(),
     customActions: [{ id: 'custom-assistance-1', category: 'assistance', action: '半个人', property: '自定义', headcount: 1.5 }],
   }), /整数/);
-  assert.throws(() => applyAdjustments(baseline(), {
-    ...emptyAdjustments(),
-    customActions: [{ id: 'bad-cost', category: 'engineeringRoutine', action: '错误成本', property: '自定义', annualHours: 1, annualCost: Number.NaN }],
-  }), /非负/);
 });

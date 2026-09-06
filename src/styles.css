@@ -132,6 +132,11 @@ body { margin: 0; min-width: 320px; }
 .add-action-button { margin-top: 12px; }
 .disabled-action-row td { background: #fafafa !important; color: #9aa5aa; }
 .manual-override { color: #d47a16; white-space: nowrap; }
+.action-editor-note { margin: 0 0 12px; color: #6c7c83; font-size: 12px; line-height: 1.6; }
+.calculated-workload-cost { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 1px; white-space: nowrap; }
+.calculated-workload-cost strong { color: #17324d; font-weight: 500; }
+.calculated-workload-cost small, .custom-action-cost-note { color: #7b898f; font-size: 11px; }
+.custom-action-cost-note { align-self: end; padding-bottom: 8px; }
 .custom-action-form { display: grid; gap: 16px; padding-top: 8px; }
 .custom-action-form label { display: grid; gap: 7px; color: #42545c; font-size: 13px; }
 .custom-action-form .ant-input-number { width: 160px; }
