@@ -209,8 +209,10 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
         const response = await fetch('/api/presentation/jobs/' + created.jobId);
         latest = await response.json() as GenerationJob;
         if (!response.ok) throw new Error(latest.error || '无法获取生成进度');
-        setGeneration(latest);
-        if (latest.status === 'running') await new Promise((resolve) => window.setTimeout(resolve, 500));
+        if (latest.status === 'running') {
+          setGeneration(latest);
+          await new Promise((resolve) => window.setTimeout(resolve, 500));
+        }
       }
       if (latest.status === 'complete' && latest.fileName && latest.slides) {
         await waitForMinimumDuration(startedAt, ARTIFACT_MINIMUM_MS);

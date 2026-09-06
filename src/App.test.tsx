@@ -564,6 +564,7 @@ test('generates a presentation with real stage feedback and exposes the download
   await act(async () => {
     finishGeneration(new Response(JSON.stringify({ jobId: 'job-1', status: 'complete', stage: 'complete', fileName: '示范项目-路演方案.pptx', slides: 24, downloadUrl: '/api/presentation/jobs/job-1/download' }), { status: 200 }));
   });
+  expect(screen.queryByText('路演PPT已生成')).toBeNull();
   await act(() => vi.advanceTimersByTimeAsync(15_000));
   expect(screen.getByText('路演PPT已生成')).toBeTruthy();
   const download = screen.getByText('下载PPT').closest('a');
@@ -646,6 +647,7 @@ test('generates a bid document from the current result and exposes the download'
   await act(async () => {
     finishGeneration(new Response(JSON.stringify({ jobId: 'job-2', status: 'complete', stage: 'complete', fileName: '湖畔家园-投标标书.docx', actionCount: 108, downloadUrl: '/api/bid/jobs/job-2/download' }), { status: 200 }));
   });
+  expect(screen.queryByText('投标标书已生成')).toBeNull();
   await act(() => vi.advanceTimersByTimeAsync(15_000));
   expect(screen.getByText('投标标书已生成')).toBeTruthy();
   const download = screen.getByText('下载标书').closest('a');

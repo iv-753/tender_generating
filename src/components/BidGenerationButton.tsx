@@ -49,8 +49,10 @@ export default function BidGenerationButton({ result, label = '生成投标标�
         const response = await fetch(`/api/bid/jobs/${created.jobId}`);
         latest = await response.json() as Job;
         if (!response.ok) throw new Error(latest.error || '无法获取生成进度');
-        setJob(latest);
-        if (latest.status === 'running') await new Promise((resolve) => window.setTimeout(resolve, 500));
+        if (latest.status === 'running') {
+          setJob(latest);
+          await new Promise((resolve) => window.setTimeout(resolve, 500));
+        }
       }
       if (latest.status === 'complete' && latest.fileName && latest.downloadUrl) {
         await waitForMinimumDuration(generationStartedAt, ARTIFACT_MINIMUM_MS);
