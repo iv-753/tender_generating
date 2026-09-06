@@ -79,6 +79,10 @@ function explainedTitle(label: string, explanation: string) {
   return <Space size={5}><span>{label}</span><Tooltip title={explanation}><InfoCircleOutlined aria-label={label + '说明'} /></Tooltip></Space>;
 }
 
+function displayCategoryTitle(summary: CategorySummary) {
+  return summary.category === 'assistance' ? '安保' : summary.title;
+}
+
 export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps) {
   const initialResult = useMemo(() => storage.loadResult(), []);
   const [savedResult, setSavedResult] = useState<CalculationResult | null>(initialResult);
@@ -261,14 +265,14 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
         : '工作量折算成本' + workloadDirection + ' ' + currency.format(Math.abs(workloadDelta)) + '；项目年度用工预算同步' + budgetDirection + ' ' + currency.format(Math.abs(budgetDelta)) + '。'} />}
       {recalculation.error && <Alert className="cost-change-alert" type="error" showIcon message={recalculation.error} />}
       <Card className="result-table-card" variant="borderless">
-        <div className="table-toolbar"><Tabs activeKey={category} onChange={(key) => { setCategory(key as ActionCategory); setPage(1); }} items={availableCategories.map((key) => { const item = result.categories.find((entry) => entry.category === key)!; return { key, label: item.title + ' ' + item.actionCount }; })} /></div>
+        <div className="table-toolbar"><Tabs activeKey={category} onChange={(key) => { setCategory(key as ActionCategory); setPage(1); }} items={availableCategories.map((key) => { const item = result.categories.find((entry) => entry.category === key)!; return { key, label: displayCategoryTitle(item) + ' ' + item.actionCount }; })} /></div>
         <div className="result-filters"><Space wrap>
           <Checkbox checked={showZeroValues} onChange={(event) => { setShowZeroValues(event.target.checked); setPage(1); }}>显示零值</Checkbox>
           <Checkbox checked={adjustedOnly} onChange={(event) => { setAdjustedOnly(event.target.checked); setDisabledOrCustomOnly(false); setPage(1); }}>只看已调整</Checkbox>
           <Checkbox checked={disabledOrCustomOnly} onChange={(event) => { setDisabledOrCustomOnly(event.target.checked); setAdjustedOnly(false); setPage(1); }}>只看已停用/自定义</Checkbox>
           {editing && <Button icon={<ReloadOutlined />} onClick={() => setDraftAdjustments(structuredClone(EMPTY_ADJUSTMENTS))}>恢复原测算</Button>}
         </Space><Input allowClear prefix={<SearchOutlined />} placeholder="搜索动作、属性、依据或频次" value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} /></div>
-        <div className="category-summary"><span>{summary.title}共 <strong>{summary.actionCount}</strong> 项</span><span>工作量相当于 <strong>{workloadEquivalentHeadcount.toFixed(1)}</strong> 人，实际配置 <strong>{displayStaffingCount(summary.headcount)}</strong> 人</span><span>年工作量成本 <strong>{currency.format(summary.workloadAnnualCost ?? categoryActions.filter((item) => item.enabled !== false).reduce((sum, item) => sum + item.annualCost, 0))}</strong></span><span>用工预算 <strong>{currency.format(summary.annualCost)}</strong></span></div>
+        <div className="category-summary"><span>{displayCategoryTitle(summary)}共 <strong>{summary.actionCount}</strong> 项</span><span>工作量相当于 <strong>{workloadEquivalentHeadcount.toFixed(1)}</strong> 人，实际配置 <strong>{displayStaffingCount(summary.headcount)}</strong> 人</span><span>年工作量成本 <strong>{currency.format(summary.workloadAnnualCost ?? categoryActions.filter((item) => item.enabled !== false).reduce((sum, item) => sum + item.annualCost, 0))}</strong></span><span>用工预算 <strong>{currency.format(summary.annualCost)}</strong></span></div>
         {category !== 'assistance' && <div className="cost-basis-note">动作工作量成本用于逐项核算；分类取整用工预算按汇总工时折算完整岗位，不能用表内行成本相加替代。{category === 'pestControl' && categoryActions.some(hasSharedWorkloadGroup) ? '四害消杀的共享工作量已按动作分摊。' : ''}</div>}
         {recalculation.loading && <div className="recalculation-state"><LoadingOutlined /> 正在重算</div>}
         {editing

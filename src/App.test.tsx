@@ -433,9 +433,12 @@ test('shows all seven complete-model categories, the 452-action library, managem
   const libraryCard = screen.getByText('标准动作库').closest('.ant-card');
   expect(libraryCard?.textContent).toContain('452项');
   expect(libraryCard?.textContent).toContain('当前启用 452 项');
-  for (const title of ['服务', '清洁', '绿化', '客助', '四害消杀', '工程委外', '工程常规']) {
+  for (const title of ['服务', '清洁', '绿化', '安保', '四害消杀', '工程委外', '工程常规']) {
     expect(screen.getByRole('tab', { name: new RegExp(title) })).toBeTruthy();
   }
+  expect(screen.queryByRole('tab', { name: /客助/ })).toBeNull();
+  fireEvent.click(screen.getByRole('tab', { name: /安保/ }));
+  expect(document.querySelector('.category-summary')?.textContent).toContain('安保共 6 项');
   const managementCard = screen.getByText('管理人员成本').closest('.ant-card');
   expect(managementCard?.textContent).toContain(`${result.management.headcount}人`);
   expect(managementCard?.textContent).toContain(result.management.annualCost.toLocaleString('zh-CN'));
