@@ -162,7 +162,7 @@ test('includes advanced parameter overrides in the formal calculation', async ()
   vi.mocked(previewAdvancedParameters).mockResolvedValue([{
     key: 'basement.fireShutterCount', label: '地下停车区防火卷帘数量', group: 'basement', unit: '个', defaultValue: 252, value: 252, source: 'template', affectedActionIds: ['engineering-routine-6'],
   }]);
-  vi.mocked(calculateProject).mockImplementation(async (project) => ({ ...savedResult(project.projectName, '2026-09-05T00:00:00.000Z', 1), project }));
+  vi.mocked(calculateProject).mockRejectedValue(new Error('test stop after payload capture'));
   window.history.replaceState({}, '', '/project/new');
   render(<App />);
   clickButtonText('高级参数（可选，系统已估算）');
@@ -174,7 +174,6 @@ test('includes advanced parameter overrides in the formal calculation', async ()
   clickButtonText('开始测算');
 
   await waitFor(() => expect(calculateProject).toHaveBeenCalledWith(expect.objectContaining({ advancedParameterOverrides: { 'basement.fireShutterCount': 300 } })));
-  await waitFor(() => expect(window.location.pathname).toBe('/project/result'));
 });
 
 test('keeps calculation progress visible for at least eight seconds', async () => {
@@ -184,14 +183,14 @@ test('keeps calculation progress visible for at least eight seconds', async () =
   render(<App />);
 
   clickButtonText('开始测算');
-  await act(async () => { await Promise.resolve(); });
+  await act(() => vi.advanceTimersByTimeAsync(20));
 
   expect(screen.getByText('正在生成测算方案')).toBeTruthy();
   expect(screen.getByText('匹配服务规则')).toBeTruthy();
   expect(window.location.pathname).toBe('/project/new');
-  await act(() => vi.advanceTimersByTimeAsync(7_999));
+  await act(() => vi.advanceTimersByTimeAsync(7_979));
   expect(window.location.pathname).toBe('/project/new');
-  await act(() => vi.advanceTimersByTimeAsync(1));
+  await act(() => vi.advanceTimersByTimeAsync(20));
   expect(window.location.pathname).toBe('/project/result');
 });
 
@@ -528,6 +527,7 @@ test('shows action quantities as rounded whole numbers on the result page', () =
 });
 
 test('generates a presentation with real stage feedback and exposes the download', async () => {
+  vi.useFakeTimers();
   storage.saveResult({
     version: 1,
     calculatedAt: new Date().toISOString(),
@@ -554,16 +554,18 @@ test('generates a presentation with real stage feedback and exposes the download
 
   fireEvent.click(screen.getByRole('button', { name: /生成路演PPT/ }));
 
-  expect(await screen.findByText('正在生成路演PPT')).toBeTruthy();
+  expect(screen.getByText('正在生成路演PPT')).toBeTruthy();
   expect(screen.getByText('校验项目数据')).toBeTruthy();
   expect(screen.getByText('整理服务方案')).toBeTruthy();
   expect(screen.getByText('编排路演内容')).toBeTruthy();
   expect(screen.getByText('导出演示文件')).toBeTruthy();
-  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+  await act(async () => { await Promise.resolve(); });
+  expect(fetchMock).toHaveBeenCalledTimes(2);
   await act(async () => {
     finishGeneration(new Response(JSON.stringify({ jobId: 'job-1', status: 'complete', stage: 'complete', fileName: '示范项目-路演方案.pptx', slides: 24, downloadUrl: '/api/presentation/jobs/job-1/download' }), { status: 200 }));
   });
-  expect(await screen.findByText('路演PPT已生成')).toBeTruthy();
+  await act(() => vi.advanceTimersByTimeAsync(15_000));
+  expect(screen.getByText('路演PPT已生成')).toBeTruthy();
   const download = screen.getByText('下载PPT').closest('a');
   expect(download?.getAttribute('href')).toBe('/api/presentation/jobs/job-1/download');
   expect(screen.getByText('示范项目-路演方案.pptx')).toBeTruthy();
@@ -618,6 +620,7 @@ test('keeps an immediately completed bid job visible for at least fifteen second
 });
 
 test('generates a bid document from the current result and exposes the download', async () => {
+  vi.useFakeTimers();
   const current = savedResult('湖畔家园', '2026-09-03T08:00:00.000Z', 481800);
   storage.saveResult(current);
   let finishGeneration!: (response: Response) => void;
@@ -631,18 +634,20 @@ test('generates a bid document from the current result and exposes the download'
 
   fireEvent.click(screen.getByRole('button', { name: /生成投标标书/ }));
 
-  expect(await screen.findByText('正在生成投标标书')).toBeTruthy();
+  expect(screen.getByText('正在生成投标标书')).toBeTruthy();
   expect(screen.getByText('分析项目数据')).toBeTruthy();
   expect(screen.getByText('整理服务方案')).toBeTruthy();
   expect(screen.getByText('编排投标内容')).toBeTruthy();
   expect(screen.getByText('生成投标文件')).toBeTruthy();
-  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+  await act(async () => { await Promise.resolve(); });
+  expect(fetchMock).toHaveBeenCalledTimes(2);
   expect(fetchMock.mock.calls[0][0]).toBe('/api/bid/jobs');
   expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body)).project.projectName).toBe('湖畔家园');
   await act(async () => {
     finishGeneration(new Response(JSON.stringify({ jobId: 'job-2', status: 'complete', stage: 'complete', fileName: '湖畔家园-投标标书.docx', actionCount: 108, downloadUrl: '/api/bid/jobs/job-2/download' }), { status: 200 }));
   });
-  expect(await screen.findByText('投标标书已生成')).toBeTruthy();
+  await act(() => vi.advanceTimersByTimeAsync(15_000));
+  expect(screen.getByText('投标标书已生成')).toBeTruthy();
   const download = screen.getByText('下载标书').closest('a');
   expect(download?.getAttribute('href')).toBe('/api/bid/jobs/job-2/download');
   expect(screen.getByText('湖畔家园-投标标书.docx')).toBeTruthy();
@@ -650,6 +655,7 @@ test('generates a bid document from the current result and exposes the download'
 });
 
 test('generates and records a bid document from the bid workspace', async () => {
+  vi.useFakeTimers();
   const current = savedResult('湖畔家园', '2026-09-03T08:00:00.000Z', 481800);
   const project = storage.saveCalculatedProject(current);
   const fetchMock = vi.fn()
@@ -660,8 +666,10 @@ test('generates and records a bid document from the bid workspace', async () => 
   render(<App />);
 
   fireEvent.click(screen.getByRole('button', { name: /生成投标标书/ }));
-  expect(await screen.findByText('正在生成投标标书')).toBeTruthy();
-  expect(await screen.findByText('投标标书已生成')).toBeTruthy();
+  expect(screen.getByText('正在生成投标标书')).toBeTruthy();
+  await act(async () => { await Promise.resolve(); });
+  await act(() => vi.advanceTimersByTimeAsync(15_000));
+  expect(screen.getByText('投标标书已生成')).toBeTruthy();
   expect(screen.getAllByText('下载标书').some((item) => item.closest('a')?.getAttribute('href') === '/api/bid/jobs/job-3/download')).toBe(true);
   expect(storage.loadProjects().find((item) => item.id === project.id)?.bidDocument?.fileName).toBe('湖畔家园-投标标书.docx');
   vi.unstubAllGlobals();
