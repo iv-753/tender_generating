@@ -14,15 +14,8 @@ let appServer;
 let modelServer;
 let logs = '';
 
-const ref = (sheet, cell) => ({ sheet, cell, confidence: 0.97, note: '测试映射' });
-const absent = { sheet: null, cell: null, confidence: 0, note: '原表未提供' };
 const mapping = {
-  fields: {
-    projectName: ref('项目总览', 'E5'), region: ref('项目总览', 'E6'), city: ref('项目总览', 'E6'),
-    serviceGrade: ref('项目总览', 'E13'), residentialChargeArea: ref('项目总览', 'E8'),
-    seasonalFlowerArea: absent,
-  },
-  buildings: [],
+  fieldCorrections: [], removeBuildingIndexes: [], buildingCorrections: [], newBuildings: [],
 };
 
 before(async () => {

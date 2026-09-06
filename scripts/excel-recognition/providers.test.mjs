@@ -7,7 +7,7 @@ test('qwen adapter uses an OpenAI-compatible structured-output request', async (
   const fetchImpl = async (url, options) => {
     captured = { url, options, body: JSON.parse(options.body) };
     return new Response(JSON.stringify({
-      choices: [{ message: { content: '```json\n{"fields":{},"buildings":[]}\n```' } }],
+      choices: [{ message: { content: '```json\n{"fieldCorrections":[],"removeBuildingIndexes":[],"buildingCorrections":[],"newBuildings":[]}\n```' } }],
     }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   };
   const provider = createRecognitionProvider({
@@ -19,11 +19,13 @@ test('qwen adapter uses an OpenAI-compatible structured-output request', async (
     conflicts: [],
   });
 
-  assert.deepEqual(result, { fields: {}, buildings: [] });
+  assert.equal(result.fields.projectName.cell, 'B1');
+  assert.equal(result.fields.city.cell, null);
   assert.equal(captured.url, 'https://example.test/v1/chat/completions');
   assert.equal(captured.options.headers.Authorization, 'Bearer server-only-secret');
   assert.equal(captured.body.model, 'qwen3.7-max');
   assert.equal(captured.body.response_format.type, 'json_schema');
+  assert.equal(captured.body.response_format.json_schema.name, 'property_excel_mapping_review');
   const messages = JSON.stringify(captured.body.messages);
   assert.match(messages, /规则候选映射/);
   assert.match(messages, /工作表：测试/);

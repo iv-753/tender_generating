@@ -1,4 +1,5 @@
-import { RECOGNITION_JSON_SCHEMA, recognitionPrompt } from './schema.mjs';
+import { RECOGNITION_JSON_SCHEMA, REVIEW_JSON_SCHEMA, recognitionPrompt } from './schema.mjs';
+import { applyRuleReview } from './rule-review.mjs';
 
 function cleanBaseUrl(value) {
   return String(value || '').replace(/\/+$/, '');
@@ -31,6 +32,7 @@ export function createRecognitionProvider({
     provider,
     model,
     async mapWorkbook(workbookText, candidates) {
+      const reviewingCandidates = Boolean(candidates);
       const headers = { 'Content-Type': 'application/json' };
       if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
       const body = {
@@ -41,7 +43,10 @@ export function createRecognitionProvider({
           { role: 'user', content: recognitionPrompt(workbookText, candidates) },
         ],
       };
-      if (supportsJsonSchema) body.response_format = { type: 'json_schema', json_schema: RECOGNITION_JSON_SCHEMA };
+      if (supportsJsonSchema) body.response_format = {
+        type: 'json_schema',
+        json_schema: reviewingCandidates ? REVIEW_JSON_SCHEMA : RECOGNITION_JSON_SCHEMA,
+      };
 
       const response = await fetchImpl(completionUrl(baseUrl), {
         method: 'POST', headers, body: JSON.stringify(body), signal: AbortSignal.timeout(90000),
@@ -50,7 +55,8 @@ export function createRecognitionProvider({
       const payload = await response.json();
       const content = payload?.choices?.[0]?.message?.content;
       if (content === undefined || content === null) throw new Error('AI 未返回字段映射');
-      return parseJsonContent(content);
+      const parsed = parseJsonContent(content);
+      return reviewingCandidates ? applyRuleReview(candidates, parsed) : parsed;
     },
   };
 }
