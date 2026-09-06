@@ -1,9 +1,10 @@
 import { CheckCircleOutlined, FileExcelOutlined, LoadingOutlined, RobotOutlined } from '@ant-design/icons';
-import { Alert, Button, Modal, Progress, Tag, Typography, Upload } from 'antd';
+import { Alert, Button, Modal, Tag, Typography, Upload } from 'antd';
 import { useMemo, useState } from 'react';
 import { COST_BAND_LABELS, gradeLabel } from '../calculation';
 import { recognizeExcelFile } from '../excelRecognition';
 import type { CostBand, ExcelRecognitionResult, RecognitionEvidence, ServiceGrade } from '../types';
+import GenerationProgress from './GenerationProgress';
 
 type ImportStatus = 'idle' | 'recognizing' | 'review' | 'error' | 'applied';
 type Props = { onApply: (result: ExcelRecognitionResult) => void };
@@ -31,6 +32,12 @@ const buildingFields: FieldDefinition[] = [
   { key: 'stiltFloorArea', label: '架空层', unit: '㎡' }, { key: 'totalFloors', label: '楼层总数', unit: '层' },
   { key: 'standardLobbyArea', label: '标准前厅', unit: '㎡' }, { key: 'evacuationStairArea', label: '疏散楼梯', unit: '㎡' }, { key: 'rooftopArea', label: '天台', unit: '㎡' },
 ];
+const recognitionStages = [
+  { title: '读取工作表', description: '解析工作簿内容' },
+  { title: '识别项目字段', description: '匹配项目基础信息' },
+  { title: '核对单位与口径', description: '检查面积与数量单位' },
+  { title: '整理待确认结果', description: '汇总识别结果' },
+] as const;
 
 function displayValue(value: unknown, field: FieldDefinition) {
   if (value === null || value === undefined || value === '') return '待补充';
@@ -53,6 +60,7 @@ export default function ExcelImportPanel({ onApply }: Props) {
   const [result, setResult] = useState<ExcelRecognitionResult>();
   const [fileName, setFileName] = useState('');
   const [error, setError] = useState('');
+  const [recognitionStartedAt, setRecognitionStartedAt] = useState(0);
   const recognizedCount = useMemo(() => {
     if (!result) return 0;
     const fields = Object.values(result.recognition.fields);
@@ -61,6 +69,7 @@ export default function ExcelImportPanel({ onApply }: Props) {
   }, [result]);
 
   const startRecognition = async (file: File) => {
+    setRecognitionStartedAt(Date.now());
     setFileName(file.name);
     setError('');
     setStatus('recognizing');
@@ -93,10 +102,15 @@ export default function ExcelImportPanel({ onApply }: Props) {
             : <span>上传已有项目资料，自动识别不同表头与数据口径；你也可以继续手动填写。</span>}
       </div>
       <div className="excel-import-action">
-        {status === 'recognizing' && <Progress percent={100} showInfo={false} status="active" />}
-        <Upload.Dragger
+        {status === 'recognizing' ? <GenerationProgress
+          compact
+          startedAt={recognitionStartedAt}
+          durationMs={40_000}
+          stages={recognitionStages}
+          slowAfterMs={30_000}
+          slowMessage="表格内容较多，正在继续核对"
+        /> : <Upload.Dragger
           accept=".xlsx"
-          disabled={status === 'recognizing'}
           maxCount={1}
           showUploadList={false}
           beforeUpload={(file) => { void startRecognition(file as File); return Upload.LIST_IGNORE; }}
@@ -104,7 +118,7 @@ export default function ExcelImportPanel({ onApply }: Props) {
           <FileExcelOutlined />
           <span>{status === 'applied' || status === 'error' ? '重新上传 Excel' : '选择或拖入 Excel'}</span>
           <small>.xlsx，最大 10MB</small>
-        </Upload.Dragger>
+        </Upload.Dragger>}
       </div>
     </section>
     {status === 'error' && <Alert className="excel-import-error" type="error" showIcon title={error} />}

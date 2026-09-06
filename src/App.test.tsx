@@ -330,14 +330,25 @@ test('imports an Excel workbook, reviews the result, and applies it only after c
 });
 
 test('shows a real waiting state while Excel recognition is running', async () => {
-  vi.mocked(recognizeExcelFile).mockReturnValue(new Promise(() => undefined));
+  vi.useFakeTimers();
+  let finishRecognition!: (result: typeof recognitionResult) => void;
+  vi.mocked(recognizeExcelFile).mockReturnValue(new Promise((resolve) => { finishRecognition = resolve; }));
   window.history.replaceState({}, '', '/project/new');
   render(<App />);
 
   const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]');
   fireEvent.change(fileInput!, { target: { files: [new File(['xlsx'], '项目资料.xlsx')] } });
-  expect(await screen.findByText('正在识别项目数据')).toBeTruthy();
+  expect(screen.getByText('正在识别项目数据')).toBeTruthy();
   expect(screen.getByText(/通常需要约 1 分钟/)).toBeTruthy();
+  expect(screen.getByText('读取工作表')).toBeTruthy();
+  expect(screen.queryByText('表格内容较多，正在继续核对')).toBeNull();
+  await act(() => vi.advanceTimersByTimeAsync(30_000));
+  expect(screen.getByText('表格内容较多，正在继续核对')).toBeTruthy();
+  await act(async () => {
+    finishRecognition(recognitionResult);
+    await Promise.resolve();
+  });
+  expect(screen.getByRole('dialog', { name: '识别结果确认' })).toBeTruthy();
 });
 
 test('keeps the form unchanged when the recognition result is cancelled', async () => {
