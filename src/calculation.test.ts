@@ -16,6 +16,10 @@ import {
 import { EXAMPLE_PROJECT } from './exampleProject';
 
 describe('property calculation rules', () => {
+  test('preserves Zhujiang shared staffing fractions without changing legacy rounding',()=>{
+    expect(displayStaffingCount(117.4,'zhujiang-v1')).toBe(117.4);
+    expect(displayStaffingCount(117.4)).toBe(118);
+  });
   test('keeps the frozen service-grade display mapping outside the UI', () => {
     expect(gradeLabel('A')).toBe('A 级｜最高服务档次');
     expect(gradeLabel('D')).toBe('D 级｜基础服务');

@@ -39,7 +39,8 @@ test('community activities accept independent hours and frequencies without reus
   assert.equal(meeting.annualHours,60);
   assert.equal(meeting.standardStatus,'manual');
   close(r.budgetComparison.standard.annualCost,base.budgetComparison.standard.annualCost);
-  assert.equal(r.actions.find(x=>x.id==='engineering-routine-6').standardStatus,'pending');
+  assert.equal(r.actions.find(x=>x.id==='engineering-routine-6').standardStatus,'excluded');
+  assert.equal(r.actions.find(x=>x.id==='zhuj-fire-linkage').standardStatus,'pending');
   assert.ok(validateZhujiangProject({...project,workbookOverrides:{'客助!C4':1}}));
 });
 test('5000 or 4000 sqm/person changes the ratio budget, not the independent workload budget',()=>{

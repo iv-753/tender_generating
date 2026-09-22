@@ -170,7 +170,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
 
   return (
     <main className="workspace-page">
-      {model === 'zhujiang-v1' && <Alert type="info" showIcon title="珠江标准测算：示例项目不是珠江实盘" description="请核实管理面积、每层楼梯面积及车库服务范围；设备数量在完整计算参数中填写。未确认项会保留为待计价。" style={{ marginBottom: 16 }} />}
+      {model === 'zhujiang-v1' && <Alert type="info" showIcon title="珠江四档测算 · 请核实项目数据" description="先填基础数据，再在完整计算参数中确认设备、服务范围、作业人时和年度费用。固定频次按珠江标准带入；缺失数据会在结果页集中列出，可逐项补填重算。预置示例不代表珠江实盘。" style={{ marginBottom: 16 }} />}
       <div className="page-heading blueprint-rule">
         <div><Typography.Title level={2}>新建物业测算项目</Typography.Title><Typography.Paragraph type="secondary">录入项目基础信息，生成服务方案、人员配置与成本测算。</Typography.Paragraph></div>
       </div>

@@ -71,8 +71,8 @@ export function displayQuantity(value: unknown, unit?: string) {
   return unit ? `${formatted} ${unit}` : formatted;
 }
 
-export function displayStaffingCount(headcount: number) {
-  return Math.ceil(headcount);
+export function displayStaffingCount(headcount: number, model?: string) {
+  return model === 'zhujiang-v1' ? Math.round(headcount * 10000) / 10000 : Math.ceil(headcount);
 }
 
 export function showsActionHeadcount(category: ActionCategory) {

@@ -53,8 +53,8 @@ export default function ProjectCenterPage({ onNew, onOpen, onEdit }: ProjectCent
     },
     { title: '服务等级', key: 'grade', width: 150, render: (_: unknown, item: ProjectRecord) => gradeLabel(item.result.project.serviceGrade, item.result.calculationModel) },
     { title: '收费面积', key: 'area', width: 130, align: 'right' as const, render: (_: unknown, item: ProjectRecord) => `${number.format(item.result.project.residentialChargeArea)} ㎡` },
-    { title: '配置人数', key: 'staffing', width: 100, align: 'right' as const, render: (_: unknown, item: ProjectRecord) => `${displayStaffingCount(item.result.totalHeadcount)} 人` },
-    { title: '年成本', key: 'cost', width: 130, align: 'right' as const, render: (_: unknown, item: ProjectRecord) => <strong className="project-cost">{currency.format(item.result.annualCost)}{item.result.calculationModel === 'zhujiang-v1' && <small style={{ display: 'block' }}>小计 · 待补全</small>}</strong> },
+    { title: '配置/分摊', key: 'staffing', width: 120, align: 'right' as const, render: (_: unknown, item: ProjectRecord) => `${displayStaffingCount(item.result.totalHeadcount, item.result.calculationModel)} 人` },
+    { title: '年成本', key: 'cost', width: 130, align: 'right' as const, render: (_: unknown, item: ProjectRecord) => <strong className="project-cost">{currency.format(item.result.annualCost)}{item.result.calculationModel === 'zhujiang-v1' && <small style={{ display: 'block' }}>{item.result.standard?.complete ? '服务成本 · 非报价' : '小计 · 待补数据'}</small>}</strong> },
     {
       title: '交付成果',
       key: 'deliverables',

@@ -129,7 +129,8 @@ export interface CalculationAdjustments {
 }
 
 export interface ServiceActionResult {
-  standardStatus?: 'mapped' | 'manual' | 'reference' | 'pending' | 'excluded';
+  standardStatus?: 'mapped' | 'manual' | 'reference' | 'pending' | 'excluded' | 'covered';
+  ruleKind?: 'fixed' | 'plan' | 'demand' | 'contract' | 'conflict' | 'optional' | 'replaced' | 'staffing' | 'unreviewed';
   standardSource?: string;
   standardText?: string;
   standardNote?: string;
@@ -169,7 +170,8 @@ interface CalculationResultBase {
   calculationModel?: ProjectData['calculationModel'];
   budgetBasis?: ProjectData['budgetBasis'];
   budgetComparison?: Record<'standard' | 'workload', { annualCost: number; headcount: number; unitPrice: number | null }>;
-  standard?: { label: string; mappedActionCount: number; referenceActionCount: number; patrolReady: boolean; pendingActionCount?: number; complete?: boolean };
+  standard?: { label: string; mappedActionCount: number; referenceActionCount: number; patrolReady: boolean; pendingActionCount?: number; complete?: boolean; revision?: string; reviewedActionCount?: number; unreviewedActionCount?: number };
+  missingInputs?: Array<{ key: string; label: string; group: string; reason: string; actionIds: string[] }>;
   workbookInputs?: WorkbookInput[];
   warnings?: string[];
   calculatedAt: string;
