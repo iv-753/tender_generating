@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applicationFileManifest, compressionCommand, isForbiddenPackagePath, launcherCommand, runtimePackageJson } from './build-package.mjs';
+import { applicationFileManifest, compressionCommand, dependencyInstallCommand, isForbiddenPackagePath, launcherCommand, runtimePackageJson } from './build-package.mjs';
 
 test('portable application manifest contains every local runtime dependency', () => {
   const destinations = applicationFileManifest().map((item) => item.destination.replaceAll('\\', '/'));
@@ -45,4 +45,11 @@ test('uses Windows Unicode-safe ZIP compression', () => {
   assert.ok(command.args.includes('Compress-Archive'));
   assert.ok(command.args.includes('Z:\\交付\\物业方案工作台-本地版'));
   assert.ok(command.args.includes('Z:\\交付\\物业方案工作台-本地版.zip'));
+});
+
+test('installs portable dependencies as real files instead of pnpm links', () => {
+  const command = dependencyInstallCommand('Z:\\交付\\app', 'Z:\\缓存\\pnpm-store');
+  assert.equal(command.executable, 'pnpm');
+  assert.ok(command.args.includes('--config.node-linker=hoisted'));
+  assert.ok(command.args.includes('--package-import-method=copy'));
 });

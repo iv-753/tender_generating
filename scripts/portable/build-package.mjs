@@ -72,6 +72,17 @@ export function compressionCommand(packageRoot, zipPath) {
   };
 }
 
+export function dependencyInstallCommand(appRoot, pnpmStore) {
+  return {
+    executable: 'pnpm',
+    args: [
+      'install', '--prod', '--lockfile=false', '--prefer-offline',
+      '--config.node-linker=hoisted', '--package-import-method=copy',
+      '--store-dir', pnpmStore, '--dir', appRoot,
+    ],
+  };
+}
+
 function run(command, args, options = {}) {
   return new Promise((resolvePromise, reject) => {
     const child = spawn(command, args, { stdio: 'inherit', windowsHide: true, ...options });
@@ -171,7 +182,8 @@ export async function buildPortablePackage() {
   await createUserFiles(packageRoot);
   await installPortableNode(appRoot, cacheRoot);
 
-  await run('pnpm', ['install', '--prod', '--lockfile=false', '--prefer-offline', '--store-dir', pnpmStore, '--dir', appRoot], { shell: true });
+  const dependencyInstall = dependencyInstallCommand(appRoot, pnpmStore);
+  await run(dependencyInstall.executable, dependencyInstall.args, { shell: true });
   const forbidden = (await listFiles(packageRoot)).filter(isForbiddenPackagePath);
   if (forbidden.length) throw new Error(`本地包包含禁止文件：${forbidden.join('、')}`);
 
