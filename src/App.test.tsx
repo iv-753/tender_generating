@@ -704,6 +704,9 @@ test('new projects use district rates and pass salary overrides to standalone ca
   window.history.replaceState({}, '', '/project/new');
   render(<App />);
   expect(screen.getByLabelText('区县')).toBeTruthy();
+  expect(screen.queryByLabelText('计算口径')).toBeNull();
+  expect(screen.queryByText('原表完整算法（广东）')).toBeNull();
+  expect(screen.queryByText('历史简化算法')).toBeNull();
   clickButtonText('完整计算参数');
   const salary = await screen.findByLabelText('客助月薪');
   fireEvent.change(salary, {target:{value:'7000'}});
