@@ -2,6 +2,7 @@ import { calculateProject } from './engine.mjs';
 import { validateCityCostBand } from './city-catalog.mjs';
 import { ADVANCED_PARAMETER_DEFINITIONS } from './rules/advanced-parameter-definitions.mjs';
 import { COST_BAND_FACTORS, GRADE_LABELS } from './rules/constants.mjs';
+import { calculateWorkbookProject, validateWorkbookOverrides, WORKBOOK_MODEL_VERSION } from './workbook-model.mjs';
 
 const text = (value) => value === null || value === undefined || value === '' ? '' : String(value);
 const number = (value) => typeof value === 'number' && Number.isFinite(value) ? value : Number(value) || 0;
@@ -13,8 +14,9 @@ export function validateProject(project) {
   if (!project || typeof project !== 'object') return '项目数据无效';
   if (!text(project.projectName).trim()) return '请填写项目名称';
   if (!text(project.region).trim() || !text(project.city).trim()) return '请填写项目地区和城市';
-  if (!GRADE_LABELS[project.serviceGrade] || !COST_BAND_FACTORS[project.costBand]) return '测算参数无效';
-  const cityValidationError = validateCityCostBand(project);
+  if (!GRADE_LABELS[project.serviceGrade] || (project.calculationModel !== WORKBOOK_MODEL_VERSION && !COST_BAND_FACTORS[project.costBand])) return '测算参数无效';
+  if (project.calculationModel !== undefined && project.calculationModel !== WORKBOOK_MODEL_VERSION) return '测算模型无效';
+  const cityValidationError = project.calculationModel === WORKBOOK_MODEL_VERSION ? validateWorkbookOverrides(project) : validateCityCostBand(project);
   if (cityValidationError) return cityValidationError;
   if (number(project.occupiedHouseholds) > number(project.receivedHouseholds)) return '常住户数不能大于已收楼户数';
   if (number(project.receivedHouseholds) > number(project.deliveredHouseholds)) return '已收楼户数不能大于已交付户数';
@@ -38,5 +40,7 @@ export function validateProject(project) {
 }
 
 export function createCalculator() {
-  return calculateProject;
+  return (project) => project.calculationModel === WORKBOOK_MODEL_VERSION
+    ? calculateWorkbookProject(project)
+    : calculateProject(project);
 }

@@ -12,6 +12,9 @@ export interface BuildingTypeInput {
 }
 
 export interface ProjectData {
+  calculationModel?: 'workbook-v3';
+  district?: string;
+  workbookOverrides?: Record<string, number | string>;
   projectName: string;
   region: string;
   city: string;
@@ -39,9 +42,12 @@ export interface ProjectData {
 
 export type RecognizedBuildingData = { [Field in keyof BuildingTypeInput]: BuildingTypeInput[Field] | null };
 export type RecognizedProjectData = {
-  [Field in Exclude<keyof ProjectData, 'buildings' | 'advancedParameterOverrides'>]: ProjectData[Field] | null;
+  [Field in Exclude<keyof ProjectData, 'buildings' | 'advancedParameterOverrides' | 'calculationModel' | 'district' | 'workbookOverrides'>]: ProjectData[Field] | null;
 } & {
   buildings: RecognizedBuildingData[];
+  calculationModel?: ProjectData['calculationModel'];
+  district?: string;
+  workbookOverrides?: Record<string, number | string>;
   advancedParameterOverrides?: Record<string, number> | null;
 };
 
@@ -149,6 +155,9 @@ export interface CategorySummary {
 }
 
 interface CalculationResultBase {
+  calculationModel?: 'workbook-v3';
+  workbookInputs?: WorkbookInput[];
+  warnings?: string[];
   calculatedAt: string;
   project: ProjectData;
   totalActionCount: number;
@@ -163,7 +172,7 @@ export interface CalculationResultV2 extends CalculationResultBase {
   version: 2;
   advancedParameterVersion: string;
   advancedParameters: AdvancedParameterSnapshot[];
-  standardActionCount: 452;
+  standardActionCount: number;
   activeActionCount: number;
   management: ManagementCostSummary;
 }
@@ -174,6 +183,20 @@ export interface LegacyCalculationResult extends CalculationResultBase {
 }
 
 export type CalculationResult = CalculationResultV2 | LegacyCalculationResult;
+
+export interface WorkbookInput {
+  key: string;
+  label: string;
+  group: string;
+  unit: string;
+  type: 'number' | 'select';
+  value: number | string;
+  defaultValue: number | string;
+  source: 'manual' | 'model';
+  min?: number;
+  max?: number;
+  options?: string[];
+}
 
 export interface PresentationRecord {
   fileName: string;

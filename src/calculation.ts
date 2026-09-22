@@ -1,5 +1,6 @@
 import type { ActionCategory, CostBand, ProjectData, ServiceGrade } from './types';
 import { getCityRecommendation, getCityRecommendationByName, isAllowedCostBand } from './cityCatalog';
+import { isWorkbookLocation } from './workbookLocation';
 
 export const ACTION_COUNTS = {
   service: 17,
@@ -83,7 +84,9 @@ export function validateProjectData(data: ProjectData): string[] {
   if (!data.region.trim() || !data.city.trim()) errors.push('请填写项目地区和城市');
   const recommendedCostBand = getCityRecommendation(data.region, data.city);
   if (data.region.trim() && data.city.trim() && !recommendedCostBand) errors.push('请选择有效的省份和城市');
-  if (recommendedCostBand && !isAllowedCostBand(recommendedCostBand, data.costBand)) errors.push('城市成本档位只能上下调整一级');
+  if (data.calculationModel === 'workbook-v3') {
+    if (!isWorkbookLocation(data)) errors.push('请选择原表已收录的广东城市和区县');
+  } else if (recommendedCostBand && !isAllowedCostBand(recommendedCostBand, data.costBand)) errors.push('城市成本档位只能上下调整一级');
   if (data.occupiedHouseholds > data.receivedHouseholds) errors.push('常住户数不能大于已收楼户数');
   if (data.receivedHouseholds > data.deliveredHouseholds) errors.push('已收楼户数不能大于已交付户数');
   if (data.lawnRatio < 0 || data.lawnRatio > 1) errors.push('草坪比例必须在 0%—100% 之间');

@@ -79,10 +79,10 @@ export function normalizeProjectLocation<T extends LocationInput>(project: T): T
   };
 }
 
-export function formatProjectLocation(project: Pick<ProjectData, 'region' | 'city'>) {
+export function formatProjectLocation(project: Pick<ProjectData, 'region' | 'city' | 'district'>) {
   const region = project.region?.trim();
   const city = project.city?.trim();
   if (!region) return city || '—';
   if (!city || region.includes(city)) return region;
-  return `${region} · ${city}`;
+  return `${region} · ${city}${project.district ? ` · ${project.district}` : ''}`;
 }

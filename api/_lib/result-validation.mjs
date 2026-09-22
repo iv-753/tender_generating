@@ -49,7 +49,10 @@ export function resultValidationError(result) {
   if (!result || typeof result !== 'object') return '测算结果无效';
   if (result.version !== 2) return '测算结果版本必须为 2，请重新测算';
   if (!text(result.project?.projectName).trim()) return '测算结果缺少项目名称';
-  if (result.standardActionCount !== 452) return '标准动作数必须为 452 项，请重新测算';
+  const expectedIds = new Map(EXPECTED_STANDARD_IDS);
+  if (result.calculationModel === 'workbook-v3') expectedIds.set('assistance-6', 'assistance');
+  const expectedCount = expectedIds.size;
+  if (result.standardActionCount !== expectedCount) return `标准动作数必须为 ${expectedCount} 项，请重新测算`;
 
   const parameterError = advancedParameterError(result);
   if (parameterError) return parameterError;
@@ -59,15 +62,15 @@ export function resultValidationError(result) {
   if (!Array.isArray(result.actions)) return '测算结果缺少服务动作数据';
 
   const standardActions = result.actions.filter((item) => item?.source !== 'custom');
-  if (standardActions.length !== 452) return `标准动作必须完整包含 452 项，当前为 ${standardActions.length} 项`;
+  if (standardActions.length !== expectedCount) return `标准动作必须完整包含 ${expectedCount} 项，当前为 ${standardActions.length} 项`;
   const standardIds = new Set();
   for (const item of standardActions) {
     const id = text(item?.id).trim();
     if (!id || standardIds.has(id)) return `标准动作编号必须唯一：${id || '空编号'}`;
     standardIds.add(id);
-    if (EXPECTED_STANDARD_IDS.get(id) !== item.category) return `标准动作编号或分类不稳定：${id}`;
+    if (expectedIds.get(id) !== item.category) return `标准动作编号或分类不稳定：${id}`;
   }
-  for (const id of EXPECTED_STANDARD_IDS.keys()) {
+  for (const id of expectedIds.keys()) {
     if (!standardIds.has(id)) return `标准动作缺失：${id}`;
   }
 
@@ -104,7 +107,8 @@ export function resultValidationError(result) {
   if (result.activeActionCount !== activeActionCount) return '当前启用动作数与动作明细不一致';
   if (!finiteNonNegative(result.totalHeadcount)) return '项目总人数无效';
   if (!finiteNonNegative(result.annualCost)) return '项目年度总成本无效';
-  const expectedHeadcount = result.categories.reduce((sum, item) => sum + item.headcount, 0) + result.management.headcount;
+  const staffingCategories = result.calculationModel === 'workbook-v3' ? result.categories.filter((item) => item.category !== 'pestControl') : result.categories;
+  const expectedHeadcount = staffingCategories.reduce((sum, item) => sum + item.headcount, 0) + result.management.headcount;
   const expectedAnnualCost = result.categories.reduce((sum, item) => sum + item.annualCost, 0) + result.management.annualCost;
   if (!nearlyEqual(result.totalHeadcount, expectedHeadcount)) return '项目总人数与分类及管理人数不一致';
   if (!nearlyEqual(result.annualCost, expectedAnnualCost)) return '年度总成本与分类及管理成本不一致';

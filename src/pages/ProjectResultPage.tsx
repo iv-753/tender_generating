@@ -1,24 +1,28 @@
 import { ArrowLeftOutlined, CloseOutlined, EditOutlined, FilePptOutlined, InfoCircleOutlined, LoadingOutlined, ReloadOutlined, SaveOutlined, SearchOutlined } from '@ant-design/icons';
-import { Alert, Button, Card, Checkbox, Empty, Input, Modal, Result, Space, Statistic, Table, Tabs, Tooltip, Typography } from 'antd';
+import { Alert, Button, Card, Checkbox, Collapse, Empty, Input, Modal, Result, Space, Statistic, Table, Tabs, Tooltip, Typography, message } from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { calculateAdjustedProject } from '../adjustedCalculator';
 import ActionEditor from '../components/ActionEditor';
 import BidGenerationButton from '../components/BidGenerationButton';
 import GenerationProgress from '../components/GenerationProgress';
+import WorkbookParametersDrawer from '../components/WorkbookParametersDrawer';
+import { calculateProject, previewWorkbookInputs } from '../workbookCalculator';
 import { CATEGORY_ORDER, COST_BAND_LABELS, displayActionName, displayQuantity, displayStaffingCount, gradeLabel, showsActionHeadcount } from '../calculation';
 import { formatProjectLocation } from '../cityCatalog';
 import { storage } from '../storage';
 import { ARTIFACT_MINIMUM_MS, waitForMinimumDuration } from '../progressTiming';
-import type { ActionCategory, CalculationAdjustments, CalculationResult, CategorySummary, ServiceActionResult } from '../types';
+import type { ActionCategory, CalculationAdjustments, CalculationResult, CategorySummary, ServiceActionResult, WorkbookInput } from '../types';
 
 type ProjectResultPageProps = { onNavigate: () => void };
 const categoryOrder = CATEGORY_ORDER;
 const currency = new Intl.NumberFormat('zh-CN', { style: 'currency', currency: 'CNY', maximumFractionDigits: 0 });
 const workloadCurrency = new Intl.NumberFormat('zh-CN', { style: 'currency', currency: 'CNY', minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const wholeNumber = new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 0 });
+const preciseNumber = new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 4 });
 const decimalNumber = new Intl.NumberFormat('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const EMPTY_ADJUSTMENTS: CalculationAdjustments = { version: 1, overrides: {}, customActions: [] };
+const EMPTY_WORKBOOK_OVERRIDES: Record<string, number | string> = {};
 const generationStages = [
   { key: 'validating', title: '校验项目数据', description: '确认项目资料与测算结果完整' },
   { key: 'preparing', title: '整理服务方案', description: '提取项目指标与重点服务动作' },
@@ -100,6 +104,10 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
   const [generationOpen, setGenerationOpen] = useState(false);
   const [generation, setGeneration] = useState<GenerationJob>({ status: 'idle', stage: 'validating' });
   const [generationStartedAt, setGenerationStartedAt] = useState(0);
+  const [parametersOpen, setParametersOpen] = useState(false);
+  const [parametersLoading, setParametersLoading] = useState(false);
+  const [parametersError, setParametersError] = useState('');
+  const [workbookInputs, setWorkbookInputs] = useState<WorkbookInput[]>([]);
 
   useEffect(() => {
     if (!editing || !savedResult) return;
@@ -123,6 +131,22 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
   if (!savedResult || !previewResult) return <main className="workspace-page"><Card><Empty description="暂无测算结果"><Button type="primary" onClick={onNavigate}>返回填写项目</Button></Empty></Card></main>;
 
   const result = previewResult;
+  const restored = result.calculationModel === 'workbook-v3';
+  const openParameters = async () => {
+    setParametersOpen(true); setParametersLoading(true); setParametersError('');
+    try { setWorkbookInputs(await previewWorkbookInputs(savedResult.project)); }
+    catch (reason) { setParametersError(reason instanceof Error ? reason.message : '计算参数读取失败'); }
+    finally { setParametersLoading(false); }
+  };
+  const applyParameters = async (workbookOverrides: Record<string, number | string>) => {
+    setParametersLoading(true); setParametersError('');
+    try {
+      const next = await calculateProject({ ...savedResult.project, workbookOverrides });
+      storage.saveCalculatedProject(next); setSavedResult(next); setPreviewResult(next);
+      setParametersOpen(false); message.success('已重新计算并保存');
+    } catch (reason) { setParametersError(reason instanceof Error ? reason.message : '重新计算失败'); }
+    finally { setParametersLoading(false); }
+  };
   const availableCategories = categoryOrder.filter((key) => result.categories.some((item) => item.category === key));
   const summary = result.categories.find((item) => item.category === category)!;
   const keyword = query.trim().toLowerCase();
@@ -155,7 +179,7 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
     ...(showsActionHeadcount(category)
       ? [{ title: '配置人数', dataIndex: 'headcount', key: 'headcount', width: 100, render: (value: number) => value === undefined ? '—' : displayStaffingCount(value) }]
       : [
-          { title: '年频次', dataIndex: 'annualFrequency', key: 'annualFrequency', width: 90, render: (value: number | undefined) => value === undefined ? '—' : wholeNumber.format(value) },
+          { title: '年频次', dataIndex: 'annualFrequency', key: 'annualFrequency', width: 90, render: (value: number | undefined) => value === undefined ? '—' : (restored ? preciseNumber : wholeNumber).format(value) },
           { title: '年工时', dataIndex: 'annualHours', key: 'annualHours', width: 100, render: (value: number | undefined) => value === undefined ? '—' : decimalNumber.format(value) },
         ]),
     {
@@ -237,28 +261,30 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
   const budgetDirection = budgetDelta < 0 ? '减少' : '增加';
   return (
     <main className="workspace-page">
-      <div className="result-heading blueprint-rule"><div><Typography.Title level={2}>{result.project.projectName}</Typography.Title><Typography.Paragraph type="secondary">{formatProjectLocation(result.project)} · {gradeLabel(result.project.serviceGrade)} · {COST_BAND_LABELS[result.project.costBand]}</Typography.Paragraph></div><Space wrap>
+      <div className="result-heading blueprint-rule"><div><Typography.Title level={2}>{result.project.projectName}</Typography.Title><Typography.Paragraph type="secondary">{formatProjectLocation(result.project)} · {restored ? ({ A: '紫荆花', B: '金百合', C: '郁金香', D: '向日葵' })[result.project.serviceGrade] : gradeLabel(result.project.serviceGrade)} · {restored ? '原表完整算法 · 区级单价' : COST_BAND_LABELS[result.project.costBand]}</Typography.Paragraph></div><Space wrap>
         <Button icon={<ArrowLeftOutlined />} onClick={onNavigate}>返回修改</Button>
         {editing ? <>
           <Button icon={<CloseOutlined />} onClick={cancelEditing}>取消调整</Button>
           <Button type="primary" icon={<SaveOutlined />} disabled={recalculation.loading || Boolean(recalculation.error)} onClick={saveEditing}>保存调整</Button>
         </> : <>
-          <Button icon={<EditOutlined />} onClick={enterEditing}>调整服务方案</Button>
+          <Button icon={<EditOutlined />} onClick={restored ? openParameters : enterEditing}>{restored ? '调整计算参数' : '调整服务方案'}</Button>
           <BidGenerationButton result={savedResult} />
           <Button type="primary" icon={<FilePptOutlined />} loading={generation.status === 'running'} onClick={generatePresentation}>生成路演PPT</Button>
         </>}
       </Space></div>
+      {restored && <Alert type="info" showIcon title="按原表计算的服务预算" description="保留原表的岗位折算、取整和附加比例。服务成本单价不代表完整经营盈亏平衡价；模板数量与历史价格请按项目实际核实。" style={{ marginBottom: 16 }} />}
+      {restored && !!result.warnings?.length && <Collapse style={{ marginBottom: 16 }} items={[{ key: 'basis', label: '原表口径与差异说明', children: result.warnings.map((item) => <p key={item}>{item}</p>) }]} />}
       <section className="metrics-grid">
         <Card className="action-library-card"><Statistic title="标准动作库" value={standardActionCount} suffix="项" /><small>当前启用 {activeActionCount} 项{disabledActionCount > 0 ? ` · 停用 ${disabledActionCount} 项` : ''}{customActionCount > 0 ? ` · 自定义 ${customActionCount} 项` : ''}</small></Card>
         <Card><Statistic title="配置总人数" value={totalStaffingCount} precision={0} suffix="人" /></Card>
-        <Card className="cost-card"><Statistic title={explainedTitle('项目年度用工预算', '汇总工作量后按完整岗位人数向上取整，小幅调整时预算可能暂时不变。')} value={result.annualCost} formatter={(value) => wholeNumber.format(Number(value))} prefix="¥" /></Card>
+        <Card className="cost-card"><Statistic title={explainedTitle('项目年度用工预算', restored ? '按原表各分类的工时、人员折算、取整和附加比例汇总。' : '汇总工作量后按完整岗位人数向上取整，小幅调整时预算可能暂时不变。')} value={result.annualCost} formatter={(value) => wholeNumber.format(Number(value))} prefix="¥" /></Card>
         <Card><Statistic title={explainedTitle('服务成本单价', '项目年度用工预算除以住宅收费面积和12个月。')} value={serviceCostPerSqmMonth ?? '—'} precision={serviceCostPerSqmMonth === null ? undefined : 2} suffix={serviceCostPerSqmMonth === null ? undefined : '元/㎡·月'} /></Card>
       </section>
       {result.version === 2 && <Card className="management-cost-card" size="small"><div><strong>管理人员成本</strong><small>单独计入项目总人数和年度用工预算</small></div><span><strong>{displayStaffingCount(result.management.headcount)}人</strong><small>配置人数</small></span><span><strong>{currency.format(result.management.annualCost)}</strong><small>年度成本</small></span></Card>}
       <div className="workload-cost-strip">
         <div><strong>工作量折算成本</strong><Tooltip title="全部有效动作的年工作量成本合计，修改动作后立即变化。"><InfoCircleOutlined aria-label="工作量折算成本说明" /></Tooltip></div>
         <span>{currency.format(currentWorkloadCost)}</span>
-        <small>用于观察服务动作调整幅度；最终报价仍以项目年度用工预算为准。</small>
+        <small>{restored ? '用于观察作业量；项目预算按原表分类汇总，未纳入费用不能视为零。' : '用于观察服务动作调整幅度；最终报价仍以项目年度用工预算为准。'}</small>
       </div>
       {editing && Math.abs(workloadDelta) > 0.01 && <Alert className="cost-change-alert" type={budgetDelta === 0 ? 'info' : 'success'} showIcon message={budgetDelta === 0
         ? '工作量折算成本' + workloadDirection + ' ' + currency.format(Math.abs(workloadDelta)) + '；完整岗位人数未变化，项目年度用工预算暂未变化。'
@@ -268,17 +294,18 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
         <div className="table-toolbar"><Tabs activeKey={category} onChange={(key) => { setCategory(key as ActionCategory); setPage(1); }} items={availableCategories.map((key) => { const item = result.categories.find((entry) => entry.category === key)!; return { key, label: displayCategoryTitle(item) + ' ' + item.actionCount }; })} /></div>
         <div className="result-filters"><Space wrap>
           <Checkbox checked={showZeroValues} onChange={(event) => { setShowZeroValues(event.target.checked); setPage(1); }}>显示零值</Checkbox>
-          <Checkbox checked={adjustedOnly} onChange={(event) => { setAdjustedOnly(event.target.checked); setDisabledOrCustomOnly(false); setPage(1); }}>只看已调整</Checkbox>
-          <Checkbox checked={disabledOrCustomOnly} onChange={(event) => { setDisabledOrCustomOnly(event.target.checked); setAdjustedOnly(false); setPage(1); }}>只看已停用/自定义</Checkbox>
+          {!restored && <Checkbox checked={adjustedOnly} onChange={(event) => { setAdjustedOnly(event.target.checked); setDisabledOrCustomOnly(false); setPage(1); }}>只看已调整</Checkbox>}
+          {!restored && <Checkbox checked={disabledOrCustomOnly} onChange={(event) => { setDisabledOrCustomOnly(event.target.checked); setAdjustedOnly(false); setPage(1); }}>只看已停用/自定义</Checkbox>}
           {editing && <Button icon={<ReloadOutlined />} onClick={() => setDraftAdjustments(structuredClone(EMPTY_ADJUSTMENTS))}>恢复原测算</Button>}
         </Space><Input allowClear prefix={<SearchOutlined />} placeholder="搜索动作、属性、依据或频次" value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} /></div>
-        <div className="category-summary"><span>{displayCategoryTitle(summary)}共 <strong>{summary.actionCount}</strong> 项</span><span>工作量相当于 <strong>{workloadEquivalentHeadcount.toFixed(1)}</strong> 人，实际配置 <strong>{displayStaffingCount(summary.headcount)}</strong> 人</span><span>年工作量成本 <strong>{currency.format(summary.workloadAnnualCost ?? categoryActions.filter((item) => item.enabled !== false).reduce((sum, item) => sum + item.annualCost, 0))}</strong></span><span>用工预算 <strong>{currency.format(summary.annualCost)}</strong></span></div>
-        {category !== 'assistance' && <div className="cost-basis-note">动作工作量成本用于逐项核算；分类取整用工预算按汇总工时折算完整岗位，不能用表内行成本相加替代。{category === 'pestControl' && categoryActions.some(hasSharedWorkloadGroup) ? '四害消杀的共享工作量已按动作分摊。' : ''}</div>}
+        <div className="category-summary"><span>{displayCategoryTitle(summary)}共 <strong>{summary.actionCount}</strong> 项</span>{restored && category === 'pestControl' ? <span>折算兼职 <strong>{preciseNumber.format(summary.headcount)}</strong> 人，不计入配置总人数</span> : <span>工作量相当于 <strong>{workloadEquivalentHeadcount.toFixed(1)}</strong> 人，实际配置 <strong>{displayStaffingCount(summary.headcount)}</strong> 人</span>}<span>年工作量成本 <strong>{currency.format(summary.workloadAnnualCost ?? categoryActions.filter((item) => item.enabled !== false).reduce((sum, item) => sum + item.annualCost, 0))}</strong></span><span>用工预算 <strong>{currency.format(summary.annualCost)}</strong></span></div>
+        {category !== 'assistance' && <div className="cost-basis-note">{restored ? '动作成本用于逐项核算；分类预算按原表工时折算、取整和附加比例计算，可能不同于明细成本之和。' : '动作工作量成本用于逐项核算；分类取整用工预算按汇总工时折算完整岗位，不能用表内行成本相加替代。'}{category === 'pestControl' && categoryActions.some(hasSharedWorkloadGroup) ? '四害消杀的共享工作量已按动作分摊。' : ''}</div>}
         {recalculation.loading && <div className="recalculation-state"><LoadingOutlined /> 正在重算</div>}
         {editing
           ? <ActionEditor key={`${category}-${showZeroValues}-${adjustedOnly}-${disabledOrCustomOnly}-${query}`} category={category} actions={actions} adjustments={draftAdjustments} onChange={setDraftAdjustments} />
           : <Table<ServiceActionResult> rowKey="id" size="middle" columns={columns} dataSource={actions} pagination={{ current: page, pageSize: 12, showSizeChanger: false, showTotal: (total) => '共 ' + total + ' 项', onChange: setPage }} scroll={{ x: 1100 }} locale={{ emptyText: '没有匹配的动作' }} />}
       </Card>
+      {restored && <WorkbookParametersDrawer open={parametersOpen} parameters={workbookInputs} overrides={savedResult.project.workbookOverrides ?? EMPTY_WORKBOOK_OVERRIDES} loading={parametersLoading} error={parametersError} onClose={() => { if (!parametersLoading) setParametersOpen(false); }} onSave={applyParameters} />}
       <Modal
         className="generation-modal"
         open={generationOpen}

@@ -2,7 +2,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, expect, test, vi } from 'vitest';
 
-vi.mock('./workbookCalculator', () => ({ calculateProject: vi.fn(), previewAdvancedParameters: vi.fn() }));
+vi.mock('./workbookCalculator', () => ({ calculateProject: vi.fn(), previewAdvancedParameters: vi.fn(), previewWorkbookInputs: vi.fn() }));
 vi.mock('./excelRecognition', () => ({ recognizeExcelFile: vi.fn() }));
 import App from './App';
 // @ts-expect-error The runtime calculation engine is exercised directly so the UI fixture contains all 452 actions.
@@ -13,7 +13,7 @@ import { displayActionName } from './calculation';
 import { recognizeExcelFile } from './excelRecognition';
 import { EXAMPLE_PROJECT } from './exampleProject';
 import { storage } from './storage';
-import { calculateProject, previewAdvancedParameters } from './workbookCalculator';
+import { calculateProject, previewAdvancedParameters, previewWorkbookInputs } from './workbookCalculator';
 
 class ResizeObserverMock {
   observe() {}
@@ -48,6 +48,7 @@ afterEach(() => {
   vi.mocked(recognizeExcelFile).mockReset();
   vi.mocked(calculateProject).mockReset();
   vi.mocked(previewAdvancedParameters).mockReset();
+  vi.mocked(previewWorkbookInputs).mockReset();
 });
 
 const recognitionResult = {
@@ -132,6 +133,7 @@ test('uses enterprise modules as the global navigation', () => {
 
 test('uses province and city selectors with an adjacent cost override', () => {
   window.history.replaceState({}, '', '/project/new');
+  storage.saveDraft(EXAMPLE_PROJECT);
   render(<App />);
 
   expect(screen.getByLabelText('省份')).toBeTruthy();
@@ -147,6 +149,7 @@ test('previews advanced parameters without saving or leaving the new-project pag
     key: 'basement.fireShutterCount', label: '地下停车区防火卷帘数量', group: 'basement', unit: '个', defaultValue: 252, value: 252, source: 'template', affectedActionIds: ['engineering-routine-6'],
   }]);
   window.history.replaceState({}, '', '/project/new');
+  storage.saveDraft(EXAMPLE_PROJECT);
   render(<App />);
 
   clickButtonText('高级参数（可选，系统已估算）');
@@ -154,7 +157,7 @@ test('previews advanced parameters without saving or leaving the new-project pag
   await waitFor(() => expect(document.querySelector('.advanced-parameters-drawer')).toBeTruthy());
   expect(previewAdvancedParameters).toHaveBeenCalledWith(expect.objectContaining({ projectName: EXAMPLE_PROJECT.projectName }));
   expect(storage.loadProjects()).toHaveLength(0);
-  expect(storage.loadDraft()).toBeNull();
+  expect(storage.loadDraft()).toEqual(EXAMPLE_PROJECT);
   expect(window.location.pathname).toBe('/project/new');
 });
 
@@ -164,6 +167,7 @@ test('includes advanced parameter overrides in the formal calculation', async ()
   }]);
   vi.mocked(calculateProject).mockRejectedValue(new Error('test stop after payload capture'));
   window.history.replaceState({}, '', '/project/new');
+  storage.saveDraft(EXAMPLE_PROJECT);
   render(<App />);
   clickButtonText('高级参数（可选，系统已估算）');
   await waitFor(() => expect(document.querySelector('.advanced-parameters-drawer')).toBeTruthy());
@@ -691,4 +695,19 @@ test('shows a readable bid generation error', async () => {
   expect(await screen.findByText('投标文件生成失败，请检查项目资料后重试')).toBeTruthy();
   expect(screen.queryByText('标书模板校验失败')).toBeNull();
   vi.unstubAllGlobals();
+});
+
+
+test('new projects use district rates and pass salary overrides to standalone calculation', async () => {
+  vi.mocked(previewWorkbookInputs).mockResolvedValue([{ key: '客助!P12', label: '客助月薪', group: '客助', unit: '元/月', type: 'number', value: 8000, defaultValue: 8000, source: 'model' }]);
+  vi.mocked(calculateProject).mockRejectedValue(new Error('capture input'));
+  window.history.replaceState({}, '', '/project/new');
+  render(<App />);
+  expect(screen.getByLabelText('区县')).toBeTruthy();
+  clickButtonText('完整计算参数');
+  const salary = await screen.findByLabelText('客助月薪');
+  fireEvent.change(salary, {target:{value:'7000'}});
+  clickButtonText('应用参数');
+  clickButtonText('开始测算');
+  await waitFor(() => expect(calculateProject).toHaveBeenCalledWith(expect.objectContaining({calculationModel:'workbook-v3', district:'增城区', workbookOverrides:{'客助!P12':7000}})));
 });

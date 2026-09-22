@@ -22,6 +22,7 @@ export function applicationFileManifest() {
     { source: 'scripts/bid-binding', destination: 'scripts/bid-binding' },
     { source: 'api/_lib/result-validation.mjs', destination: 'api/_lib/result-validation.mjs' },
     { source: 'src/data/city-cost-bands.json', destination: 'src/data/city-cost-bands.json' },
+    { source: 'src/data/workbook-guangdong.json', destination: 'src/data/workbook-guangdong.json' },
     { source: 'scripts/portable/start.mjs', destination: 'portable/start.mjs' },
     { source: 'scripts/portable/stop.mjs', destination: 'portable/stop.mjs' },
     { source: 'scripts/portable/runtime-state.mjs', destination: 'portable/runtime-state.mjs' },
