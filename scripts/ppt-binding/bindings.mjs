@@ -1,3 +1,4 @@
+import zhujiangGrades from '../../src/data/zhujiang-grades.json' with { type: 'json' };
 import { resultValidationError } from '../../api/_lib/result-validation.mjs';
 
 const ACTION_CODE = /^[A-Z]+-[A-Z]+-\d+\s+/;
@@ -216,7 +217,7 @@ export function buildPresentationBindings(result, generatedAt = new Date()) {
       'field-project-2-1': formatWholeNumber(project.garageFloors),
       'field-project-2-2': formatWholeNumber(garageTotalArea),
       'field-project-2-3': projectStage(project),
-      'field-service-grade': `${project.serviceGrade}级`,
+      'field-service-grade': project.calculationModel === 'zhujiang-v1' ? zhujiangGrades[project.serviceGrade].label : `${project.serviceGrade}级`,
       'field-cost-band': `${project.city.replace(/市$/, '')}地区基准`,
       'field-unit-price': unitPrice.toFixed(2),
       'field-annual-cost': (result.annualCost / 10000).toFixed(2),

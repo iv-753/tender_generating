@@ -1,3 +1,4 @@
+import zhujiangGrades from '../../src/data/zhujiang-grades.json' with { type: 'json' };
 import { resultValidationError } from '../../api/_lib/result-validation.mjs';
 
 const range = (start, end) => Array.from({ length: end - start + 1 }, (_, index) => start + index);
@@ -105,7 +106,7 @@ export function buildBidBindings(result, generatedAt = new Date(), supplemental 
     '项目名称': project.projectName,
     '项目所在地': project.region,
     '所在城市': project.city,
-    '服务等级': `${project.serviceGrade}级`,
+    '服务等级': project.calculationModel === 'zhujiang-v1' ? zhujiangGrades[project.serviceGrade].label : `${project.serviceGrade}级`,
     '编制日期': dateLabel(generatedAt),
     '物业类型': supplemental.propertyType,
     '项目负责人': supplemental.projectManager,

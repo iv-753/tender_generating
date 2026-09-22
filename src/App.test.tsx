@@ -709,5 +709,5 @@ test('new projects use district rates and pass salary overrides to standalone ca
   fireEvent.change(salary, {target:{value:'7000'}});
   clickButtonText('应用参数');
   clickButtonText('开始测算');
-  await waitFor(() => expect(calculateProject).toHaveBeenCalledWith(expect.objectContaining({calculationModel:'workbook-v3', district:'增城区', workbookOverrides:{'客助!P12':7000}})));
+  await waitFor(() => expect(calculateProject).toHaveBeenCalledWith(expect.objectContaining({calculationModel:'zhujiang-v1', district:'增城区', workbookOverrides:{'客助!P12':7000}})));
 });

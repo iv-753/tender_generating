@@ -1,0 +1,6 @@
+{
+  "A": { "label": "御享", "sourceLabel": "御服务", "column": "F", "communityColumn": "G" },
+  "B": { "label": "雅享", "sourceLabel": "雅服务", "column": "E", "communityColumn": "F" },
+  "C": { "label": "悦享", "sourceLabel": "悦服务", "column": "D", "communityColumn": "E" },
+  "D": { "label": "善享", "sourceLabel": "善服务", "column": "C", "communityColumn": "D" }
+}

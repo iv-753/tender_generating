@@ -50,7 +50,8 @@ export function resultValidationError(result) {
   if (result.version !== 2) return '测算结果版本必须为 2，请重新测算';
   if (!text(result.project?.projectName).trim()) return '测算结果缺少项目名称';
   const expectedIds = new Map(EXPECTED_STANDARD_IDS);
-  if (result.calculationModel === 'workbook-v3') expectedIds.set('assistance-6', 'assistance');
+  if (['workbook-v3', 'zhujiang-v1'].includes(result.calculationModel)) expectedIds.set('assistance-6', 'assistance');
+  if (result.calculationModel === 'zhujiang-v1') for (const id of ['zhuj-theme-publicity', 'zhuj-owner-meeting', 'zhuj-open-day', 'zhuj-noticeboard']) expectedIds.set(id, 'service');
   const expectedCount = expectedIds.size;
   if (result.standardActionCount !== expectedCount) return `标准动作数必须为 ${expectedCount} 项，请重新测算`;
 
@@ -107,7 +108,7 @@ export function resultValidationError(result) {
   if (result.activeActionCount !== activeActionCount) return '当前启用动作数与动作明细不一致';
   if (!finiteNonNegative(result.totalHeadcount)) return '项目总人数无效';
   if (!finiteNonNegative(result.annualCost)) return '项目年度总成本无效';
-  const staffingCategories = result.calculationModel === 'workbook-v3' ? result.categories.filter((item) => item.category !== 'pestControl') : result.categories;
+  const staffingCategories = ['workbook-v3', 'zhujiang-v1'].includes(result.calculationModel) ? result.categories.filter((item) => item.category !== 'pestControl') : result.categories;
   const expectedHeadcount = staffingCategories.reduce((sum, item) => sum + item.headcount, 0) + result.management.headcount;
   const expectedAnnualCost = result.categories.reduce((sum, item) => sum + item.annualCost, 0) + result.management.annualCost;
   if (!nearlyEqual(result.totalHeadcount, expectedHeadcount)) return '项目总人数与分类及管理人数不一致';

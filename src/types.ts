@@ -12,7 +12,8 @@ export interface BuildingTypeInput {
 }
 
 export interface ProjectData {
-  calculationModel?: 'workbook-v3';
+  calculationModel?: 'workbook-v3' | 'zhujiang-v1';
+  budgetBasis?: 'standard' | 'workload';
   district?: string;
   workbookOverrides?: Record<string, number | string>;
   projectName: string;
@@ -42,10 +43,11 @@ export interface ProjectData {
 
 export type RecognizedBuildingData = { [Field in keyof BuildingTypeInput]: BuildingTypeInput[Field] | null };
 export type RecognizedProjectData = {
-  [Field in Exclude<keyof ProjectData, 'buildings' | 'advancedParameterOverrides' | 'calculationModel' | 'district' | 'workbookOverrides'>]: ProjectData[Field] | null;
+  [Field in Exclude<keyof ProjectData, 'buildings' | 'advancedParameterOverrides' | 'calculationModel' | 'district' | 'workbookOverrides' | 'budgetBasis'>]: ProjectData[Field] | null;
 } & {
   buildings: RecognizedBuildingData[];
   calculationModel?: ProjectData['calculationModel'];
+  budgetBasis?: ProjectData['budgetBasis'];
   district?: string;
   workbookOverrides?: Record<string, number | string>;
   advancedParameterOverrides?: Record<string, number> | null;
@@ -127,6 +129,10 @@ export interface CalculationAdjustments {
 }
 
 export interface ServiceActionResult {
+  standardStatus?: 'mapped' | 'manual' | 'reference' | 'pending' | 'excluded';
+  standardSource?: string;
+  standardText?: string;
+  standardNote?: string;
   id: string;
   category: ActionCategory;
   action: string;
@@ -145,6 +151,11 @@ export interface ServiceActionResult {
 }
 
 export interface CategorySummary {
+  standardHeadcount?: number;
+  workloadHeadcount?: number;
+  standardAnnualCost?: number;
+  workloadBudgetAnnualCost?: number;
+  staffingSource?: string;
   category: ActionCategory;
   title: string;
   actionCount: number;
@@ -155,7 +166,10 @@ export interface CategorySummary {
 }
 
 interface CalculationResultBase {
-  calculationModel?: 'workbook-v3';
+  calculationModel?: ProjectData['calculationModel'];
+  budgetBasis?: ProjectData['budgetBasis'];
+  budgetComparison?: Record<'standard' | 'workload', { annualCost: number; headcount: number; unitPrice: number | null }>;
+  standard?: { label: string; mappedActionCount: number; referenceActionCount: number; patrolReady: boolean; pendingActionCount?: number; complete?: boolean };
   workbookInputs?: WorkbookInput[];
   warnings?: string[];
   calculatedAt: string;
@@ -190,8 +204,13 @@ export interface WorkbookInput {
   group: string;
   unit: string;
   type: 'number' | 'select';
-  value: number | string;
-  defaultValue: number | string;
+  value: number | string | null;
+  defaultValue: number | string | null;
+  note?: string;
+  sourceRef?: string;
+  sourceText?: string;
+  defaultLabel?: string;
+  integer?: boolean;
   source: 'manual' | 'model';
   min?: number;
   max?: number;

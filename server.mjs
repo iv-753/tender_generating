@@ -5,9 +5,8 @@ import { randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { dirname, extname, isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createCalculator, validateProject } from './scripts/calculation/calculator.mjs';
+import { createCalculator, validateProject, getCalculationInputs } from './scripts/calculation/calculator.mjs';
 import { applyAdjustments } from './scripts/calculation/adjustments.mjs';
-import { getWorkbookInputs } from './scripts/calculation/workbook-model.mjs';
 import { loadRecognitionConfig } from './scripts/excel-recognition/config.mjs';
 import { recognizeExcel, recognizeExcelWithFallback } from './scripts/excel-recognition/recognize-excel.mjs';
 import { recognizeExcelRemotely } from './scripts/excel-recognition/remote-recognition.mjs';
@@ -262,7 +261,7 @@ const server = createServer(async (request, response) => {
       const project = await readJson(request);
       const validationError = validateProject(project);
       if (validationError) return json(response, 400, { error: validationError });
-      return json(response, 200, getWorkbookInputs(project));
+      return json(response, 200, getCalculationInputs(project));
     }
     if (url.pathname === '/api/calculate') {
       if (request.method !== 'POST') return json(response, 405, { error: '仅支持 POST 请求' });

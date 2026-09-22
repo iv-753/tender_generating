@@ -1,6 +1,7 @@
 import type { ActionCategory, CostBand, ProjectData, ServiceGrade } from './types';
 import { getCityRecommendation, getCityRecommendationByName, isAllowedCostBand } from './cityCatalog';
 import { isWorkbookLocation } from './workbookLocation';
+import zhujiangGrades from './data/zhujiang-grades.json';
 
 export const ACTION_COUNTS = {
   service: 17,
@@ -50,8 +51,12 @@ export const WORKBOOK_GRADE_VALUES: Record<ServiceGrade, string> = {
   D: '向日葵',
 };
 
-export function gradeLabel(grade: ServiceGrade) {
-  return GRADE_LABELS[grade];
+export function gradeLabel(grade: ServiceGrade, model?: ProjectData['calculationModel']) {
+  return model === 'zhujiang-v1' ? zhujiangGrades[grade].label : model === 'workbook-v3' ? WORKBOOK_GRADE_VALUES[grade] : GRADE_LABELS[grade];
+}
+
+export function isCompleteModel(model?: string) {
+  return model === 'workbook-v3' || model === 'zhujiang-v1';
 }
 
 export function displayActionName(action: string) {
@@ -84,7 +89,7 @@ export function validateProjectData(data: ProjectData): string[] {
   if (!data.region.trim() || !data.city.trim()) errors.push('请填写项目地区和城市');
   const recommendedCostBand = getCityRecommendation(data.region, data.city);
   if (data.region.trim() && data.city.trim() && !recommendedCostBand) errors.push('请选择有效的省份和城市');
-  if (data.calculationModel === 'workbook-v3') {
+  if (isCompleteModel(data.calculationModel)) {
     if (!isWorkbookLocation(data)) errors.push('请选择原表已收录的广东城市和区县');
   } else if (recommendedCostBand && !isAllowedCostBand(recommendedCostBand, data.costBand)) errors.push('城市成本档位只能上下调整一级');
   if (data.occupiedHouseholds > data.receivedHouseholds) errors.push('常住户数不能大于已收楼户数');

@@ -1,8 +1,7 @@
-import { validateProject } from '../scripts/calculation/calculator.mjs';
-import { getWorkbookInputs } from '../scripts/calculation/workbook-model.mjs';
+import { validateProject, getCalculationInputs } from '../scripts/calculation/calculator.mjs';
 import { errorMessage, json, readJson } from './_lib/http.mjs';
 
-export function createWorkbookInputsHandler({ validate = validateProject, inputs = getWorkbookInputs } = {}) {
+export function createWorkbookInputsHandler({ validate = validateProject, inputs = getCalculationInputs } = {}) {
   return { async fetch(request) {
     if (request.method !== 'POST') return json({ error: '仅支持 POST 请求' }, 405);
     try {

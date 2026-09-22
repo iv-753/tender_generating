@@ -111,7 +111,7 @@ function customAction(input, grade, factor, ids) {
 }
 
 export function applyAdjustments(baseline, adjustments) {
-  if (baseline?.calculationModel === 'workbook-v3') throw new Error('完整算法请通过计算参数调整并重新测算');
+  if (['workbook-v3', 'zhujiang-v1'].includes(baseline?.calculationModel)) throw new Error('完整算法请通过计算参数调整并重新测算');
   assertAdjustments(adjustments);
   if (!baseline?.project || !Array.isArray(baseline.actions)) throw new Error('基准测算结果无效');
   if (baseline.version === 2 && (!baseline.management

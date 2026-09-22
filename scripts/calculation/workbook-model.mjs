@@ -54,7 +54,7 @@ export function validateWorkbookOverrides(project) {
   if (project.district && !choices.some((item) => item.district === project.district)) return `原模型未收录${city}${project.district}价格`;
 }
 
-function createContext(project) {
+function createContext(project, modelDefaults = {}) {
   const error = validateWorkbookOverrides(project);
   if (error) throw new Error(error);
   const overrides = project.workbookOverrides ?? {};
@@ -87,6 +87,7 @@ function createContext(project) {
   let rules;
   const r = (key) => {
     if (has(overrides,key)) return overrides[key];
+    if (has(modelDefaults,key)) return modelDefaults[key];
     if (has(injected,key)) return injected[key];
     if (cache.has(key)) return cache.get(key);
     if (evaluating.has(key)) throw new Error(`模型存在循环引用：${key}`);
@@ -136,25 +137,25 @@ function createContext(project) {
   return {r,advancedParameters,warnings,location};
 }
 
-function snapshot(project, context) {
+function snapshot(project, context, modelDefaults = {}) {
   return INPUT_DEFINITIONS.map((definition) => {
     const raw = context.r(definition.key);
     let defaultRaw = raw;
     if (has(project.workbookOverrides ?? {},definition.key)) {
       const remaining = {...project.workbookOverrides}; delete remaining[definition.key];
-      defaultRaw = createContext({...project,workbookOverrides:remaining}).r(definition.key);
+      defaultRaw = createContext({...project,workbookOverrides:remaining},modelDefaults).r(definition.key);
     }
     return {...definition,value:definition.type==='select'?(raw || '否'):n(raw),defaultValue:definition.type==='select'?(defaultRaw || '否'):n(defaultRaw),source:has(project.workbookOverrides ?? {},definition.key)?'manual':'model'};
   });
 }
 
-export function getWorkbookInputs(project) {
-  const context = createContext(project);
-  return snapshot(project,context);
+export function getWorkbookInputs(project, modelDefaults = {}) {
+  const context = createContext(project,modelDefaults);
+  return snapshot(project,context,modelDefaults);
 }
 
-export function calculateWorkbookProject(project) {
-  const context = createContext(project); const {r,warnings,advancedParameters} = context;
+export function calculateWorkbookProject(project, modelDefaults = {}) {
+  const context = createContext(project,modelDefaults); const {r,warnings,advancedParameters} = context;
   const num = (sheet,address) => n(r(`${sheet}!${address}`));
   const str = (sheet,address) => text(r(`${sheet}!${address}`));
   const actions = [];

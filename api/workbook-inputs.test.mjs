@@ -22,6 +22,20 @@ import { PARITY_PROJECTS } from '../scripts/calculation/fixtures/parity-projects
 import { createCalculator } from '../scripts/calculation/calculator.mjs';
 import { resultValidationError } from './_lib/result-validation.mjs';
 
+test('Zhujiang API exposes ratios and both budgets with a valid result contract', async () => {
+  const project={...PARITY_PROJECTS[0],calculationModel:'zhujiang-v1',region:'广东省',city:'广州市',district:'增城区',serviceGrade:'A',workbookOverrides:{'zhuj.cleaningAreaPerPerson':4000}};
+  const response=await createWorkbookInputsHandler().fetch(new Request('http://local/api/workbook-inputs',{method:'POST',body:JSON.stringify(project)}));
+  assert.equal(response.status,200);
+  const inputs=await response.json();
+  assert.equal(inputs.find(x=>x.key==='zhuj.cleaningAreaPerPerson').value,4000);
+  assert.equal(inputs.find(x=>x.key==='zhuj.cleaningAreaPerPerson').defaultValue,5000);
+  for(const budgetBasis of ['standard','workload']) {
+    const result=createCalculator()({...project,budgetBasis});
+    assert.equal(resultValidationError(result),undefined);
+    assert.equal(result.annualCost,result.budgetComparison[budgetBasis].annualCost);
+  }
+});
+
 test('complete district model exposes editable inputs and exports a valid 453-action result', async () => {
   const project = {...PARITY_PROJECTS[0], calculationModel:'workbook-v3', region:'广东省', city:'广州市', district:'白云区', workbookOverrides:{'客助!P12':7000}};
   const handler = createWorkbookInputsHandler();

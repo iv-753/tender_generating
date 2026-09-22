@@ -1,7 +1,7 @@
 import { ArrowLeftOutlined, ArrowRightOutlined, DeleteOutlined, FileProtectOutlined, PlusOutlined } from '@ant-design/icons';
 import { Alert, Button, Card, Col, Divider, Form, Input, InputNumber, message, Modal, Row, Select, Space, Steps, Typography } from 'antd';
 import { useMemo, useState } from 'react';
-import { COST_BAND_LABELS, gradeLabel, validateProjectData } from '../calculation';
+import { COST_BAND_LABELS, gradeLabel, isCompleteModel, validateProjectData } from '../calculation';
 import { CITY_CATALOG_VERSION, allowedCostBands, cityOptions, getCityRecommendation, normalizeProjectLocation, provinceOptions } from '../cityCatalog';
 import ExcelImportPanel from '../components/ExcelImportPanel';
 import AdvancedParametersDrawer from '../components/AdvancedParametersDrawer';
@@ -45,7 +45,7 @@ function profileNumber(value?: number) {
 
 export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
   const [form] = Form.useForm<ProjectData>();
-  const draft = useMemo(() => normalizeProjectLocation(storage.loadDraft() ?? { ...EXAMPLE_PROJECT, calculationModel: 'workbook-v3' as const, district: '增城区' }), []);
+  const draft = useMemo(() => normalizeProjectLocation(storage.loadDraft() ?? { ...EXAMPLE_PROJECT, calculationModel: 'zhujiang-v1' as const, district: '增城区' }), []);
   const [currentStep, setCurrentStep] = useState(0);
   const [calculating, setCalculating] = useState(false);
   const [calculationStartedAt, setCalculationStartedAt] = useState(0);
@@ -63,7 +63,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
   const city = Form.useWatch('city', form);
   const selectedCostBand = Form.useWatch('costBand', form);
   const model = Form.useWatch('calculationModel', form);
-  const restored = model === 'workbook-v3';
+  const restored = isCompleteModel(model);
   const recommendedCostBand = getCityRecommendation(province, city);
   const costBandOptions = allowedCostBands(recommendedCostBand).map((value) => ({ value, label: COST_BAND_LABELS[value] }));
 
@@ -72,7 +72,8 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
     const project = {
       ...values,
       calculationModel: values.calculationModel || undefined,
-      workbookOverrides: values.calculationModel === 'workbook-v3' ? workbookOverrides : undefined,
+      budgetBasis: values.calculationModel === 'zhujiang-v1' ? (draft.budgetBasis ?? 'standard') : undefined,
+      workbookOverrides: isCompleteModel(values.calculationModel) ? workbookOverrides : undefined,
       advancedParameterOverrides: Object.keys(advancedParameterOverrides).length ? advancedParameterOverrides : undefined,
     };
     const errors = validateProjectData(project);
@@ -89,7 +90,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
       setAdvancedOpen(true);
       drawerOpened = true;
       setPreviewingAdvanced(true);
-      if (project.calculationModel === 'workbook-v3') {
+      if (isCompleteModel(project.calculationModel)) {
         setWorkbookInputs(await previewWorkbookInputs(project));
         return;
       }
@@ -169,6 +170,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
 
   return (
     <main className="workspace-page">
+      {model === 'zhujiang-v1' && <Alert type="info" showIcon title="珠江标准测算：示例项目不是珠江实盘" description="请核实管理面积、每层楼梯面积及车库服务范围；设备数量在完整计算参数中填写。未确认项会保留为待计价。" style={{ marginBottom: 16 }} />}
       <div className="page-heading blueprint-rule">
         <div><Typography.Title level={2}>新建物业测算项目</Typography.Title><Typography.Paragraph type="secondary">录入项目基础信息，生成服务方案、人员配置与成本测算。</Typography.Paragraph></div>
       </div>
@@ -178,7 +180,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
           <Card className="form-panel" bordered={false}>
             {error && <Alert className="form-alert" type="error" showIcon message={error} closable onClose={() => setError('')} />}
             <Form<ProjectData> form={form} layout="vertical" initialValues={draft} requiredMark="optional">
-              <Form.Item name="calculationModel" label="计算口径" extra={restored ? '独立算法按原表公式计算，采用广东区级单价；原表四档与珠江四档尚未替换。' : '历史项目保留原计算口径；切换后采用完整原表规则。'}><Select options={[{ value: 'workbook-v3', label: '原表完整算法（广东）' }, { value: '', label: '历史简化算法' }]} value={model ?? ''} onChange={(value) => { if (value === 'workbook-v3') form.setFieldsValue({ region: '广东省', city: '广州市', district: '增城区', costBand: 'upper' }); }} /></Form.Item>
+              <Form.Item name="calculationModel" label="计算口径" extra={model === 'zhujiang-v1' ? '采用珠江分级标准（待完善）首版；分别测算人员配比与服务工时两种预算，区间默认取中值，可调整。' : restored ? '独立算法按原表公式计算，采用广东区级单价。' : '历史项目保留原计算口径；切换后采用完整原表规则。'}><Select options={[{ value: 'zhujiang-v1', label: '珠江四档标准（广东）' }, { value: 'workbook-v3', label: '原表完整算法（广东）' }, { value: '', label: '历史简化算法' }]} value={model ?? ''} onChange={(value) => { setWorkbookOverrides({}); if (isCompleteModel(value) && !isCompleteModel(model)) form.setFieldsValue({ region: '广东省', city: '广州市', district: '增城区', costBand: 'upper' }); }} /></Form.Item>
               <section className={currentStep === 0 ? 'form-section' : 'form-section is-hidden'}>
                 <Typography.Title level={4}>01 / 项目概况</Typography.Title>
                 <Row gutter={16}>
@@ -214,7 +216,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
               <section className={currentStep === 3 ? 'form-section' : 'form-section is-hidden'}><Typography.Title level={4}>04 / 地库概况</Typography.Title><Row gutter={16}><Col xs={24} md={12}><NumberField name="garageFloorArea" label="单层车库面积" suffix="㎡" /></Col><Col xs={24} md={12}><NumberField name="garageFloors" label="车库层数" suffix="层" /></Col></Row></section>
               <section className={currentStep === 4 ? 'form-section' : 'form-section is-hidden'}>
                 <Typography.Title level={4}>05 / 测算参数</Typography.Title>
-                <Form.Item name="serviceGrade" label="服务等级" rules={[{ required: true, message: '请选择服务等级' }]}><Select options={(Object.keys({ A: 1, B: 1, C: 1, D: 1 }) as ServiceGrade[]).map((value) => ({ value, label: restored ? ({ A: '紫荆花', B: '金百合', C: '郁金香', D: '向日葵' })[value] : gradeLabel(value) }))} /></Form.Item>
+                <Form.Item name="serviceGrade" label="服务等级" rules={[{ required: true, message: '请选择服务等级' }]}><Select options={(Object.keys({ A: 1, B: 1, C: 1, D: 1 }) as ServiceGrade[]).map((value) => ({ value, label: gradeLabel(value, model) }))} /></Form.Item>
                 <Form.Item name="costBand" hidden={restored} label="城市成本档位" rules={[{ required: true, message: '请选择城市成本档位' }]} extra={recommendedCostBand && selectedCostBand ? `系统建议：${COST_BAND_LABELS[recommendedCostBand]}；当前采用：${COST_BAND_LABELS[selectedCostBand]}${selectedCostBand !== recommendedCostBand ? '（已手动调整）' : ''}` : '请先选择省份和城市'}><Select disabled={!recommendedCostBand} options={costBandOptions} /></Form.Item>
                 <Form.Item name="recommendedCostBand" hidden><Input /></Form.Item>
                 <Form.Item name="costBandSourceVersion" hidden><Input /></Form.Item>
@@ -223,9 +225,9 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
               <div className="form-footer"><Space><Button icon={<ArrowLeftOutlined />} disabled={currentStep === 0} onClick={() => setCurrentStep((value) => value - 1)}>上一步</Button><Button disabled={currentStep === 4} onClick={() => setCurrentStep((value) => value + 1)}>下一步 <ArrowRightOutlined /></Button></Space><Space wrap><Button onClick={saveDraft}>保存草稿</Button><Button loading={previewingAdvanced} onClick={openAdvancedParameters}>{restored ? '完整计算参数' : '高级参数（可选，系统已估算）'}</Button><Button type="primary" loading={calculating} onClick={startCalculation}>开始测算</Button></Space></div>
             </Form>
           </Card>
-          <aside className="profile-panel"><div className="profile-icon"><FileProtectOutlined /></div><Typography.Text className="panel-kicker">实时项目档案</Typography.Text><Typography.Title level={4}>{watched?.projectName || '未命名项目'}</Typography.Title><Typography.Text type="secondary">{[watched?.region, watched?.city, restored ? watched?.district : undefined].filter(Boolean).join(' / ') || '等待录入地区'}</Typography.Text><Divider /><dl className="profile-list"><div><dt>服务等级</dt><dd>{watched?.serviceGrade ? gradeLabel(watched.serviceGrade) : '—'}</dd></div><div><dt>{restored ? '采用单价' : '成本档位'}</dt><dd>{restored ? '区级原表单价' : watched?.costBand ? COST_BAND_LABELS[watched.costBand] : '待选择'}</dd></div><div><dt>总建筑面积</dt><dd>{profileNumber(watched?.totalBuildingArea)} ㎡</dd></div><div><dt>楼栋类型</dt><dd>{watched?.buildings?.length ?? 0} 类</dd></div><div><dt>常住户数</dt><dd>{profileNumber(watched?.occupiedHouseholds)} 户</dd></div></dl></aside>
+          <aside className="profile-panel"><div className="profile-icon"><FileProtectOutlined /></div><Typography.Text className="panel-kicker">实时项目档案</Typography.Text><Typography.Title level={4}>{watched?.projectName || '未命名项目'}</Typography.Title><Typography.Text type="secondary">{[watched?.region, watched?.city, restored ? watched?.district : undefined].filter(Boolean).join(' / ') || '等待录入地区'}</Typography.Text><Divider /><dl className="profile-list"><div><dt>服务等级</dt><dd>{watched?.serviceGrade ? gradeLabel(watched.serviceGrade, model) : '—'}</dd></div><div><dt>{restored ? '采用单价' : '成本档位'}</dt><dd>{restored ? '区级原表单价' : watched?.costBand ? COST_BAND_LABELS[watched.costBand] : '待选择'}</dd></div><div><dt>总建筑面积</dt><dd>{profileNumber(watched?.totalBuildingArea)} ㎡</dd></div><div><dt>楼栋类型</dt><dd>{watched?.buildings?.length ?? 0} 类</dd></div><div><dt>常住户数</dt><dd>{profileNumber(watched?.occupiedHouseholds)} 户</dd></div></dl></aside>
         </div>
-      {restored ? <WorkbookParametersDrawer open={advancedOpen} loading={previewingAdvanced} error={advancedError} parameters={workbookInputs} overrides={workbookOverrides} onClose={() => setAdvancedOpen(false)} onSave={(next) => { setWorkbookOverrides(next); setAdvancedOpen(false); message.success('计算参数已保存，将用于正式测算'); }} /> : <AdvancedParametersDrawer open={advancedOpen} loading={previewingAdvanced} error={advancedError} parameters={advancedParameters} overrides={advancedParameterOverrides} onClose={closeAdvancedParameters} onChange={changeAdvancedParameters} />}
+      {restored ? <WorkbookParametersDrawer zhujiang={model === 'zhujiang-v1'} open={advancedOpen} loading={previewingAdvanced} error={advancedError} parameters={workbookInputs} overrides={workbookOverrides} onClose={() => setAdvancedOpen(false)} onSave={(next) => { setWorkbookOverrides(next); setAdvancedOpen(false); message.success('计算参数已保存，将用于正式测算'); }} /> : <AdvancedParametersDrawer open={advancedOpen} loading={previewingAdvanced} error={advancedError} parameters={advancedParameters} overrides={advancedParameterOverrides} onClose={closeAdvancedParameters} onChange={changeAdvancedParameters} />}
       <Modal className="generation-modal" open={calculating} title="正在生成测算方案" width={620} centered closable={false} mask={{ closable: false }} footer={null}>
         <GenerationProgress startedAt={calculationStartedAt} durationMs={CALCULATION_MINIMUM_MS} stages={calculationStages} subtitle={watched?.projectName || '当前项目'} />
       </Modal>
