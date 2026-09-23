@@ -699,7 +699,7 @@ test('shows a readable bid generation error', async () => {
 
 
 test('new projects use district rates and pass salary overrides to standalone calculation', async () => {
-  vi.mocked(previewWorkbookInputs).mockResolvedValue([{ key: '客助!P12', label: '客助月薪', group: '客助', unit: '元/月', type: 'number', value: 8000, defaultValue: 8000, source: 'model' }]);
+  vi.mocked(previewWorkbookInputs).mockResolvedValue([{ key: 'zhuj.annualCost.assistance', label: '安保全年人均费用', group: '珠江·全年人工费用', unit: '元/人·年', type: 'number', value: 96000, defaultValue: 96000, source: 'model' }]);
   vi.mocked(calculateProject).mockRejectedValue(new Error('capture input'));
   window.history.replaceState({}, '', '/project/new');
   render(<App />);
@@ -707,10 +707,10 @@ test('new projects use district rates and pass salary overrides to standalone ca
   expect(screen.queryByLabelText('计算口径')).toBeNull();
   expect(screen.queryByText('原表完整算法（广东）')).toBeNull();
   expect(screen.queryByText('历史简化算法')).toBeNull();
-  clickButtonText('完整计算参数');
-  const salary = await screen.findByLabelText('客助月薪');
-  fireEvent.change(salary, {target:{value:'7000'}});
+  clickButtonText('项目测算参数');
+  const salary = await screen.findByLabelText('安保全年人均费用');
+  fireEvent.change(salary, {target:{value:'84000'}});
   clickButtonText('应用参数');
   clickButtonText('开始测算');
-  await waitFor(() => expect(calculateProject).toHaveBeenCalledWith(expect.objectContaining({calculationModel:'zhujiang-v1', district:'增城区', workbookOverrides:{'客助!P12':7000}})));
+  await waitFor(() => expect(calculateProject).toHaveBeenCalledWith(expect.objectContaining({calculationModel:'zhujiang-v1', district:'增城区', workbookOverrides:{'zhuj.annualCost.assistance':84000}})));
 });

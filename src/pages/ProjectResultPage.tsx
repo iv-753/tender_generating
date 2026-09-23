@@ -280,13 +280,13 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
           <Button icon={<CloseOutlined />} onClick={cancelEditing}>取消调整</Button>
           <Button type="primary" icon={<SaveOutlined />} disabled={recalculation.loading || Boolean(recalculation.error)} onClick={saveEditing}>保存调整</Button>
         </> : <>
-          <Button disabled={parametersLoading} icon={<EditOutlined />} onClick={()=>restored ? openParameters() : enterEditing()}>{restored ? '调整计算参数' : '调整服务方案'}</Button>
+          <Button disabled={parametersLoading} icon={<EditOutlined />} onClick={()=>restored ? openParameters() : enterEditing()}>{restored ? '调整项目参数' : '调整服务方案'}</Button>
           <BidGenerationButton result={savedResult} />
           <Button type="primary" icon={<FilePptOutlined />} loading={generation.status === 'running'} onClick={generatePresentation}>生成路演PPT</Button>
         </>}
       </Space></div>
       {restored && <Alert type="info" showIcon title={zhujiang ? result.standard?.complete ? '当前服务成本已量化 · 非收费报价' : '珠江服务成本小计 · 项目数据待补' : '按原表计算的服务预算'} description={zhujiang ? `两套预算独立，不取高、不相加。已分类核对${result.standard?.reviewedActionCount??0}项动作，按固定频次、实际业务、年度计划或合同计算；${result.standard?.pendingActionCount??0}项动作仍待项目数据。费用未计入完整经营开支及其他收入，不能作为盈亏平衡收费价。` : '保留原表的岗位折算、取整和附加比例。服务成本单价不代表完整经营盈亏平衡价；模板数量与历史价格请按项目实际核实。'} style={{ marginBottom: 16 }} />}
-      {zhujiang && !result.standard?.revision && <Alert type="warning" showIcon title="这是修正前的历史结果，请打开调整计算参数并应用，重新测算。" style={{ marginBottom: 16 }} />}
+      {zhujiang && !result.standard?.revision && <Alert type="warning" showIcon title="这是修正前的历史结果，请打开调整项目参数并应用，重新测算。" style={{ marginBottom: 16 }} />}
       {zhujiang && !!result.missingInputs?.length && <Collapse style={{marginBottom:16}} items={[{key:'missing',label:`待补项目数据 ${result.missingInputs.length} 项 · 点击可定位填写`,children:<Table rowKey="key" size="small" dataSource={result.missingInputs} pagination={{pageSize:8,showSizeChanger:false}} columns={[
         {title:'缺少的数据',dataIndex:'label',key:'label'},
         {title:'原因',dataIndex:'reason',key:'reason'},

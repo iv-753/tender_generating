@@ -3,7 +3,8 @@ import { validateCityCostBand } from './city-catalog.mjs';
 import { ADVANCED_PARAMETER_DEFINITIONS } from './rules/advanced-parameter-definitions.mjs';
 import { COST_BAND_FACTORS, GRADE_LABELS } from './rules/constants.mjs';
 import { calculateWorkbookProject, getWorkbookInputs, validateWorkbookOverrides, WORKBOOK_MODEL_VERSION } from './workbook-model.mjs';
-import { calculateZhujiangProject, getZhujiangInputs, validateZhujiangProject } from './zhujiang-model.mjs';
+import { calculateZhujiangProject, validateZhujiangProject } from './zhujiang-model.mjs';
+import { getZhujiangProjectInputs } from './zhujiang-project-inputs.mjs';
 import { ZHUJIANG_VERSION } from './zhujiang-rules.mjs';
 
 const text = (value) => value === null || value === undefined || value === '' ? '' : String(value);
@@ -49,5 +50,5 @@ export function createCalculator() {
 }
 
 export function getCalculationInputs(project) {
-  return project.calculationModel === ZHUJIANG_VERSION ? getZhujiangInputs(project) : getWorkbookInputs(project);
+  return project.calculationModel === ZHUJIANG_VERSION ? getZhujiangProjectInputs(project) : getWorkbookInputs(project);
 }

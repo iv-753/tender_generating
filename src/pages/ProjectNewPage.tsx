@@ -170,7 +170,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
 
   return (
     <main className="workspace-page">
-      {model === 'zhujiang-v1' && <Alert type="info" showIcon title="珠江四档测算 · 请核实项目数据" description="先填基础数据，再在完整计算参数中确认设备、服务范围、作业人时和年度费用。固定频次按珠江标准带入；缺失数据会在结果页集中列出，可逐项补填重算。预置示例不代表珠江实盘。" style={{ marginBottom: 16 }} />}
+      {model === 'zhujiang-v1' && <Alert type="info" showIcon title="珠江四档测算 · 请核实项目数据" description="先填基础数据，再在项目测算参数中确认设备、服务范围、作业人时和年度费用。固定频次按珠江标准带入；缺失数据会在结果页集中列出，可逐项补填重算。预置示例不代表珠江实盘。" style={{ marginBottom: 16 }} />}
       <div className="page-heading blueprint-rule">
         <div><Typography.Title level={2}>新建物业测算项目</Typography.Title><Typography.Paragraph type="secondary">录入项目基础信息，生成服务方案、人员配置与成本测算。</Typography.Paragraph></div>
       </div>
@@ -223,7 +223,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
                 <Form.Item name="costBandSourceVersion" hidden><Input /></Form.Item>
               </section>
               <Divider />
-              <div className="form-footer"><Space><Button icon={<ArrowLeftOutlined />} disabled={currentStep === 0} onClick={() => setCurrentStep((value) => value - 1)}>上一步</Button><Button disabled={currentStep === 4} onClick={() => setCurrentStep((value) => value + 1)}>下一步 <ArrowRightOutlined /></Button></Space><Space wrap><Button onClick={saveDraft}>保存草稿</Button><Button loading={previewingAdvanced} onClick={openAdvancedParameters}>{restored ? '完整计算参数' : '高级参数（可选，系统已估算）'}</Button><Button type="primary" loading={calculating} onClick={startCalculation}>开始测算</Button></Space></div>
+              <div className="form-footer"><Space><Button icon={<ArrowLeftOutlined />} disabled={currentStep === 0} onClick={() => setCurrentStep((value) => value - 1)}>上一步</Button><Button disabled={currentStep === 4} onClick={() => setCurrentStep((value) => value + 1)}>下一步 <ArrowRightOutlined /></Button></Space><Space wrap><Button onClick={saveDraft}>保存草稿</Button><Button loading={previewingAdvanced} onClick={openAdvancedParameters}>{restored ? '项目测算参数' : '高级参数（可选，系统已估算）'}</Button><Button type="primary" loading={calculating} onClick={startCalculation}>开始测算</Button></Space></div>
             </Form>
           </Card>
           <aside className="profile-panel"><div className="profile-icon"><FileProtectOutlined /></div><Typography.Text className="panel-kicker">实时项目档案</Typography.Text><Typography.Title level={4}>{watched?.projectName || '未命名项目'}</Typography.Title><Typography.Text type="secondary">{[watched?.region, watched?.city, restored ? watched?.district : undefined].filter(Boolean).join(' / ') || '等待录入地区'}</Typography.Text><Divider /><dl className="profile-list"><div><dt>服务等级</dt><dd>{watched?.serviceGrade ? gradeLabel(watched.serviceGrade, model) : '—'}</dd></div><div><dt>{restored ? '采用单价' : '成本档位'}</dt><dd>{restored ? '区级参考单价' : watched?.costBand ? COST_BAND_LABELS[watched.costBand] : '待选择'}</dd></div><div><dt>总建筑面积</dt><dd>{profileNumber(watched?.totalBuildingArea)} ㎡</dd></div><div><dt>楼栋类型</dt><dd>{watched?.buildings?.length ?? 0} 类</dd></div><div><dt>常住户数</dt><dd>{profileNumber(watched?.occupiedHouseholds)} 户</dd></div></dl></aside>

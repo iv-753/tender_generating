@@ -201,6 +201,7 @@ export interface LegacyCalculationResult extends CalculationResultBase {
 export type CalculationResult = CalculationResultV2 | LegacyCalculationResult;
 
 export interface WorkbookInput {
+  visibleWhen?: string;
   key: string;
   label: string;
   group: string;
