@@ -16,6 +16,16 @@ export function getZhujiangProjectInputs(project) {
   const inputs = getZhujiangInputs(project);
   const result = calculateZhujiangProject(project);
   const byKey = new Map(inputs.map(input => [input.key, input]));
+  const wageReference = new Map([
+    ['zhuj.annualCost.service', ['客服', '服务!T23', 8*26*12]],
+    ['zhuj.annualCost.cleaning', ['保洁', '清洁!Z3', 26*12]],
+    ['zhuj.annualCost.greening', ['绿化', '绿化!W3', 26*12]],
+    ['zhuj.annualCost.assistance', ['安保', '客助!P12', 12*1.06]],
+    ['zhuj.annualCost.engineeringRoutine', ['工程', '工程常规!P3', 12*1.2]],
+    ...['项目经理', '管家主任', '工程主任', '安保主任'].map((title,index)=>[
+      `zhuj.managementAnnualCost.${index}`, [title, `管理模块!B${index+4}`, 12*1.06],
+    ]),
+  ]);
   const missing = new Set(result.missingInputs.map(input => input.key));
   const contractCovered = project.workbookOverrides?.['zhuj.engineeringContractAnnualCost'] != null;
   const assets = new Set(engineering.filter(rule => ACTION_POLICIES.get(rule.id)?.kind !== 'replaced' && !(contractCovered && rule.id.startsWith('engineering-outsourced'))).map(rule => `zhuj.asset.${rule.quantityParameterKey}`));
@@ -29,6 +39,14 @@ export function getZhujiangProjectInputs(project) {
     const taskMatch = input.key.match(/^zhuj\.task\.(.+)\.(quantity|frequency|hours|days)$/);
     let visibleWhen;
     let note = input.note;
+    const wage = wageReference.get(input.key);
+    if (wage) {
+      const [title,key,factor] = wage;
+      const annualReference = Number(byKey.get(key).value)*factor;
+      const regional = ['zhuj.annualCost.cleaning','zhuj.annualCost.greening'].includes(input.key);
+      const source = Object.hasOwn(project.workbookOverrides??{},key) ? '项目已调整的参考工资' : regional ? `动态成本参考库中${project.city}${project.district}的${title}工资` : `动态成本表的${title}参考工资`;
+      note = `留空时按${source}折算，每人全年${annualReference.toLocaleString('zh-CN',{maximumFractionDigits:2})}元${regional||title==='客服'?'':'（含参考附加费用）'}；不代表珠江实际用工费用。填写全年工资、社保和福利合计后直接采用，不再加算附加费用。`;
+    }
     if (taskMatch) {
       const task = ZHUJIANG_TASKS.find(task => task.key === taskMatch[1]);
       if (contractCovered && task.category === 'engineeringOutsourced') continue;
@@ -50,7 +68,7 @@ export function getZhujiangProjectInputs(project) {
       note = `${note ?? ''} 所选珠江档次频次：${frequency}次/年，自动带入。`;
     }
     const isRatio = input.group === '珠江·人员配比';
-    const isStandardChoice = ['zhuj.monitorStaff', 'zhuj.securityLeaders', 'zhuj.mainDayHours', 'zhuj.mainNightHours', 'zhuj.management.accountant.count', 'zhuj.management.cashier.count'].includes(input.key);
+    const isStandardChoice = ['zhuj.monitorStaff', 'zhuj.securityLeaders', 'zhuj.mainDayHours', 'zhuj.mainNightHours', 'zhuj.management.accountant.count', 'zhuj.management.cashier.count', 'zhuj.management.warehouse.count'].includes(input.key);
     const defaultLabel = input.defaultLabel === '动态成本表参考值' ? input.defaultLabel : isRatio ? '珠江配比取值' : isStandardChoice ? '珠江标准取值' : input.defaultValue === null ? '待项目确认' : '项目暂定值';
     fields.push({...input, visibleWhen, note, defaultLabel, ...(input.key==='zhuj.management.accountant.count'?{label:'共享会计费用分摊比例',unit:'%',displayScale:100,note:'珠江标准每2—3个项目共享1名会计，默认按2.5个项目分摊，即本项目承担40%的全年费用。'}:{})});
   }

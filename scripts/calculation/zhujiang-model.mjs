@@ -57,8 +57,8 @@ parameter('otherEngineeringStaff','高压值班及其他工程增配','人',()=>
 parameter('securityAdditionalStaff','停车场、礼宾及其他独立安保岗位人数','人',()=>null,{integer:true,sheet:'安全管理',row:3,note:'填按班次及替休核算后的净增人员，已计主次门岗、监控、巡逻的不重复填；没有填0。'});
 parameter('reserveAdditionalStaff','备勤要求产生的净增人数','人',p=>['A','B'].includes(p.serviceGrade)?null:0,{integer:true,sheet:'安全管理',row:17,note:'御享/雅享分别要求24小时备勤人数不少于保安总数30%/20%。先核实休班人员能否满足，仅填写排班后仍须增配人数，避免与5.2替班重复；已满足填0。'});
 parameter('managerConcurrentRole','项目经理兼任主任','',p=>(p.workbookOverrides?.['zhuj.managementArea']??p.totalBuildingArea)<150000?null:0,{integer:true,max:3,sheet:'综合管理服务',row:33,note:'0不兼任，1管家主任，2工程主任，3安保主任；小于15万㎡须确认兼岗，兼任后对应主任减少1人，经理工资只计一次。'});
-for(const [key,label,count,sheet,row] of [['accountant','共享会计',.4,'综合管理服务',47],['cashier','出纳',1,'综合管理服务',48],['warehouse','仓管',null,'综合管理服务',49],['environmentHead','环境主管',0,'环境管理',3],['deputy','项目副经理',0,'综合管理服务',34],['support','会所、泳池及食堂等支持人员',0,'综合管理服务',50]]) {
-  parameter(`management.${key}.count`,`${label}净配置人数`,'人',p=>key==='warehouse'?((p.workbookOverrides?.['zhuj.managementArea']??p.totalBuildingArea)<=100000?0:count):count,{sheet,row,note:key==='accountant'?'每2—3个项目共享1人，默认按2.5个项目分摊0.4人；不是每个项目各配1人。':key==='warehouse'?'10万㎡及以下由工程主任兼任，以上按实际确认专人或共享。':'只填兼岗、共享抵扣后的净配置；可选岗位按实际经营情况设置。'});
+for(const [key,label,count,sheet,row] of [['accountant','共享会计',.4,'综合管理服务',47],['cashier','出纳',1,'综合管理服务',48],['warehouse','仓管',1,'综合管理服务',49],['environmentHead','环境主管',0,'环境管理',3],['deputy','项目副经理',0,'综合管理服务',34],['support','会所、泳池及食堂等支持人员',0,'综合管理服务',50]]) {
+  parameter(`management.${key}.count`,`${label}净配置人数`,'人',p=>key==='warehouse'?((p.workbookOverrides?.['zhuj.managementArea']??p.totalBuildingArea)<=100000?0:count):count,{sheet,row,note:key==='accountant'?'每2—3个项目共享1人，默认按2.5个项目分摊0.4人；不是每个项目各配1人。':key==='warehouse'?'珠江标准：管理面积10万㎡及以下由工程主任兼任，不增加人员；超过10万㎡配置1名仓管。项目另有兼任或分摊安排时可按实际调整。':'只填兼岗、共享抵扣后的净配置；可选岗位按实际经营情况设置。'});
   parameter(`management.${key}.annualCost`,`${label}全年人均费用`,'元/人·年',()=>null,{group:'珠江·全年人工费用',note:'含全部人工附加；净配置为0时无需填写，未知不按0元工资处理。'});
 }
 for(const task of ZHUJIANG_TASKS) {

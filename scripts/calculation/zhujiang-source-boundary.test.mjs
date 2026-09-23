@@ -9,6 +9,33 @@ const p={...EXAMPLE_PROJECT,calculationModel:'zhujiang-v1',district:'增城区',
 const calc=(workbookOverrides={})=>calculateZhujiangProject({...p,workbookOverrides});
 const action=(r,id)=>r.actions.find(a=>a.id===id);
 
+test('warehouse follows the Zhujiang 100,000 square metre boundary and only requests its missing pay',()=>{
+  assert.match(sourceCell('综合管理服务',49,'D').sourceText,/仓库管理员[：:]\s*1\s*名/);
+  for(const area of [99999,100000,100001]) {
+    const project={...p,workbookOverrides:{'zhuj.managementArea':area}};
+    const r=calculateZhujiangProject(project);
+    const expected=area>100000?1:0;
+    assert.equal(r.management.roles.find(role=>role.title==='仓管').headcount,expected);
+    assert.ok(!r.missingInputs.some(item=>item.key==='zhuj.management.warehouse.count'));
+    assert.equal(r.missingInputs.some(item=>item.key==='zhuj.management.warehouse.annualCost'),expected===1);
+    const input=getZhujiangProjectInputs(project).find(item=>item.key==='zhuj.management.warehouse.count');
+    assert.equal(input.defaultValue,expected);
+    assert.equal(input.defaultLabel,'珠江标准取值');
+  }
+});
+
+test('warehouse actual annual pay is counted once in each budget and a project override is preserved',()=>{
+  const baseline=calc();
+  const paid=calc({'zhuj.management.warehouse.annualCost':60000});
+  for(const basis of ['standard','workload']) {
+    assert.ok(Math.abs(paid.budgetComparison[basis].annualCost-baseline.budgetComparison[basis].annualCost-60000)<0.01);
+  }
+  assert.ok(!paid.missingInputs.some(item=>item.key.includes('warehouse')));
+  const concurrent=calc({'zhuj.management.warehouse.count':0});
+  assert.equal(concurrent.management.roles.find(role=>role.title==='仓管').headcount,0);
+  assert.ok(!concurrent.missingInputs.some(item=>item.key.includes('warehouse')));
+});
+
 test('unentered project equipment is unknown, never the workbook sample; actual counts feed both uses',()=>{
   const inputs=getZhujiangInputs(p),r=calc();
   assert.equal(inputs.find(x=>x.key==='zhuj.asset.building.elevatorCount').value,null);
