@@ -9,7 +9,7 @@ const original = calculateWorkbookProject({...project,calculationModel:'workbook
 const action = (result,id) => result.actions.find(item=>item.id===id);
 
 test('missing Zhujiang plans use actual original annual frequencies, not zero or one cycle',()=>{
-  const result=calc();
+  const result=calc({'zhuj.asset.basement.generatorRoomCount':2,'zhuj.asset.building.elevatorCount':6});
   for(const id of ['service-5','cleaning-48','greening-5','engineering-routine-22','engineering-outsourced-67']) {
     assert.equal(action(result,id).annualFrequency,action(original,id).annualFrequency,id);
     assert.equal(action(result,id).standardStatus,'reference',id);
@@ -19,10 +19,10 @@ test('missing Zhujiang plans use actual original annual frequencies, not zero or
   assert.equal(action(result,'greening-8').standardStatus,'mapped');
 });
 
-test('template quantities are disclosed and explicit project overrides including zero take precedence',()=>{
+test('equipment is a project input and explicit counts including zero take precedence',()=>{
   const input=getZhujiangInputs(project).find(x=>x.key==='zhuj.asset.building.elevatorCount');
-  assert.equal(input.defaultValue,28);
-  assert.equal(input.defaultLabel,'动态成本表参考值');
+  assert.equal(input.defaultValue,null);
+  assert.match(input.note,/不使用原表的示例数量/);
   for(const value of [0,6]) {
     const r=calc({'zhuj.asset.building.elevatorCount':value});
     assert.equal(action(r,'engineering-routine-104').quantity,value);
@@ -45,10 +45,10 @@ test('reference-only patrol is costed and explicitly marked; complete actual rou
   assert.equal(action(actual,'assistance-8').headcount,Math.ceil((6*30+project.buildings.reduce((s,b)=>s+b.totalFloors,0))/60/8));
 });
 
-test('reference defaults reduce gaps without inventing missing new service measurements',()=>{
+test('reference defaults calculate known work without inventing project measurements',()=>{
   const r=calc();
-  assert.ok(r.activeActionCount>250);
-  assert.ok(r.missingInputs.length<130);
+  assert.ok(r.activeActionCount>0);
+  assert.ok(r.missingInputs.some(x=>x.key==='zhuj.asset.building.elevatorCount'));
   assert.equal(action(r,'zhuj-toilet-clean').standardStatus,'pending');
   assert.ok(r.missingInputs.length>0);
   assert.ok(r.missingInputs.every(x=>!/[A-Z]+-[A-Z]+-\d+/.test(x.label)));

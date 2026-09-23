@@ -288,7 +288,7 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
           <Button type="primary" icon={<FilePptOutlined />} loading={generation.status === 'running'} onClick={generatePresentation}>生成路演PPT</Button>
         </>}
       </Space></div>
-      {zhujiang && <Alert type="info" showIcon title={result.standard?.complete ? '按珠江标准及动态成本表测算，费用不含车库等经营收入。' : '已采用珠江标准及动态成本表参考值；部分新增服务仍需确认，当前费用为已计入小计。'} action={<Button size="small" onClick={()=>setDataReviewOpen(true)}>查看测算说明</Button>} style={{marginBottom:16}} />}
+      {zhujiang && <Alert type="info" showIcon title={result.standard?.complete ? '按珠江标准及动态成本表测算，费用不含车库等经营收入。' : '部分项目数据、作业工时或标准口径仍待确认，当前费用仅为已计入小计。'} action={<Button size="small" onClick={()=>setDataReviewOpen(true)}>查看测算说明</Button>} style={{marginBottom:16}} />}
       {zhujiang && result.budgetComparison && <Space style={{marginBottom:16}}><Typography.Text>测算方式</Typography.Text>{(['standard','workload'] as const).map(basis=><Button key={basis} type={result.budgetBasis===basis?'primary':'default'} disabled={parametersLoading} onClick={()=>switchBudget(basis)}>{basis==='standard'?'珠江人员配比':'服务动作工时'}</Button>)}</Space>}
       <section className="metrics-grid">
         <Card className="action-library-card"><Statistic title={zhujiang ? "已计入服务动作" : "标准动作库"} value={zhujiang ? activeActionCount : standardActionCount} suffix="项" /><small>{zhujiang ? '按服务类别查看明细' : `当前启用 ${activeActionCount} 项 · 停用 ${disabledActionCount} 项`}{customActionCount > 0 ? ` · 自定义 ${customActionCount} 项` : ''}</small></Card>
@@ -331,7 +331,7 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
         ]} />
         <Typography.Text type="secondary">两种预算独立计算、不相加。{staffing.sharedText}。费用尚未扣除其他经营收入。</Typography.Text></>}]} />}
       <Modal title="测算说明与项目核实" open={dataReviewOpen} onCancel={()=>setDataReviewOpen(false)} footer={<Button onClick={()=>setDataReviewOpen(false)}>关闭</Button>} width={900}>
-        <Typography.Paragraph>珠江已有规定优先采用；未规定的同类参数使用动态成本表参考值。以下仅列没有适用参考值或存在标准冲突的项目，不代表已载入的默认参数失效。</Typography.Paragraph>
+        <Typography.Paragraph>珠江标准决定服务要求，动态成本表补充适用的计算方法与参考工时；设备数量、面积及业务量由项目填写。下表包括项目数据、作业工时和标准差异，同一数据仅需填一次。确认服务范围后可能还需补充对应工时，并非每一项都属于标准冲突。</Typography.Paragraph>
         {!!result.missingInputs?.length && <Table rowKey="key" size="small" dataSource={result.missingInputs} pagination={{pageSize:8,showSizeChanger:false}} columns={[
           {title:'需确认内容',dataIndex:'label',render:(value:string)=>displayActionName(value)},
           {title:'说明',dataIndex:'reason'},

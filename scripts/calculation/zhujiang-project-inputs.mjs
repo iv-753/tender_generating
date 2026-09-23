@@ -32,8 +32,14 @@ export function getZhujiangProjectInputs(project) {
     if (taskMatch) {
       const task = ZHUJIANG_TASKS.find(task => task.key === taskMatch[1]);
       if (contractCovered && task.category === 'engineeringOutsourced') continue;
+      if (taskMatch[2] === 'quantity' && task.projectPlan && !Object.hasOwn(project.workbookOverrides??{},input.key)) continue;
+      if (taskMatch[2] === 'quantity' && task.quantityInputKey && !Object.hasOwn(project.workbookOverrides??{},input.key)) {
+        if(task.key==='lift-clean') continue;
+        visibleWhen=task.quantityInputKey;
+        note='默认共用已填写的对应区域数量，仅实际服务范围不同才单独调整。';
+      }
       if (taskMatch[2] === 'frequency' && taskFrequency(task, project.serviceGrade) !== null) continue;
-      if (taskMatch[2] !== 'quantity') visibleWhen = `zhuj.task.${task.key}.quantity`;
+      if (taskMatch[2] !== 'quantity' && !task.projectPlan) visibleWhen = Object.hasOwn(project.workbookOverrides??{},`zhuj.task.${task.key}.quantity`) ? `zhuj.task.${task.key}.quantity` : task.quantityInputKey ?? `zhuj.task.${task.key}.quantity`;
       const frequency = taskFrequency(task, project.serviceGrade);
       if (taskMatch[2] === 'quantity' && frequency !== null) note = `${note ?? ''} 所选珠江档次频次：${Number(frequency.toFixed(3))}次/${task.seasonal ? '运行日' : '年'}，自动带入。`;
     }
@@ -56,12 +62,12 @@ export function getZhujiangProjectInputs(project) {
     // Keep zero plans editable so the project can enable them again.
     if (!policy.values && (action.category === 'service' || action.quantity > 0 || missing.has(key))) {
       const input = byKey.get(key);
-      if (input) fields.push({...input, label: `${businessName(action.action)} · 年度计划次数`, defaultLabel: policy.kind === 'conflict' ? '原稿冲突待确认' : input.defaultLabel});
+      if (input) fields.push({...input, label: `${businessName(action.action)} · 年度计划次数`, defaultLabel: policy.kind === 'conflict' ? '原稿差异待确认' : policy.kind === 'scope' ? '作业范围待确认' : input.defaultLabel});
     }
     const effortKey = `清洁!F${action.id.split('-').at(-1)}`;
     if (['cleaning-16', 'cleaning-34', 'cleaning-40', 'cleaning-44'].includes(action.id) && (action.quantity > 0 || missing.has(effortKey))) {
       const input = byKey.get(effortKey);
-      if (input) fields.push({...input, label: `${businessName(action.action)} · 单位作业工时`, defaultLabel: input.defaultValue===null?'待项目确认':'动态成本表参考值'});
+      if (input) fields.push({...input, label: `${businessName(action.action)} · 单位作业工时`, unit:'人·小时/㎡·次', defaultLabel: input.defaultValue===null?'待项目确认':'动态成本表参考值'});
     }
   }
   for (const [index, title] of ['项目经理', '管家主任', '工程主任', '安保主任'].entries()) {

@@ -50,5 +50,5 @@ test('Zhujiang ratios follow the selected tier and public edits change the appro
   getCalculationInputs(copy);
   assert.deepEqual(copy, project);
   assert.deepEqual(calculate(copy).budgetComparison, before);
-  assert.equal(calculate(copy).unitPrice.toFixed(2), '3.35');
+  assert.equal(calculate(copy).unitPrice.toFixed(2), '3.21');
 });

@@ -25,7 +25,8 @@ const geometry = {
   'grounds.zoneArea':p=>p.greenArea,
   'grounds.roadArea':p=>p.pavedRoadArea,
 };
-for(const asset of ADVANCED_PARAMETER_DEFINITIONS) parameter(`asset.${asset.key}`,asset.label,asset.unit,p=>p.advancedParameterOverrides?.[asset.key]??geometry[asset.key]?.(p)??asset.templateValue??null,{group:'珠江·设备及场地',referenceDefault:!geometry[asset.key],note:geometry[asset.key]?'默认由项目基础数据计算，可按实际服务范围覆盖。':'请填项目实际数量；未知留空、没有填0。未填写时采用动态成本表模板数量作为参考，实际项目应覆盖；填0表示没有该设施。'});
+const assetQuantity=(p,key)=>p.workbookOverrides?.[`zhuj.asset.${key}`]??p.advancedParameterOverrides?.[key]??geometry[key]?.(p)??null;
+for(const asset of ADVANCED_PARAMETER_DEFINITIONS) parameter(`asset.${asset.key}`,asset.label,asset.unit,p=>p.advancedParameterOverrides?.[asset.key]??geometry[asset.key]?.(p)??null,{group:'珠江·设备及场地',integer:asset.round==='integer',note:geometry[asset.key]?'由项目基础数据计算，可按实际服务范围覆盖。':'填写本项目实际数量；未知留空，没有填0。同一设施供相关动作共用，不使用原表的示例数量。'});
 for(const [key,label] of [['service','客服'],['cleaning','保洁'],['greening','绿化'],['assistance','安保'],['engineeringRoutine','工程']]) parameter(`annualCost.${key}`,`${label}全年人均费用（含全部人工附加）`,'元/人·年',()=>null,{group:'珠江·全年人工费用',note:'可填工资、社保福利合计或同类外包年费用÷人数。填写后不再乘12或附加系数；留空使用原模型参考工资，保洁绿化按12个月预算。'});
 parameter('engineeringContractAnnualCost','工程委外全年合同费用','元/年',()=>null,{group:'珠江·全年人工费用',note:'填写后替代工程委外动作估价，不重复相加；不含自有工程人员。未知留空，确认无需委外才填0。'});
 for(const [i,label] of ['项目经理','管家主任','工程主任','安保主任'].entries()) parameter(`managementAnnualCost.${i}`,`${label}全年人均费用（含全部人工附加）`,'元/人·年',()=>null,{group:'珠江·全年人工费用',note:'填写后直接乘配置人数，不再增加1.06比例；人数仍在管理模块填写。留空使用原模型参考工资及比例。'});
@@ -62,8 +63,9 @@ for(const [key,label,count,sheet,row] of [['accountant','共享会计',.4,'综�
 }
 for(const task of ZHUJIANG_TASKS) {
   const meta={sheet:task.sheet,row:task.row,group:`珠江·${{service:'客服动作',cleaning:'保洁动作',greening:'绿化动作',pestControl:'分区消杀',engineeringRoutine:'工程动作',engineeringOutsourced:'委外动作'}[task.category]}`,taskKey:task.key};
-  const quantityDefault=p=>task.key==='lobby-mop'?geometry['building.groundFloorLobbyArea'](p):task.key==='building-structure'?geometry['building.buildingCount'](p):task.key==='lift-clean'?(p.workbookOverrides?.['zhuj.asset.building.elevatorCount']??p.advancedParameterOverrides?.['building.elevatorCount']??null):null;
-  parameter(`task.${task.key}.quantity`,`${task.label} · 适用数量`,task.unit,quantityDefault,{...meta,note:'填实际作业范围；没有该设施或服务填0，未知留空。大堂清拖面积、栋数及电梯门清洁台数可随基础数据联动。'+(task.note??'')});
+  const quantityDefault=p=>task.quantityInputKey?.startsWith('zhuj.asset.')?assetQuantity(p,task.quantityInputKey.slice(11)):task.quantityInputKey?(p.workbookOverrides?.[task.quantityInputKey]??null):task.projectPlan?1:task.key==='lobby-mop'?assetQuantity(p,'building.groundFloorLobbyArea'):task.key==='building-structure'?assetQuantity(p,'building.buildingCount'):null;
+  const sharedAreaLabels={'outdoor-furniture':'室外休闲及游乐设施清洁、消毒范围','pest-toilet':'卫生间病媒防治、消毒面积','pest-drains':'排污管沟病媒防治、消毒面积','pest-trash':'垃圾点病媒防治、消毒面积'};
+  parameter(`task.${task.key}.quantity`,`${sharedAreaLabels[task.key]??task.label} · 适用数量`,task.unit,quantityDefault,{...meta,note:'填实际作业范围；没有该设施或服务填0，未知留空。同一范围可供相关动作共用，范围不同可分别调整。'+(task.note??'')});
   parameter(`task.${task.key}.frequency`,`${task.label} · ${task.seasonal?'运行日频次':'年频次'}`,task.seasonal?'次/运行日':'次/年',p=>taskFrequency(task,p.serviceGrade),{...meta,note:task.note??'珠江固定频次；可按项目调整，0表示停用。'});
   parameter(`task.${task.key}.hours`,`${task.label} · 单位作业工时`,`人·小时/${task.unit}·次`,()=>null,{...meta,note:'填写单个单位一次作业的全部人时（含必要在途）；不复制其他工序工时，不填设备运行时间。'});
   if(task.seasonal) parameter(`task.${task.key}.days`,`${task.label} · 年运行天数`,'天/年',()=>null,{...meta,max:366});
@@ -132,7 +134,7 @@ function configuration(project) {
     mapped.set(rule.id,{...policyFor(rule.id,grade),key});
   }
   for(const policy of ACTION_POLICIES.values()) {
-    if(policy.values || policy.kind==='replaced' || policy.kind==='conflict') continue;
+    if(policy.values || ['replaced','conflict','scope'].includes(policy.kind)) continue;
     const key=frequencyKey(policy.id);
     // Optional extras require an actual project choice; they are not universal defaults.
     defaults[key]=policy.kind==='optional'?0:referenceActions.get(policy.id)?.annualFrequency??0;
@@ -201,7 +203,7 @@ export function calculateZhujiangProject(project) {
   const base=calculateWorkbookProject(baseProject,defaults);
   const missing=new Map();
   const need=(key,reason,id)=>{
-    if(!missing.has(key)) { const def=definitionMap.get(key)??INPUT_DEFINITIONS.find(d=>d.key===key); missing.set(key,{key,label:(def?.label??key).replace(/^[A-Z]+-[A-Z]+-\d+\s*/, ''),group:def?.group??'项目参数',reason,actionIds:[]}); }
+    if(!missing.has(key)) { const def=definitionMap.get(key)??INPUT_DEFINITIONS.find(d=>d.key===key); const label=key==='清洁!F34'?'楼道地面清拖 · 单位作业工时':key==='清洁!F40'?'疏散楼梯地面清拖 · 单位作业工时':(def?.label??key).replace(/^[A-Z]+-[A-Z]+-\d+\s*/, ''); missing.set(key,{key,label,group:def?.group??'项目参数',reason,actionIds:[]}); }
     if(!missing.get(key).actionIds.includes(id)) missing.get(key).actionIds.push(id);
   };
   const concurrent=value('managerConcurrentRole');
@@ -259,7 +261,7 @@ export function calculateZhujiangProject(project) {
     const hourly=task.category==='pestControl'?param('四害消杀!O17')/8:task.category==='engineeringOutsourced'?value('specialistHourlyRate'):referenceAnnualRates[task.category]/({service:2496,cleaning:2496,greening:2496,engineeringRoutine:2880}[task.category]);
     const pending=!excluded&&!covered&&(quantity===null||frequency===null||hours===null||days===null||hourly===null);
     if(pending) {
-      if(quantity===null) need(`zhuj.${prefix}.quantity`,'先确认实际服务范围；没有填0，确认纳入后再补工时和计划。',task.id);
+      if(quantity===null) need(task.quantityInputKey??`zhuj.${prefix}.quantity`,'填写本项目实际服务范围或数量，同一数据供相关动作共用；没有填0。',task.id);
       else {
         for(const [field,v,label] of [['frequency',frequency,'年频次'],['hours',hours,'单位作业人时'],['days',days,'运行天数']]) if(v===null) need(`zhuj.${prefix}.${field}`,`缺少${label}。${task.note??''}`,task.id);
         if(hourly===null) need('zhuj.specialistHourlyRate','缺少专业委外工时单价，也可直接填写全年工程委外合同总额。',task.id);
@@ -359,7 +361,7 @@ export function calculateZhujiangProject(project) {
     '原稿有口径差异：御享大堂墙面每月擦拭1次、雅享每半月1次，按原稿保留；污水井/化粪池及水泵巡检在不同章节存在冲突，列为待确认，不自动计价。',
     '原稿主入口夜班20:00—07:30与白班间有半小时空档，须按现场值守安排确认；物业管理面积及主次入口数量是项目输入，不由服务档次自动确定。',
     '管理岗位按经理、工程主任、安保主任设置；15万㎡以下经理兼任专业主任须确认并扣除重叠岗位。会计按2—3项目共享、出纳及仓管按实际配置和全年费用单列。',
-    '珠江未明确的同类计划、工时和设备数量由动态成本表参考值补充，项目实数优先；原稿冲突及无同类参考的新增动作仍需确认。旧消杀共享估算与乔灌木合并施肥已停用，由珠江分项替代。新增动作缺数量或工时仍会待填写，不等于无需服务。',
+    '珠江未明确的同类计划和工时由动态成本表参考值补充；设备数量、面积及业务量须由项目填写或从项目基础数据计算，不套用原表示例数量。原稿差异、服务范围及无同类参考的新增动作仍需确认。旧消杀共享估算与乔灌木合并施肥已停用，由珠江分项替代。',
     '所示单价只是当前服务支出÷住宅收费面积÷12；尚未扣除车库等收入、分摊非住宅成本，也未计入完整经营费用，不能作为盈亏平衡价或报价。',
   ];
   if(!patrolReady) warnings.unshift('巡逻人数暂按动态成本表面积配比估算；填写完整路线工时后按珠江频次重算。');
@@ -373,5 +375,5 @@ export function calculateZhujiangProject(project) {
   }
   const missingInputs=[...missing.values()];
   const unreviewedActionCount=actions.filter(a=>a.ruleKind==='unreviewed').length;
-  return {...base,calculationModel:ZHUJIANG_VERSION,project,missingInputs,standard:{...STANDARD_SOURCE,revision:'2026-09-23-reference-defaults',label:ZHUJIANG_GRADES[grade].label,mappedActionCount:mappedCount,referenceActionCount:actions.filter(a=>a.standardStatus==='reference').length,pendingActionCount:pendingCount,unreviewedActionCount,reviewedActionCount:actions.length-unreviewedActionCount,complete:missingInputs.length===0&&unreviewedActionCount===0,patrolReady},budgetComparison:comparison,budgetBasis:project.budgetBasis??'standard',categories,actions,warnings,totalActionCount:actions.length,standardActionCount:actions.length,activeActionCount:actions.filter(a=>a.enabled).length,totalHeadcount:chosen.headcount,annualCost:chosen.annualCost,unitPrice:chosen.unitPrice,workloadAnnualCost:sum(categories.map(c=>c.workloadAnnualCost))};
+  return {...base,calculationModel:ZHUJIANG_VERSION,project,missingInputs,standard:{...STANDARD_SOURCE,revision:'2026-09-23-source-boundary',label:ZHUJIANG_GRADES[grade].label,mappedActionCount:mappedCount,referenceActionCount:actions.filter(a=>a.standardStatus==='reference').length,pendingActionCount:pendingCount,unreviewedActionCount,reviewedActionCount:actions.length-unreviewedActionCount,complete:missingInputs.length===0&&unreviewedActionCount===0,patrolReady},budgetComparison:comparison,budgetBasis:project.budgetBasis??'standard',categories,actions,warnings,totalActionCount:actions.length,standardActionCount:actions.length,activeActionCount:actions.filter(a=>a.enabled).length,totalHeadcount:chosen.headcount,annualCost:chosen.annualCost,unitPrice:chosen.unitPrice,workloadAnnualCost:sum(categories.map(c=>c.workloadAnnualCost))};
 }

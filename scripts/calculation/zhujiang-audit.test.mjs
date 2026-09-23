@@ -13,10 +13,11 @@ test('outdoor cleaning is not billed as underground garage cleaning',()=>{
     assert.ok(!a.standardSource.includes('26'));
   }
 });
-test('original equipment defaults create disclosed reference engineering estimates',()=>{
+test('known geometry is calculated while unentered equipment remains unknown',()=>{
   const r=calc();
   assert.ok(r.categories.find(x=>x.category==='engineeringOutsourced').annualCost>0);
-  assert.equal(getZhujiangInputs(project).find(x=>x.key==='zhuj.asset.building.elevatorCount').value,28);
+  assert.equal(getZhujiangInputs(project).find(x=>x.key==='zhuj.asset.building.elevatorCount').value,null);
+  assert.equal(r.actions.find(x=>x.id==='engineering-outsourced-67').annualCost,0);
   assert.equal(r.standard.complete,false);
   assert.ok(r.standard.pendingActionCount>0);
   assert.equal(resultValidationError(r),undefined);

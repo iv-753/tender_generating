@@ -131,7 +131,7 @@ export interface CalculationAdjustments {
 
 export interface ServiceActionResult {
   standardStatus?: 'mapped' | 'manual' | 'reference' | 'pending' | 'excluded' | 'covered';
-  ruleKind?: 'fixed' | 'plan' | 'demand' | 'contract' | 'conflict' | 'optional' | 'replaced' | 'staffing' | 'unreviewed';
+  ruleKind?: 'fixed' | 'plan' | 'demand' | 'contract' | 'conflict' | 'scope' | 'optional' | 'replaced' | 'staffing' | 'unreviewed';
   standardSource?: string;
   standardText?: string;
   standardNote?: string;

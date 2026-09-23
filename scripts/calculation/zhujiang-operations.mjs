@@ -60,7 +60,11 @@ fixed([185],46,[12,12,12,12],'健身器材每月检查。');
 fixed([204],69,[156,156,52,52],'室外照明每周检查三次/一次。');
 fixed([219],42,[52,26,12,12],'围墙、栅栏检查；年度油漆养护另按实际数量和工时。');
 put(['engineering-routine-30'],'工程管理',49,'conflict','工程管理49要求泵房每日6/4次，89要求每日2/1次；由项目确认采用年频次，同一次巡查只计一遍。');
-put(rows('engineering-routine',[220,221,222,223,224,225,226,227,228]),'工程管理',40,'conflict','工程管理40、93与环境管理54对井池检查/清掏存在差异；合并按实际合同或年度计划确认，禁止跨部门重复记同一清掏。');
+put(rows('engineering-routine',[220,222]),'工程管理',40,'scope','原行混合隔油池、化粪池、污水池和雨水调蓄池；珠江按对象分别规定。需确认本行对象及计划，不能把化粪池频次套给全部池体。');
+put(rows('engineering-routine',[225,228]),'工程管理',40,'scope','原表通用保养不能直接视为疏通或清掏；请确认实际工序及年度计划，同次作业只计一次。');
+put(rows('engineering-routine',[221,224,227]),'工程管理',40,'plan','原表独立检测工序未被珠江单独量化，保留原表参考计划；不同于例行巡查和清掏，若实际已被其他作业覆盖应填0。');
+put(['engineering-routine-223'],'环境管理',54,'fixed','共用雨污水管道每季度检查一次；每年汛前疏通为另一工序，不与季度巡查重复相加。',[4,4,4,4]);
+put(['engineering-routine-226'],'工程管理',40,'conflict','工程管理40雨污水井巡查为每两周/每月/每季度/每半年；环境管理54统一每月检查。需确认同一井体采用的计划，不能相加。');
 // Composite room rows include fire, architectural and equipment checks with
 // different requirements. A single multiplied daily frequency would overprice all.
 put(rows('engineering-routine',[81,94,105]),'工程管理',35,'plan','原动作把机房基础、消防及专用设备混为一项；请填实际综合巡查次数和合并工时，已分项计费的部分不要重复。');
@@ -155,6 +159,21 @@ pest('larvicide','蚊虫孳生地生物灭幼',50,[season(1/7,1/14),214/7+5,14+2
 for(const t of ZHUJIANG_TASKS.filter(t=>['pest-toilet','disinfect-toilet'].includes(t.key))) {
   t.values=null; t.kind='conflict';
   t.note='环境管理46、49的分区规则与115/119/120的卫生间专章频次不一致，且后者未拆分防治和消毒。请确认一次实际年度计划；若同次联合作业，只在其中一项计工时，另一项填0。';
+}
+
+// Reuse only identical objects and units. Public-area pest and disinfection
+// scopes are deliberately separate: the source's listed areas differ.
+const sharedQuantities={
+  'lift-clean':'zhuj.asset.building.elevatorCount',
+  'outdoor-disinfect':'zhuj.task.outdoor-furniture.quantity',
+  'disinfect-toilet':'zhuj.task.pest-toilet.quantity',
+  'disinfect-drains':'zhuj.task.pest-drains.quantity',
+  'disinfect-trash':'zhuj.task.pest-trash.quantity',
+};
+for(const task of ZHUJIANG_TASKS) {
+  task.quantityInputKey=sharedQuantities[task.key];
+  task.projectPlan=['fire-training','owner-fire-training','flood-exercise','emergency-exercise','owner-survey'].includes(task.key);
+  if(task.projectPlan) task.note=[task.note,'频次已是全项目全年次数，单次填写全部组织作业人时，不再乘另一份场次数量；若同次见面会、宣传或培训已在其他动作计入，仅计未覆盖部分。'].filter(Boolean).join(' ');
 }
 
 export function taskSource(task,grade) {
