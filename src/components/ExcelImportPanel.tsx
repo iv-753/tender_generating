@@ -99,7 +99,7 @@ export default function ExcelImportPanel({ onApply }: Props) {
           ? <><strong>正在识别项目数据</strong><span>正在核对工作表与字段口径，通常需要约 1 分钟。</span></>
           : status === 'applied'
             ? <><strong>{fileName}</strong><span>识别结果已写入表单，请核对后开始测算。</span></>
-            : <span>上传已有项目资料，自动识别不同表头与数据口径；你也可以继续手动填写。</span>}
+            : <span>上传已有项目资料，自动识别并填写项目信息；你也可以继续手动填写。</span>}
       </div>
       <div className="excel-import-action">
         {status === 'recognizing' ? <GenerationProgress

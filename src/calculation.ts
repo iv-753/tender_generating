@@ -81,7 +81,7 @@ export function staffingPresentation(result: { calculationModel?: string; totalH
   const allocation = shared.reduce((sum, role) => sum + role.headcount, 0);
   return {
     headcount: Math.ceil(Math.max(0, total - allocation) - 1e-9),
-    sharedText: shared.map(role => `${role.title}按${Number((role.headcount * 100).toFixed(2))}%分摊费用`).join('；'),
+    sharedText: shared.map(role => `${role.title.replace('共享','')}费用：本项目暂按${Number((role.headcount * 100).toFixed(2))}%分摊`).join('；'),
   };
 }
 

@@ -53,8 +53,8 @@ export default function ProjectCenterPage({ onNew, onOpen, onEdit }: ProjectCent
     },
     { title: '服务等级', key: 'grade', width: 150, render: (_: unknown, item: ProjectRecord) => gradeLabel(item.result.project.serviceGrade, item.result.calculationModel) },
     { title: '收费面积', key: 'area', width: 130, align: 'right' as const, render: (_: unknown, item: ProjectRecord) => `${number.format(item.result.project.residentialChargeArea)} ㎡` },
-    { title: '配置人数', key: 'staffing', width: 120, align: 'right' as const, render: (_: unknown, item: ProjectRecord) => <span>{staffingPresentation(item.result).headcount} 人{staffingPresentation(item.result).sharedText && <small style={{display:"block"}}>共享岗位费用另分摊</small>}</span> },
-    { title: '年成本', key: 'cost', width: 130, align: 'right' as const, render: (_: unknown, item: ProjectRecord) => <strong className="project-cost">{currency.format(item.result.annualCost)}{item.result.calculationModel === 'zhujiang-v1' && <small style={{ display: 'block' }}>{item.result.standard?.complete ? '服务成本 · 非报价' : '小计 · 待补数据'}</small>}</strong> },
+    { title: '配置人数', key: 'staffing', width: 120, align: 'right' as const, render: (_: unknown, item: ProjectRecord) => <span>{staffingPresentation(item.result).headcount} 人{staffingPresentation(item.result).sharedText && <small style={{display:"block"}}>跨项目人员费用另计</small>}</span> },
+    { title: '年成本', key: 'cost', width: 130, align: 'right' as const, render: (_: unknown, item: ProjectRecord) => <strong className="project-cost">{currency.format(item.result.annualCost)}{item.result.calculationModel === 'zhujiang-v1' && <small style={{ display: 'block' }}>{item.result.standard?.complete ? '服务成本 · 非报价' : '费用未齐 · 待补资料'}</small>}</strong> },
     {
       title: '交付成果',
       key: 'deliverables',
