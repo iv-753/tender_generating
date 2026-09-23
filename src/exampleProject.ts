@@ -1,4 +1,5 @@
 import type { ProjectData } from './types';
+import exampleData from './data/zhujiang-example.json' with { type: 'json' };
 
 export const EXAMPLE_PROJECT: ProjectData = {
   projectName: '增城示范花园',
@@ -43,3 +44,29 @@ export const EXAMPLE_PROJECT: ProjectData = {
   garageFloorArea: 40060.27,
   garageFloors: 2,
 };
+
+/** Explicit demonstration data only; the calculation engine never applies it to real projects. */
+export function createZhujiangExampleProject(serviceGrade: ProjectData['serviceGrade'] = EXAMPLE_PROJECT.serviceGrade): ProjectData {
+  return structuredClone({
+    ...EXAMPLE_PROJECT,
+    projectName: `${EXAMPLE_PROJECT.projectName}（示例）`,
+    calculationModel: 'zhujiang-v1',
+    district: '增城区',
+    serviceGrade,
+    exampleDataVersion: exampleData.version,
+    workbookOverrides: { ...exampleData.workbookQuantities, ...exampleData.scenario, ...exampleData.plans[serviceGrade] },
+  });
+}
+
+/** Change only untouched demo plans; preserve project edits and the grade's fixed standards. */
+export function updateExampleGradePlans(overrides: Record<string, number | string>, previousGrade: ProjectData['serviceGrade'], nextGrade: ProjectData['serviceGrade']) {
+  const previous: Record<string, number> = exampleData.plans[previousGrade];
+  const next: Record<string, number> = exampleData.plans[nextGrade];
+  const updated = { ...overrides };
+  for (const key of new Set([...Object.keys(previous), ...Object.keys(next)])) {
+    if (updated[key] !== previous[key]) continue;
+    if (next[key] === undefined) delete updated[key];
+    else updated[key] = next[key];
+  }
+  return updated;
+}

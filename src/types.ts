@@ -12,6 +12,7 @@ export interface BuildingTypeInput {
 }
 
 export interface ProjectData {
+  exampleDataVersion?: string;
   calculationModel?: 'workbook-v3' | 'zhujiang-v1';
   budgetBasis?: 'standard' | 'workload';
   district?: string;
@@ -43,7 +44,7 @@ export interface ProjectData {
 
 export type RecognizedBuildingData = { [Field in keyof BuildingTypeInput]: BuildingTypeInput[Field] | null };
 export type RecognizedProjectData = {
-  [Field in Exclude<keyof ProjectData, 'buildings' | 'advancedParameterOverrides' | 'calculationModel' | 'district' | 'workbookOverrides' | 'budgetBasis'>]: ProjectData[Field] | null;
+  [Field in Exclude<keyof ProjectData, 'buildings' | 'advancedParameterOverrides' | 'calculationModel' | 'district' | 'workbookOverrides' | 'budgetBasis' | 'exampleDataVersion'>]: ProjectData[Field] | null;
 } & {
   buildings: RecognizedBuildingData[];
   calculationModel?: ProjectData['calculationModel'];

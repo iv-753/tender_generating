@@ -8,7 +8,7 @@ import AdvancedParametersDrawer from '../components/AdvancedParametersDrawer';
 import WorkbookParametersDrawer from '../components/WorkbookParametersDrawer';
 import { workbookCities, workbookDistricts } from '../workbookLocation';
 import GenerationProgress from '../components/GenerationProgress';
-import { EXAMPLE_PROJECT } from '../exampleProject';
+import { createZhujiangExampleProject, updateExampleGradePlans } from '../exampleProject';
 import { storage } from '../storage';
 import type { AdvancedParameterSnapshot, BuildingTypeInput, ExcelRecognitionResult, ProjectData, ServiceGrade, WorkbookInput } from '../types';
 import { calculateProject, previewAdvancedParameters, previewWorkbookInputs } from '../workbookCalculator';
@@ -45,7 +45,9 @@ function profileNumber(value?: number) {
 
 export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
   const [form] = Form.useForm<ProjectData>();
-  const draft = useMemo(() => ({ ...normalizeProjectLocation(storage.loadDraft() ?? { ...EXAMPLE_PROJECT, district: '增城区' }), calculationModel: 'zhujiang-v1' as const }), []);
+  const draft = useMemo(() => ({ ...normalizeProjectLocation(storage.loadDraft() ?? createZhujiangExampleProject()), calculationModel: 'zhujiang-v1' as const }), []);
+  const [exampleDataVersion, setExampleDataVersion] = useState(draft.exampleDataVersion);
+  const [exampleGrade, setExampleGrade] = useState(draft.serviceGrade);
   const [currentStep, setCurrentStep] = useState(0);
   const [calculating, setCalculating] = useState(false);
   const [calculationStartedAt, setCalculationStartedAt] = useState(0);
@@ -71,6 +73,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
     const values = await form.validateFields();
     const project = {
       ...values,
+      exampleDataVersion,
       calculationModel: 'zhujiang-v1' as const,
       budgetBasis: draft.budgetBasis ?? 'standard',
       workbookOverrides,
@@ -162,24 +165,51 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
 
   const applyRecognition = (result: ExcelRecognitionResult) => {
     form.setFieldsValue({ ...result.project, calculationModel: 'zhujiang-v1' } as ProjectData);
+    // Importing a real project must not retain hidden demonstration facts or costs.
+    setWorkbookOverrides(result.project.workbookOverrides ?? {});
+    setAdvancedParameterOverrides(result.project.advancedParameterOverrides ?? {});
+    setExampleDataVersion(undefined);
+    setWorkbookInputs([]);
     const missingStep = firstMissingStep(result.missingFields);
     if (missingStep !== undefined) setCurrentStep(missingStep);
     setError('');
     message.success(result.missingFields.length ? '识别结果已写入，请补充缺失字段' : '识别结果已写入，请核对后开始测算');
   };
 
+  const loadExample = () => {
+    const example = createZhujiangExampleProject(form.getFieldValue('serviceGrade') ?? draft.serviceGrade);
+    form.resetFields();
+    form.setFieldsValue(example);
+    setWorkbookOverrides(example.workbookOverrides ?? {});
+    setAdvancedParameterOverrides({});
+    setExampleDataVersion(example.exampleDataVersion);
+    setExampleGrade(example.serviceGrade);
+    setWorkbookInputs([]);
+    setError('');
+    setAdvancedError('');
+    setCurrentStep(0);
+    message.success('已载入示例设备、面积、作业用时及费用，可直接测算');
+  };
+
   return (
     <main className="workspace-page">
-      {model === 'zhujiang-v1' && <Alert type="info" showIcon title="珠江四档测算 · 请核实项目数据" description="先填基础资料，再确认设备数量、服务范围、作业时间和人工费用。服务次数按珠江标准带入；缺少的资料可在测算后补充。示例数据仅供体验，请替换为项目实际数据。" style={{ marginBottom: 16 }} />}
+      {model === 'zhujiang-v1' && <Alert type="info" showIcon title={exampleDataVersion ? '当前为示例项目 · 可直接测算' : '珠江四档测算 · 请核实项目数据'} description={exampleDataVersion ? '已载入示例设备、服务面积、作业用时和费用。示例值仅用于体验，不代表珠江实际项目；导入项目资料后使用实际数据。' : '先填基础资料，再确认设备数量、服务范围、作业时间和人工费用。服务次数按珠江标准带入；也可载入示例数据体验。'} style={{ marginBottom: 16 }} />}
       <div className="page-heading blueprint-rule">
         <div><Typography.Title level={2}>新建物业测算项目</Typography.Title><Typography.Paragraph type="secondary">录入项目基础信息，生成服务方案、人员配置与成本测算。</Typography.Paragraph></div>
+        <Button onClick={loadExample} disabled={calculating || previewingAdvanced}>载入示例数据</Button>
       </div>
       <ExcelImportPanel onApply={applyRecognition} />
         <div className="input-workspace">
           <aside className="step-rail"><Typography.Text className="panel-kicker">录入进度</Typography.Text><Steps direction="vertical" current={currentStep} items={steps.map((title) => ({ title }))} onChange={setCurrentStep} /></aside>
           <Card className="form-panel" bordered={false}>
             {error && <Alert className="form-alert" type="error" showIcon message={error} closable onClose={() => setError('')} />}
-            <Form<ProjectData> form={form} layout="vertical" initialValues={draft} requiredMark="optional">
+            <Form<ProjectData> form={form} layout="vertical" initialValues={draft} requiredMark="optional" onValuesChange={(changed: Partial<ProjectData>) => {
+              if (exampleDataVersion && changed.serviceGrade) {
+                const nextGrade = changed.serviceGrade;
+                setWorkbookOverrides(current => updateExampleGradePlans(current, exampleGrade, nextGrade));
+                setExampleGrade(nextGrade);
+              }
+            }}>
               <Form.Item name="calculationModel" hidden><Input /></Form.Item>
               <Typography.Paragraph type="secondary">按所选珠江服务等级和项目资料，估算所需人员与费用。</Typography.Paragraph>
               <section className={currentStep === 0 ? 'form-section' : 'form-section is-hidden'}>
