@@ -53,7 +53,7 @@ export function resultValidationError(result) {
   const expectedIds = new Map(EXPECTED_STANDARD_IDS);
   if (['workbook-v3', 'zhujiang-v1'].includes(result.calculationModel)) expectedIds.set('assistance-6', 'assistance');
   if (result.calculationModel === 'zhujiang-v1') for (const id of ['zhuj-theme-publicity', 'zhuj-owner-meeting', 'zhuj-open-day', 'zhuj-noticeboard']) expectedIds.set(id, 'service');
-  if (result.calculationModel === 'zhujiang-v1' && result.standard?.revision === '2026-09-22-operations') for (const task of ZHUJIANG_TASKS) expectedIds.set(task.id,task.category);
+  if (result.calculationModel === 'zhujiang-v1' && ['2026-09-22-operations','2026-09-23-reference-defaults'].includes(result.standard?.revision)) for (const task of ZHUJIANG_TASKS) expectedIds.set(task.id,task.category);
   const expectedCount = expectedIds.size;
   if (result.standardActionCount !== expectedCount) return `标准动作数必须为 ${expectedCount} 项，请重新测算`;
 

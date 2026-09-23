@@ -75,6 +75,16 @@ export function displayStaffingCount(headcount: number, model?: string) {
   return model === 'zhujiang-v1' ? Math.round(headcount * 10000) / 10000 : Math.ceil(headcount);
 }
 
+export function staffingPresentation(result: { calculationModel?: string; totalHeadcount: number; management?: { roles?: Array<{title: string; headcount: number}> } }, total = result.totalHeadcount) {
+  const shared = result.calculationModel === 'zhujiang-v1'
+    ? result.management?.roles?.filter(role => role.headcount > 0 && (role.title.includes('共享') || !Number.isInteger(role.headcount))) ?? [] : [];
+  const allocation = shared.reduce((sum, role) => sum + role.headcount, 0);
+  return {
+    headcount: Math.ceil(Math.max(0, total - allocation) - 1e-9),
+    sharedText: shared.map(role => `${role.title}按${Number((role.headcount * 100).toFixed(2))}%分摊费用`).join('；'),
+  };
+}
+
 export function showsActionHeadcount(category: ActionCategory) {
   return category === 'assistance';
 }

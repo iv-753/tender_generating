@@ -9,14 +9,14 @@ test('outdoor cleaning is not billed as underground garage cleaning',()=>{
   const r=calc();
   for(const id of ['cleaning-47','cleaning-48']) {
     const a=r.actions.find(x=>x.id===id);
-    assert.equal(a.standardStatus,'pending'); assert.equal(a.annualCost,0);
+    assert.equal(a.standardStatus,'reference'); assert.ok(a.annualCost>0);
     assert.ok(!a.standardSource.includes('26'));
   }
 });
-test('unconfirmed original equipment is blank and does not create engineering costs',()=>{
+test('original equipment defaults create disclosed reference engineering estimates',()=>{
   const r=calc();
-  assert.equal(r.categories.find(x=>x.category==='engineeringOutsourced').annualCost,0);
-  assert.equal(getZhujiangInputs(project).find(x=>x.key==='zhuj.asset.building.elevatorCount').value,null);
+  assert.ok(r.categories.find(x=>x.category==='engineeringOutsourced').annualCost>0);
+  assert.equal(getZhujiangInputs(project).find(x=>x.key==='zhuj.asset.building.elevatorCount').value,28);
   assert.equal(r.standard.complete,false);
   assert.ok(r.standard.pendingActionCount>0);
   assert.equal(resultValidationError(r),undefined);
@@ -65,7 +65,7 @@ test('mopping does not reuse old deep-cleaning effort without explicit confirmat
 });
 test('contract amount replaces engineering estimate and is counted once in each independent budget',()=>{
   const a=calc(),b=calc({'zhuj.engineeringContractAnnualCost':36000});
-  for(const basis of ['standard','workload']) assert.equal(b.budgetComparison[basis].annualCost-a.budgetComparison[basis].annualCost,36000);
+  for(const basis of ['standard','workload']) assert.ok(Math.abs(b.budgetComparison[basis].annualCost-a.budgetComparison[basis].annualCost-(36000-a.categories.find(c=>c.category==='engineeringOutsourced').annualCost))<1e-6);
   assert.equal(resultValidationError(b),undefined);
 });
 test('all-in management expense has no duplicate welfare percentage',()=>{

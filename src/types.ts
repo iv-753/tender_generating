@@ -101,6 +101,7 @@ export interface AdvancedParameterSnapshot {
 export interface ManagementCostSummary {
   headcount: number;
   annualCost: number;
+  roles?: Array<{ title: string; headcount: number; annualCost?: number }>;
 }
 
 export interface ActionOverride {
@@ -201,6 +202,7 @@ export interface LegacyCalculationResult extends CalculationResultBase {
 export type CalculationResult = CalculationResultV2 | LegacyCalculationResult;
 
 export interface WorkbookInput {
+  displayScale?: number;
   visibleWhen?: string;
   key: string;
   label: string;

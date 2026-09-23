@@ -25,7 +25,7 @@ const geometry = {
   'grounds.zoneArea':p=>p.greenArea,
   'grounds.roadArea':p=>p.pavedRoadArea,
 };
-for(const asset of ADVANCED_PARAMETER_DEFINITIONS) parameter(`asset.${asset.key}`,asset.label,asset.unit,p=>p.advancedParameterOverrides?.[asset.key]??geometry[asset.key]?.(p)??null,{group:'珠江·设备及场地',note:geometry[asset.key]?'默认由项目基础数据计算，可按实际服务范围覆盖。':'请填项目实际数量；未知留空、没有填0。旧项目模板数量不参与计算。'});
+for(const asset of ADVANCED_PARAMETER_DEFINITIONS) parameter(`asset.${asset.key}`,asset.label,asset.unit,p=>p.advancedParameterOverrides?.[asset.key]??geometry[asset.key]?.(p)??asset.templateValue??null,{group:'珠江·设备及场地',referenceDefault:!geometry[asset.key],note:geometry[asset.key]?'默认由项目基础数据计算，可按实际服务范围覆盖。':'请填项目实际数量；未知留空、没有填0。未填写时采用动态成本表模板数量作为参考，实际项目应覆盖；填0表示没有该设施。'});
 for(const [key,label] of [['service','客服'],['cleaning','保洁'],['greening','绿化'],['assistance','安保'],['engineeringRoutine','工程']]) parameter(`annualCost.${key}`,`${label}全年人均费用（含全部人工附加）`,'元/人·年',()=>null,{group:'珠江·全年人工费用',note:'可填工资、社保福利合计或同类外包年费用÷人数。填写后不再乘12或附加系数；留空使用原模型参考工资，保洁绿化按12个月预算。'});
 parameter('engineeringContractAnnualCost','工程委外全年合同费用','元/年',()=>null,{group:'珠江·全年人工费用',note:'填写后替代工程委外动作估价，不重复相加；不含自有工程人员。未知留空，确认无需委外才填0。'});
 for(const [i,label] of ['项目经理','管家主任','工程主任','安保主任'].entries()) parameter(`managementAnnualCost.${i}`,`${label}全年人均费用（含全部人工附加）`,'元/人·年',()=>null,{group:'珠江·全年人工费用',note:'填写后直接乘配置人数，不再增加1.06比例；人数仍在管理模块填写。留空使用原模型参考工资及比例。'});
@@ -47,7 +47,7 @@ parameter('peakWeekdays','全年工作日高峰天数','天/年',()=>260,{max:36
 parameter('monitorPosts','消防安防合用监控中心数量','个',()=>1,{integer:true,sheet:'安全管理',row:52,note:'默认合用监控中心1处，请按项目实际调整。'});
 parameter('monitorStaff','每班监控中心人员','人/班',()=>2,{integer:true,sheet:'安全管理',row:52,note:'原稿1—2人/班，中值1.5人向上取整为2；分设中心须另核，不能替代属地要求确认。'});
 parameter('securityLeaders','安保班长人数','人',()=>3,{integer:true,sheet:'安全管理',row:3,note:'原稿2—3人，中值2.5人向上取整为3。'});
-parameter('outdoorPatrolMinutes','园区每轮巡逻总工时','人·分钟/轮',()=>null,{sheet:'安全管理',row:44,note:'珠江只规定频次，未规定耗时；请填实际路线人时。未填不计价，明确没有此服务范围才填0。'});
+parameter('outdoorPatrolMinutes','园区每轮巡逻总工时','人·分钟/轮',()=>null,{sheet:'安全管理',row:44,note:'未填完整路线时按动态成本表面积配比估算；填写完整路线人时后按珠江频次重算。没有此范围才填0。'});
 parameter('indoorPatrolMinutes','楼内每层每轮巡逻工时','人·分钟/层·轮',()=>null,{sheet:'安全管理',row:46,note:'珠江只规定频次，未规定耗时；请按实际路线填写，未填写不代表零工时。'});
 parameter('priorityPatrolMinutes','重点部位额外巡逻每日总工时','人·分钟/天',()=>null,{sheet:'安全管理',row:44,note:'重点部位另有每1/2/3小时巡查要求；填写常规路线尚未覆盖部分的额外日工时，避免重复计算。常规路线已全部覆盖时可明确填0。'});
 parameter('paidEngineeringStaff','有偿维修专职人员','人',()=>0,{integer:true,sheet:'工程管理',row:6,note:'有偿服务另列，按开展情况配置，避免未经确认计入基础物业服务预算。'});
@@ -85,7 +85,7 @@ const engineeringRules=[...ENGINEERING_ROUTINE_RULES,...ENGINEERING_OUTSOURCED_R
 const engineeringById=new Map(engineeringRules.map(a=>[a.id,a]));
 const frequencyKey=id=>{const row=id.split('-').at(-1);return id.startsWith('cleaning-')?`清洁!X${row}`:id.startsWith('greening-')?`绿化!U${row}`:id.startsWith('service-')?`服务!P${row}`:id.startsWith('pest-')?'四害消杀!K5':`${id.startsWith('engineering-outsourced')?'工程委外':'工程常规'}!L${row}`;};
 const frequencyDefinitions=INPUT_DEFINITIONS.filter(x=>/^(服务!P\d+|清洁!X\d+|绿化!U\d+|工程(?:常规|委外)!L\d+|四害消杀!K5)$/.test(x.key));
-const needsNewEffort=new Set(['cleaning-16','cleaning-34','cleaning-40','cleaning-44']);
+const needsNewEffort=new Set(['cleaning-34','cleaning-40']);
 const garageAssets=new Set(['basement.parkingArea','basement.fireShutterCount','basement.parkingSurveillanceCount','basement.vehicleEntranceEquipmentCount','basement.vehicleEntranceArea','basement.chargingMeterRoomCount']);
 
 function originalProject(project) {
@@ -116,6 +116,9 @@ function configuration(project) {
   // A common reference wage across all four tiers. Qualification requirements
   // do not provide a numeric salary premium, so never invent one from A/B/C/D.
   const defaults={'清洁!Z3':location.cleaningMonthly.C/26,'绿化!W3':location.greeningMonthly.C/26,'客助!C6':0};
+  const reference=calculateWorkbookProject({...originalProject(project),workbookOverrides:{}});
+  const referenceActions=new Map(reference.actions.map(a=>[a.id,a]));
+  const referenceKeys=new Set();
   const pendingKeys=new Set();
   for(const def of frequencyDefinitions) { defaults[def.key]=0; pendingKeys.add(def.key); }
   const mapped=new Map();
@@ -127,6 +130,13 @@ function configuration(project) {
     pendingKeys.delete(key);
     if(rule.id.startsWith('engineering-')) defaults[`工程常规!M${row}`]=1;
     mapped.set(rule.id,{...policyFor(rule.id,grade),key});
+  }
+  for(const policy of ACTION_POLICIES.values()) {
+    if(policy.values || policy.kind==='replaced' || policy.kind==='conflict') continue;
+    const key=frequencyKey(policy.id);
+    // Optional extras require an actual project choice; they are not universal defaults.
+    defaults[key]=policy.kind==='optional'?0:referenceActions.get(policy.id)?.annualFrequency??0;
+    referenceKeys.add(key); pendingKeys.delete(key);
   }
   const baseProject=originalProject(project);
   // The source specifies one manager, one engineering head and one security head.
@@ -161,17 +171,17 @@ function configuration(project) {
       delete baseProject.workbookOverrides[frequencyKey(id)];
     }
   }
-  return {value,defaults,mapped,manual,baseProject,pendingKeys,quantityValues};
+  return {value,defaults,mapped,manual,baseProject,pendingKeys,quantityValues,referenceKeys};
 }
 
 export function getZhujiangInputs(project) {
-  const {value,defaults,mapped,manual,baseProject,pendingKeys}=configuration(project);
+  const {value,defaults,mapped,manual,baseProject,pendingKeys,referenceKeys}=configuration(project);
   const extra=definitions.map(({defaultFor,rangeName,sheet,row,...def})=>{
     const range=rangeName?gradeValue(STAFFING_RANGES[rangeName],project.serviceGrade):null;
     const sourceRow=def.key==='zhuj.zhuj-noticeboard.frequency'&&['A','B'].includes(project.serviceGrade)?95:row;
     const task=def.taskKey?ZHUJIANG_TASKS.find(t=>t.key===def.taskKey):null;
     const provenance=task?taskSource(task,project.serviceGrade):sheet?sourceCell(sheet,sourceRow,project.serviceGrade):{};
-    return {...def,...provenance,value:value(def.key.slice(5)),defaultValue:defaultFor(project),source:has(manual,def.key)?'manual':'model',note:[range?`珠江原区间：${range[0]}—${range[1]}${def.unit}；默认取中值。`:'',def.note].filter(Boolean).join(' '),defaultLabel:sheet?'珠江标准 / 测算取值':'项目参考值'};
+    return {...def,...provenance,value:value(def.key.slice(5)),defaultValue:defaultFor(project),source:has(manual,def.key)?'manual':'model',note:[range?`珠江原区间：${range[0]}—${range[1]}${def.unit}；默认取中值。`:'',def.note].filter(Boolean).join(' '),defaultLabel:def.referenceDefault?'动态成本表参考值':sheet?'珠江标准 / 测算取值':'项目参考值'};
   });
   const byKey=new Map([...mapped.values()].map(item=>[item.key,item]));
   // These old controls are replaced by explicit Zhujiang post and staffing rules.
@@ -181,17 +191,17 @@ export function getZhujiangInputs(project) {
     const waiting=pendingKeys.has(item.key);
     const frequency=frequencyDefinitions.some(d=>d.key===item.key);
     const policy=policiesByKey.get(item.key);
-    return {...item,label:item.label.replace('客助主任','安保主任'),...(rule?{value:manual[item.key]??gradeValue(rule.values,project.serviceGrade),defaultValue:gradeValue(rule.values,project.serviceGrade),sourceRef:rule.sourceRef,sourceText:rule.sourceText,note:rule.note,defaultLabel:'珠江分级标准'}:{defaultLabel:'原模型参考参数'}),...(waiting?{value:manual[item.key]??null,defaultValue:null,defaultLabel:policy?.kind==='conflict'?'原稿冲突待确认':'待项目数据',sourceRef:policy?.sourceRef,sourceText:policy?.sourceText,note:frequency?policy?.note??'按项目确认年度计划。':'未核实，不采用旧项目数值。请填写实际数量或对应作业耗时。'}:{}),...(frequency&&/^工程/.test(item.key)?{label:item.label.replace('每周期次数','年作业频次'),unit:'次/年'}:{}),...(item.key==='服务!P15'?{label:'其他社区文化活动 · 年作业频次'}:{})};
+    return {...item,label:item.label.replace('客助主任','安保主任'),...(rule?{value:manual[item.key]??gradeValue(rule.values,project.serviceGrade),defaultValue:gradeValue(rule.values,project.serviceGrade),sourceRef:rule.sourceRef,sourceText:rule.sourceText,note:rule.note,defaultLabel:'珠江分级标准'}:{defaultLabel:referenceKeys.has(item.key)?'动态成本表参考值':'原模型参考参数',...(referenceKeys.has(item.key)?{note:'珠江未规定数值，采用动态成本表基础参考计划，可按项目实际调整。',sourceRef:undefined,sourceText:undefined}:{} )}),...(waiting?{value:manual[item.key]??null,defaultValue:null,defaultLabel:policy?.kind==='conflict'?'原稿冲突待确认':'待项目数据',sourceRef:policy?.sourceRef,sourceText:policy?.sourceText,note:frequency?policy?.note??'按项目确认年度计划。':'此项没有适用的同类默认值，请按项目实际填写。'}:{}),...(frequency&&/^工程/.test(item.key)?{label:item.label.replace('每周期次数','年作业频次'),unit:'次/年'}:{}),...(item.key==='服务!P15'?{label:'其他社区文化活动 · 年作业频次'}:{})};
   });
   return [...extra,...base];
 }
 
 export function calculateZhujiangProject(project) {
-  const {value,defaults,mapped,manual,baseProject,pendingKeys,quantityValues}=configuration(project);
+  const {value,defaults,mapped,manual,baseProject,pendingKeys,quantityValues,referenceKeys}=configuration(project);
   const base=calculateWorkbookProject(baseProject,defaults);
   const missing=new Map();
   const need=(key,reason,id)=>{
-    if(!missing.has(key)) { const def=definitionMap.get(key)??INPUT_DEFINITIONS.find(d=>d.key===key); missing.set(key,{key,label:def?.label??key,group:def?.group??'项目参数',reason,actionIds:[]}); }
+    if(!missing.has(key)) { const def=definitionMap.get(key)??INPUT_DEFINITIONS.find(d=>d.key===key); missing.set(key,{key,label:(def?.label??key).replace(/^[A-Z]+-[A-Z]+-\d+\s*/, ''),group:def?.group??'项目参数',reason,actionIds:[]}); }
     if(!missing.get(key).actionIds.includes(id)) missing.get(key).actionIds.push(id);
   };
   const concurrent=value('managerConcurrentRole');
@@ -220,18 +230,18 @@ export function calculateZhujiangProject(project) {
     const key=frequencyKey(item.id),eng=engineeringById.get(item.id);
     const quantity=item.id==='cleaning-27'?value('lobbyMarbleArea'):eng?quantityValues.get(item.id):item.category==='pestControl'?(manual['四害消杀!C5']??value('asset.pest.treatmentArea')):item.quantity;
     const outOfScope=value('garageIncluded')===0&&((eng&&garageAssets.has(eng.quantityParameterKey))||/^cleaning-(47|48|49|50|51|52)$/.test(item.id));
-    const excluded=outOfScope||quantity===0||policy?.kind==='replaced'||(has(manual,key)&&manual[key]===0);
+    const excluded=outOfScope||quantity===0||policy?.kind==='replaced'||(has(manual,key)&&manual[key]===0)||(referenceKeys.has(key)&&!has(manual,key)&&defaults[key]===0);
     const effortMissing=needsNewEffort.has(item.id)&&pendingKeys.has(`清洁!F${item.id.split('-').at(-1)}`);
     const covered=item.category==='engineeringOutsourced'&&value('engineeringContractAnnualCost')!==null&&!excluded;
-    const pending=!excluded&&!covered&&(quantity===null||(!rule&&!has(manual,key))||effortMissing);
+    const pending=!excluded&&!covered&&(quantity===null||(!rule&&!referenceKeys.has(key)&&!has(manual,key))||effortMissing);
     if(pending) {
       if(quantity===null&&eng) need(`zhuj.asset.${eng.quantityParameterKey}`,'缺少项目设备/场地实际数量。',item.id);
       if(item.id==='cleaning-27'&&quantity===null) need('zhuj.lobbyMarbleArea','需按大堂实际材质确认晶面养护面积。',item.id);
-      if(quantity!==null&&!rule&&!has(manual,key)) need(key,policy?.note??'需确认项目年频次。',item.id);
+      if(quantity!==null&&!rule&&!referenceKeys.has(key)&&!has(manual,key)) need(key,policy?.note??'需确认项目年频次。',item.id);
       if(quantity!==null&&effortMissing) need(`清洁!F${item.id.split('-').at(-1)}`,'清拖/巡查不能直接使用旧深度清洁工时。',item.id);
     }
-    const note=outOfScope?'已排除本项目车库服务范围。':covered?'已由全年工程委外合同总额覆盖；不重复累计动作估价。':policy?.note??'需审核动作规则。';
-    return {...item,...(rule?.label&&!rule.id.startsWith('engineering-')?{action:rule.label}:{}),standardSource:policy?.sourceRef??'待审核',standardText:policy?.sourceText??'',standardNote:note,ruleKind:policy?.kind??'unreviewed',standardStatus:excluded?'excluded':covered?'covered':pending?'pending':has(manual,key)?'manual':'mapped',enabled:!pending&&!excluded&&!covered,...(pending||excluded||covered?{annualCost:0,annualHours:0,headcount:0,frequency:excluded?'不纳入 / 已由新动作替代':covered?'合同总额覆盖':'待项目数据，未计入工时预算'}:{frequency:`${item.annualFrequency}次/年`})};
+    const note=referenceKeys.has(key)&&!has(manual,key)?'珠江未规定独立数值，采用动态成本表同类动作的基础参考频次及工时；可按项目调整。':outOfScope?'已排除本项目车库服务范围。':covered?'已由全年工程委外合同总额覆盖；不重复累计动作估价。':policy?.note??'需审核动作规则。';
+    return {...item,...(rule?.label&&!rule.id.startsWith('engineering-')?{action:rule.label}:{}),standardSource:referenceKeys.has(key)&&!has(manual,key)?'动态成本表参考计划':policy?.sourceRef??'待审核',standardText:policy?.sourceText??'',standardNote:note,ruleKind:policy?.kind??'unreviewed',standardStatus:excluded?'excluded':covered?'covered':pending?'pending':has(manual,key)?'manual':referenceKeys.has(key)?'reference':'mapped',enabled:!pending&&!excluded&&!covered,...(pending||excluded||covered?{annualCost:0,annualHours:0,headcount:0,frequency:excluded?'不纳入 / 已由新动作替代':covered?'合同总额覆盖':'待项目数据，未计入工时预算'}:{frequency:`${item.annualFrequency}次/年`})};
   });
   for(const [id,action,row] of communityActions) {
     const hours=value(`${id}.hours`)??0;
@@ -293,11 +303,13 @@ export function calculateZhujiangProject(project) {
     post('assistance-8',Math.ceil((outdoorRounds*value('outdoorPatrolMinutes')+indoorRounds*floors*value('indoorPatrolMinutes')+value('priorityPatrolMinutes'))/60/workingHours),`园区${outdoorRounds}轮/天，楼内${indoorRounds}轮/天，加重点部位补充巡逻；按实际路线工时折算`,44);
   } else {
     const patrol=security.find(x=>x.id==='assistance-8');
-    Object.assign(patrol,{headcount:0,annualCost:0,enabled:false,frequency:`园区${outdoorRounds}轮/天；楼内${indoorRounds}轮/天`,standardStatus:'pending',standardSource:`安全管理!${ZHUJIANG_GRADES[grade].column}44、46`,standardNote:'巡逻路线工时未填齐，未计入人数及费用；不能视为不需要巡逻。'});
-    for(const key of ['outdoorPatrolMinutes','indoorPatrolMinutes','priorityPatrolMinutes']) if(value(key)===null) need(`zhuj.${key}`,'缺少巡逻路线实际工时。','assistance-8');
+    const headcount=Math.ceil(area/param('客助!N8'));
+    Object.assign(patrol,{headcount,annualCost:headcount*annualRates.assistance,enabled:headcount>0,frequency:`园区${outdoorRounds}轮/天；楼内${indoorRounds}轮/天`,basis:'按动态成本表巡逻面积配比暂估，完整路线工时填写后替代',standardStatus:headcount>0?'reference':'excluded',standardSource:'动态成本表巡逻岗位面积配比',standardNote:'珠江规定巡逻频次，未给路线耗时；人数暂按原表面积配比估算，并非已经验证满足巡逻工时。'});
+    // Partial actual data does not silently mix with invented route times.
+    if(['outdoorPatrolMinutes','indoorPatrolMinutes','priorityPatrolMinutes'].some(k=>value(k)!==null)) for(const key of ['outdoorPatrolMinutes','indoorPatrolMinutes','priorityPatrolMinutes']) if(value(key)===null) need(`zhuj.${key}`,'路线工时尚未填齐，暂用动态成本表面积配比。','assistance-8');
   }
   const basicSecurity=sum(security.filter(a=>![9,10].includes(Number(a.id.split('-').at(-1)))).map(a=>a.headcount));
-  post('assistance-9',Math.ceil(basicSecurity/param('客助!N9')),'替班沿用已确认的5.2人配1人，可按项目修改','3');
+  post('assistance-9',Math.ceil(basicSecurity/param('客助!N9')),'按值守岗位配置替班人员','3');
   security.find(a=>a.id==='assistance-9').standardStatus='reference';
   security.find(a=>a.id==='assistance-9').standardSource='原模型替班参数（非珠江规定）';
   post('assistance-10',value('securityLeaders'),'班长按珠江2—3人区间取值',3);
@@ -347,10 +359,10 @@ export function calculateZhujiangProject(project) {
     '原稿有口径差异：御享大堂墙面每月擦拭1次、雅享每半月1次，按原稿保留；污水井/化粪池及水泵巡检在不同章节存在冲突，列为待确认，不自动计价。',
     '原稿主入口夜班20:00—07:30与白班间有半小时空档，须按现场值守安排确认；物业管理面积及主次入口数量是项目输入，不由服务档次自动确定。',
     '管理岗位按经理、工程主任、安保主任设置；15万㎡以下经理兼任专业主任须确认并扣除重叠岗位。会计按2—3项目共享、出纳及仓管按实际配置和全年费用单列。',
-    '固定频次、按需业务、项目计划、专业合同、原稿冲突分别处理。旧消杀共享估算与乔灌木合并施肥已停用，由珠江分项替代。新增动作缺数量或工时仍会待填写，不等于无需服务。',
+    '珠江未明确的同类计划、工时和设备数量由动态成本表参考值补充，项目实数优先；原稿冲突及无同类参考的新增动作仍需确认。旧消杀共享估算与乔灌木合并施肥已停用，由珠江分项替代。新增动作缺数量或工时仍会待填写，不等于无需服务。',
     '所示单价只是当前服务支出÷住宅收费面积÷12；尚未扣除车库等收入、分摊非住宅成本，也未计入完整经营费用，不能作为盈亏平衡价或报价。',
   ];
-  if(!patrolReady) warnings.unshift('待确认：请填写园区每轮、楼内每层每轮及重点部位额外巡逻工时；巡逻人员及对应替班费用尚未计入。');
+  if(!patrolReady) warnings.unshift('巡逻人数暂按动态成本表面积配比估算；填写完整路线工时后按珠江频次重算。');
   if(value('garageIncluded')===0) warnings.unshift('车库停车区域已排除服务范围；共用泵房、电房等不自动排除。物业管理面积、设备实际归属及车库收入须另行确认。');
   const perHousehold=project.deliveredHouseholds>0?project.residentialChargeArea/project.deliveredHouseholds:null;
   if(perHousehold!==null&&(perHousehold<35||perHousehold>300)) warnings.unshift(`收费面积平均每户${perHousehold.toFixed(1)}㎡，请核实收费范围和面积单位；此为异常提示，不自动更改数据。`);
@@ -361,5 +373,5 @@ export function calculateZhujiangProject(project) {
   }
   const missingInputs=[...missing.values()];
   const unreviewedActionCount=actions.filter(a=>a.ruleKind==='unreviewed').length;
-  return {...base,calculationModel:ZHUJIANG_VERSION,project,missingInputs,standard:{...STANDARD_SOURCE,revision:'2026-09-22-operations',label:ZHUJIANG_GRADES[grade].label,mappedActionCount:mappedCount,referenceActionCount:actions.filter(a=>a.standardStatus==='reference').length,pendingActionCount:pendingCount,unreviewedActionCount,reviewedActionCount:actions.length-unreviewedActionCount,complete:missingInputs.length===0&&unreviewedActionCount===0,patrolReady},budgetComparison:comparison,budgetBasis:project.budgetBasis??'standard',categories,actions,warnings,totalActionCount:actions.length,standardActionCount:actions.length,activeActionCount:actions.filter(a=>a.enabled).length,totalHeadcount:chosen.headcount,annualCost:chosen.annualCost,unitPrice:chosen.unitPrice,workloadAnnualCost:sum(categories.map(c=>c.workloadAnnualCost))};
+  return {...base,calculationModel:ZHUJIANG_VERSION,project,missingInputs,standard:{...STANDARD_SOURCE,revision:'2026-09-23-reference-defaults',label:ZHUJIANG_GRADES[grade].label,mappedActionCount:mappedCount,referenceActionCount:actions.filter(a=>a.standardStatus==='reference').length,pendingActionCount:pendingCount,unreviewedActionCount,reviewedActionCount:actions.length-unreviewedActionCount,complete:missingInputs.length===0&&unreviewedActionCount===0,patrolReady},budgetComparison:comparison,budgetBasis:project.budgetBasis??'standard',categories,actions,warnings,totalActionCount:actions.length,standardActionCount:actions.length,activeActionCount:actions.filter(a=>a.enabled).length,totalHeadcount:chosen.headcount,annualCost:chosen.annualCost,unitPrice:chosen.unitPrice,workloadAnnualCost:sum(categories.map(c=>c.workloadAnnualCost))};
 }

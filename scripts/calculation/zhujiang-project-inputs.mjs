@@ -45,8 +45,8 @@ export function getZhujiangProjectInputs(project) {
     }
     const isRatio = input.group === '珠江·人员配比';
     const isStandardChoice = ['zhuj.monitorStaff', 'zhuj.securityLeaders', 'zhuj.mainDayHours', 'zhuj.mainNightHours', 'zhuj.management.accountant.count', 'zhuj.management.cashier.count'].includes(input.key);
-    const defaultLabel = isRatio ? '珠江配比取值' : isStandardChoice ? '珠江标准取值' : input.defaultValue === null ? '待项目确认' : '项目暂定值';
-    fields.push({...input, visibleWhen, note, defaultLabel});
+    const defaultLabel = input.defaultLabel === '动态成本表参考值' ? input.defaultLabel : isRatio ? '珠江配比取值' : isStandardChoice ? '珠江标准取值' : input.defaultValue === null ? '待项目确认' : '项目暂定值';
+    fields.push({...input, visibleWhen, note, defaultLabel, ...(input.key==='zhuj.management.accountant.count'?{label:'共享会计费用分摊比例',unit:'%',displayScale:100,note:'珠江标准每2—3个项目共享1名会计，默认按2.5个项目分摊，即本项目承担40%的全年费用。'}:{})});
   }
   for (const action of result.actions) {
     const policy = ACTION_POLICIES.get(action.id);
@@ -54,14 +54,14 @@ export function getZhujiangProjectInputs(project) {
     const key = frequencyKey(action.id);
     // Unknown equipment scope is confirmed once through its shared quantity.
     // Keep zero plans editable so the project can enable them again.
-    if (!policy.values && (action.quantity > 0 || missing.has(key))) {
+    if (!policy.values && (action.category === 'service' || action.quantity > 0 || missing.has(key))) {
       const input = byKey.get(key);
-      if (input) fields.push({...input, label: `${businessName(action.action)} · 年度计划次数`, defaultLabel: policy.kind === 'conflict' ? '原稿冲突待确认' : '项目年度计划'});
+      if (input) fields.push({...input, label: `${businessName(action.action)} · 年度计划次数`, defaultLabel: policy.kind === 'conflict' ? '原稿冲突待确认' : input.defaultLabel});
     }
     const effortKey = `清洁!F${action.id.split('-').at(-1)}`;
     if (['cleaning-16', 'cleaning-34', 'cleaning-40', 'cleaning-44'].includes(action.id) && (action.quantity > 0 || missing.has(effortKey))) {
       const input = byKey.get(effortKey);
-      if (input) fields.push({...input, label: `${businessName(action.action)} · 单位作业工时`, defaultLabel: '项目实际工时'});
+      if (input) fields.push({...input, label: `${businessName(action.action)} · 单位作业工时`, defaultLabel: input.defaultValue===null?'待项目确认':'动态成本表参考值'});
     }
   }
   for (const [index, title] of ['项目经理', '管家主任', '工程主任', '安保主任'].entries()) {
@@ -72,5 +72,7 @@ export function getZhujiangProjectInputs(project) {
   fields.push({...pestRate, label: '分区消杀作业人工日单价', group: '珠江·分区消杀', defaultLabel: '原模型参考价', sourceRef: undefined, note: '按实际采购或外包人工日单价调整；留用参考值不代表珠江实际合同价。'});
   const groups = {服务: '项目·客服计划', 清洁: '项目·保洁计划', 绿化: '项目·绿化计划', 工程常规: '项目·工程计划', 工程委外: '项目·委外计划'};
   for (const field of fields) field.group = groups[field.group] ?? field.group;
+  const patrol=byKey.get('客助!N8');
+  fields.push({...patrol,label:'参考巡逻岗位管理面积',group:'珠江·项目及配置',defaultLabel:'动态成本表参考值',sourceRef:undefined,note:'尚未填写完整巡逻路线工时时，按此面积配比估算岗位；路线填齐后自动改按珠江频次和实际工时计算。'});
   return fields;
 }
