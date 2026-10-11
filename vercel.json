@@ -20,8 +20,14 @@
     },
     "api/artifacts/download.mjs": {
       "maxDuration": 60
+    },
+    "api/artifacts/cleanup.mjs": {
+      "maxDuration": 60
     }
   },
+  "crons": [
+    { "path": "/api/artifacts/cleanup", "schedule": "0 19 * * *" }
+  ],
   "rewrites": [
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]

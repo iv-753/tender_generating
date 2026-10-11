@@ -1,5 +1,6 @@
 import { get, issueSignedToken, presignUrl, put } from '@vercel/blob';
 import { createArtifactDownloadUrl } from './artifact-download.mjs';
+import { ARTIFACT_RETENTION_MS } from './artifact-retention.mjs';
 
 export async function privateBlobBytes(pathname, { getBlob = get } = {}) {
   const result = await getBlob(pathname, { access: 'private' });
@@ -16,7 +17,7 @@ export function createPrivateArtifactStore({ putBlob = put, issueToken = issueSi
       contentType,
       multipart: bytes.byteLength > 5_000_000,
     });
-    const validUntil = Date.now() + 24 * 60 * 60 * 1000;
+    const validUntil = Date.now() + ARTIFACT_RETENTION_MS;
     const token = await issueToken({ pathname: blob.pathname, operations: ['get'], validUntil });
     const { presignedUrl } = await presign(token, {
       access: 'private',
