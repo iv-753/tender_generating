@@ -38,6 +38,7 @@ export function getZhujiangProjectInputs(project) {
     if (/^zhuj\.zhuj-.+\.frequency$/.test(input.key)) continue;
     const taskMatch = input.key.match(/^zhuj\.task\.(.+)\.(quantity|frequency|hours|days)$/);
     let visibleWhen;
+    if (/^zhuj\.project(?:Gate|Patrol)/.test(input.key)) visibleWhen = 'zhuj.securityRosterMode';
     let note = input.note;
     const wage = wageReference.get(input.key);
     if (wage) {

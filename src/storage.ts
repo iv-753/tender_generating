@@ -1,4 +1,4 @@
-import type { BidDocumentRecord, CalculationAdjustments, CalculationResult, CompanyProfile, PresentationRecord, ProjectData, ProjectRecord } from './types';
+import type { BidDocumentRecord, CalculationAdjustments, CalculationResult, CompanyProfile, PresentationRecord, ProjectData, ProjectRecord, RevenueScenario } from './types';
 
 const DRAFT_KEY = 'property-calculator:draft:v1';
 const RESULT_KEY = 'property-calculator:result:v1';
@@ -98,6 +98,17 @@ export const storage = {
   loadCompanyProfile: () => load<CompanyProfile>(COMPANY_PROFILE_KEY),
   saveCompanyProfile: (data: CompanyProfile) => save(COMPANY_PROFILE_KEY, data),
   saveCalculatedProject,
+  saveRevenueScenario: (revenueScenario: RevenueScenario) => {
+    const current = load<CalculationResult>(RESULT_KEY);
+    if (!current) return null;
+    const next = { ...current, project: { ...current.project, revenueScenario } };
+    const id = localStorage.getItem(ACTIVE_PROJECT_KEY);
+    saveProjects(loadStoredProjects().map(item => item.id === id
+      ? { ...item, updatedAt: new Date().toISOString(), result: next } : item));
+    save(RESULT_KEY, next);
+    save(DRAFT_KEY, next.project);
+    return next;
+  },
   saveProjectAdjustments: (id: string, adjustments: CalculationAdjustments, result: CalculationResult) => {
     const projects = loadProjects();
     const current = projects.find((item) => item.id === id);

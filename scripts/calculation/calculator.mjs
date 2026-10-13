@@ -6,6 +6,7 @@ import { calculateWorkbookProject, getWorkbookInputs, validateWorkbookOverrides,
 import { calculateZhujiangProject, validateZhujiangProject } from './zhujiang-model.mjs';
 import { getZhujiangProjectInputs } from './zhujiang-project-inputs.mjs';
 import { ZHUJIANG_VERSION } from './zhujiang-rules.mjs';
+import { unresolvedImportIssues } from './import-review.mjs';
 
 const text = (value) => value === null || value === undefined || value === '' ? '' : String(value);
 const number = (value) => typeof value === 'number' && Number.isFinite(value) ? value : Number(value) || 0;
@@ -13,8 +14,9 @@ const advancedParametersByKey = new Map(
   ADVANCED_PARAMETER_DEFINITIONS.map((definition) => [definition.key, definition]),
 );
 
-export function validateProject(project) {
+export function validateProject(project, { allowImportReview = false } = {}) {
   if (!project || typeof project !== 'object') return '项目数据无效';
+  if (!allowImportReview && unresolvedImportIssues(project).some(issue => issue.kind !== 'missing')) return '导入资料仍有待核对项，请在页面上逐项修改或确认后开始测算。';
   if (!text(project.projectName).trim()) return '请填写项目名称';
   if (!text(project.region).trim() || !text(project.city).trim()) return '请填写项目地区和城市';
   const complete = [WORKBOOK_MODEL_VERSION, ZHUJIANG_VERSION].includes(project.calculationModel);

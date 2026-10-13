@@ -110,7 +110,7 @@ export function resultValidationError(result) {
   if (result.activeActionCount !== activeActionCount) return '当前启用动作数与动作明细不一致';
   if (!finiteNonNegative(result.totalHeadcount)) return '项目总人数无效';
   if (!finiteNonNegative(result.annualCost)) return '项目年度总成本无效';
-  const staffingCategories = ['workbook-v3', 'zhujiang-v1'].includes(result.calculationModel) ? result.categories.filter((item) => item.category !== 'pestControl') : result.categories;
+  const staffingCategories = ['workbook-v3', 'zhujiang-v1'].includes(result.calculationModel) ? result.categories.filter((item) => item.category !== 'pestControl' && !(result.staffingScope === 'onsite' && item.category === 'engineeringOutsourced')) : result.categories;
   const expectedHeadcount = staffingCategories.reduce((sum, item) => sum + item.headcount, 0) + result.management.headcount;
   const expectedAnnualCost = result.categories.reduce((sum, item) => sum + item.annualCost, 0) + result.management.annualCost;
   if (!nearlyEqual(result.totalHeadcount, expectedHeadcount)) return '项目总人数与分类及管理人数不一致';

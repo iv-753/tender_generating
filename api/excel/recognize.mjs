@@ -1,5 +1,5 @@
 import { loadRecognitionConfig } from '../../scripts/excel-recognition/config.mjs';
-import { recognizeExcel } from '../../scripts/excel-recognition/recognize-excel.mjs';
+import { recognizeExcelSmart } from '../../scripts/excel-recognition/recognize-excel.mjs';
 import { errorMessage, json } from '../_lib/http.mjs';
 
 const MAX_EXCEL_BYTES = 4_000_000;
@@ -8,7 +8,7 @@ function isXlsx(bytes) {
   return bytes.length >= 4 && bytes[0] === 0x50 && bytes[1] === 0x4b;
 }
 
-export function createExcelRecognitionHandler({ recognize = recognizeExcel, loadConfig = loadRecognitionConfig } = {}) {
+export function createExcelRecognitionHandler({ recognize = recognizeExcelSmart, loadConfig = loadRecognitionConfig } = {}) {
   return {
     async fetch(request) {
       if (request.method !== 'POST') return json({ error: '仅支持 POST 请求' }, 405);

@@ -44,7 +44,7 @@ body { margin: 0; min-width: 320px; }
 .excel-import-action small { grid-column: 2; grid-row: 2; color: #7b8992; font-size: 11px; }
 .excel-import-error { margin: -8px 0 18px; }
 .recognition-review-modal .ant-modal-content { border-top: 4px solid #2f7d73; border-radius: 3px; }
-.recognition-review { max-height: 66vh; overflow-y: auto; padding-right: 6px; }
+.recognition-review { padding-right: 6px; }
 .recognition-summary { display: grid; grid-template-columns: minmax(0, 1fr) 130px 130px; align-items: center; margin-bottom: 18px; border: 1px solid #d8e3e7; background: #f7fafb; }
 .recognition-summary > div { min-height: 66px; padding: 14px 16px; border-left: 1px solid #d8e3e7; color: #657680; }
 .recognition-summary > div:first-child { display: flex; align-items: center; gap: 12px; border-left: 0; }
@@ -53,6 +53,7 @@ body { margin: 0; min-width: 320px; }
 .recognition-summary span strong { overflow: hidden; color: #17324d; text-overflow: ellipsis; white-space: nowrap; }
 .recognition-summary span small { color: #77868e; }
 .recognition-summary > div > strong { margin-right: 4px; color: #2f7d73; font-size: 20px; }
+.recognition-summary > div:not(:first-child) { white-space: nowrap; padding-inline: 12px; }
 .recognition-summary .has-missing > strong { color: #bd7b1d; }
 .recognition-group { margin-top: 18px; }
 .recognition-group h3 { margin: 0; padding: 9px 12px; border-left: 3px solid #2f7d73; background: #edf3f5; color: #17324d; font-size: 14px; }
@@ -291,3 +292,67 @@ body { margin: 0; min-width: 320px; }
   .result-heading > .ant-space .ant-space-item:last-child { flex: 1; }
   .result-heading > .ant-space .ant-space-item:last-child .ant-btn { width: 100%; }
 }
+/* Import review keeps the correction beside its reason and source. */
+.import-review-panel { margin-bottom: 24px; scroll-margin-top: 88px; }
+.import-review-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+.import-review-card { padding: 18px; border: 1px solid #ead6a6; background: #fff; border-radius: 8px; min-width: 0; }
+.import-review-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.import-review-card p { margin: 12px 0; line-height: 1.7; }
+.import-review-help, .import-review-sources { color: #536574; font-size: 13px; }
+.import-review-sources summary { cursor: pointer; padding: 4px 0; }
+.import-review-sources div { padding: 4px 0; overflow-wrap: anywhere; }
+.import-review-card .ant-input-number { width: 165px; }
+.import-review-card .ant-btn { white-space: normal; height: auto; min-height: 32px; }
+.import-review-card.is-reviewed { border-color: #9ac6ba; }
+.import-review-confirmed { color: #246357; background: #eff8f4; padding: 10px; margin-top: 14px; border-radius: 4px; font-size: 13px; }
+@media (max-width: 900px) { .import-review-grid { grid-template-columns: 1fr; } }
+.revenue-panel { margin: 20px 0; border-top: 3px solid #327f78; }
+.revenue-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 18px; }
+.revenue-heading h3.ant-typography { margin: 0 0 6px; font-size: 22px; }
+.revenue-heading p, .revenue-section-title span, .revenue-hint, .revenue-save-note { color: #526675; margin: 0; font-size: 13px; }
+.revenue-definition { background: #eef6f5; padding: 14px 18px; border-radius: 6px; margin-bottom: 22px; }
+.revenue-definition strong, .revenue-definition span { display: block; }
+.revenue-definition span { margin-top: 5px; color: #405b6a; font-size: 13px; line-height: 1.7; }
+.revenue-layout { display: grid; grid-template-columns: minmax(280px, .95fr) minmax(380px, 1.25fr); gap: 36px; }
+.revenue-section-title, .revenue-total, .revenue-margin-control, .revenue-profit-line { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.revenue-section-title { flex-wrap: wrap; margin-bottom: 14px; }
+.revenue-input-row { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 12px; }
+.revenue-input-row label { color: #233d50; }
+.revenue-input-row label small { font-weight: normal; color: #526675; }
+.revenue-input-row .ant-input-number { width: 200px; max-width: 52%; }
+.revenue-input-row input { font-variant-numeric: tabular-nums; }
+.revenue-total { border-top: 1px solid #d9e5e5; padding: 14px 0 22px; }
+.revenue-total strong { font-size: 19px; color: #246b64; }
+.revenue-hint { line-height: 1.65; margin: -2px 0 18px; }
+.revenue-break-even { background: #f2f8f7; border: 1px solid #d4e7e2; padding: 18px 22px; border-radius: 6px; }
+.revenue-break-even > span { color: #2c5854; font-weight: 600; }
+.revenue-break-even > div { display: flex; gap: 12px; align-items: baseline; margin: 6px 0; }
+.revenue-break-even > div strong { font-size: 40px; color: #246b64; line-height: 1.3; font-variant-numeric: tabular-nums; }
+.revenue-break-even > small { color: #526675; line-height: 1.65; }
+.revenue-margin-control { margin: 20px 0 12px; flex-wrap: wrap; }
+.revenue-margin-control label { font-weight: 600; }
+.revenue-margin-control small { font-weight: normal; color: #526675; }
+.revenue-margin-control .ant-input-number { width: 88px; }
+.revenue-presets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.revenue-presets button { font: inherit; text-align: left; background: white; border: 1px solid #cbdcdd; border-radius: 6px; padding: 12px; cursor: pointer; color: #344f60; transition: background .15s, border-color .15s; }
+.revenue-presets button:hover, .revenue-presets button[aria-pressed="true"] { border-color: #327f78; background: #eff7f5; }
+.revenue-presets button:focus-visible { outline: 2px solid #327f78; outline-offset: 3px; }
+.revenue-presets button:disabled { cursor: not-allowed; opacity: .65; }
+.revenue-presets button > span { display: block; font-size: 12px; margin-bottom: 7px; }
+.revenue-presets button strong { font-size: 22px; font-variant-numeric: tabular-nums; }
+.revenue-presets button small { font-size: 11px; font-weight: normal; white-space: nowrap; }
+.revenue-target { padding-top: 18px; }
+.revenue-target > span { display: block; font-size: 13px; color: #526675; }
+.revenue-target > strong { display: block; font-size: 30px; color: #193c50; }
+.revenue-target > strong small { font-size: 14px; font-weight: normal; }
+.revenue-target p { color: #526675; font-size: 12px; margin: 2px 0 10px; }
+.revenue-profit-line { flex-wrap: wrap; font-size: 13px; color: #526675; }
+.revenue-profit-line strong { color: #244b59; margin-left: 4px; }
+.revenue-current { border-top: 1px solid #d9e5e5; margin-top: 18px; padding-top: 16px; }
+.revenue-current p { margin: 0 0 18px; font-size: 13px; color: #405b6a; }
+.revenue-panel > .ant-card-body > .ant-alert { margin-top: 16px; }
+.revenue-panel .ant-collapse { margin-top: 10px; }
+.revenue-panel .ant-collapse-content-box p { overflow-wrap: anywhere; }
+.revenue-save-note { margin-top: 12px; }
+@media (max-width: 1000px) { .revenue-layout { grid-template-columns: 1fr; gap: 24px; } }
+@media (max-width: 600px) { .revenue-heading { flex-direction: column; } .revenue-panel > .ant-card-body { padding: 18px 14px; } .revenue-presets { gap: 6px; } .revenue-presets button { padding: 10px 6px; } .revenue-presets button small { display: block; } .revenue-definition { padding: 12px; } }

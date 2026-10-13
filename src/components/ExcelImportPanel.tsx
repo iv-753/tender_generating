@@ -1,10 +1,13 @@
 import { CheckCircleOutlined, FileExcelOutlined, LoadingOutlined, RobotOutlined } from '@ant-design/icons';
-import { Alert, Button, Modal, Tag, Typography, Upload } from 'antd';
+import { Alert, Button, Collapse, Modal, Table, Tag, Typography, Upload } from 'antd';
 import { useMemo, useState } from 'react';
 import { COST_BAND_LABELS, gradeLabel } from '../calculation';
 import { recognizeExcelFile } from '../excelRecognition';
-import type { CostBand, ExcelRecognitionResult, RecognitionEvidence, ServiceGrade } from '../types';
+import { REVENUE_FIELDS } from '../../scripts/calculation/revenue-scenario.mjs';
+import { toBuildingTotalProject } from '../../scripts/calculation/building-area-basis.mjs';
+import type { CostBand, ExcelRecognitionResult, RecognitionEvidence, RecognizedParameter, ServiceGrade } from '../types';
 import GenerationProgress from './GenerationProgress';
+import RecognitionIssues from './RecognitionIssues';
 
 type ImportStatus = 'idle' | 'recognizing' | 'review' | 'error' | 'applied';
 type Props = { onApply: (result: ExcelRecognitionResult) => void };
@@ -12,7 +15,7 @@ type FieldDefinition = { key: string; label: string; unit?: string; format?: 'ra
 
 const groups: Array<{ title: string; fields: FieldDefinition[] }> = [
   { title: '项目概况', fields: [
-    { key: 'projectName', label: '项目名称' }, { key: 'region', label: '省份' }, { key: 'city', label: '城市' },
+    { key: 'projectName', label: '项目名称' }, { key: 'region', label: '省份' }, { key: 'city', label: '城市' }, { key: 'district', label: '区县' },
     { key: 'totalBuildingArea', label: '总建筑面积', unit: '㎡' }, { key: 'residentialChargeArea', label: '住宅收费面积', unit: '㎡' },
     { key: 'deliveredHouseholds', label: '已交付户数', unit: '户' }, { key: 'receivedHouseholds', label: '已收楼户数', unit: '户' }, { key: 'occupiedHouseholds', label: '常住户数', unit: '户' },
   ] },
@@ -28,9 +31,9 @@ const groups: Array<{ title: string; fields: FieldDefinition[] }> = [
 ];
 
 const buildingFields: FieldDefinition[] = [
-  { key: 'buildingCount', label: '楼栋数', unit: '栋' }, { key: 'lobbyElevatorCount', label: '大堂/电梯' },
-  { key: 'stiltFloorArea', label: '架空层', unit: '㎡' }, { key: 'totalFloors', label: '楼层总数', unit: '层' },
-  { key: 'standardLobbyArea', label: '标准前厅', unit: '㎡' }, { key: 'evacuationStairArea', label: '疏散楼梯', unit: '㎡' }, { key: 'rooftopArea', label: '天台', unit: '㎡' },
+  { key: 'buildingCount', label: '楼栋数', unit: '栋' }, { key: 'lobbyElevatorCount', label: '大堂及电梯厅（每栋）', unit: '㎡' },
+  { key: 'stiltFloorArea', label: '架空层（每栋）', unit: '㎡' }, { key: 'totalFloors', label: '楼层总数（本组）', unit: '层' },
+  { key: 'standardLobbyArea', label: '标准前厅（每层）', unit: '㎡' }, { key: 'evacuationStairArea', label: '疏散楼梯（每栋合计）', unit: '㎡' }, { key: 'rooftopArea', label: '天台（每栋）', unit: '㎡' },
 ];
 const recognitionStages = [
   { title: '读取工作表', description: '解析工作簿内容' },
@@ -65,7 +68,7 @@ export default function ExcelImportPanel({ onApply }: Props) {
     if (!result) return 0;
     const fields = Object.values(result.recognition.fields);
     const buildings = result.recognition.buildings.flatMap((building) => Object.values(building.fields));
-    return [...fields, ...buildings].filter((item) => item.status !== 'missing').length;
+    return [...fields, ...buildings, ...(result.recognition.parameters ?? [])].filter((item) => item.status === 'recognized' || item.status === 'derived').length;
   }, [result]);
 
   const startRecognition = async (file: File) => {
@@ -96,10 +99,10 @@ export default function ExcelImportPanel({ onApply }: Props) {
         <Typography.Text className="panel-kicker">智能录入</Typography.Text>
         <Typography.Title level={4}>Excel 智能导入</Typography.Title>
         {status === 'recognizing'
-          ? <><strong>正在识别项目数据</strong><span>正在核对工作表与字段口径，通常需要约 1 分钟。</span></>
+          ? <><strong>正在识别项目数据</strong><span>先按字段规则匹配，仅未匹配内容交由智能识别。</span></>
           : status === 'applied'
             ? <><strong>{fileName}</strong><span>识别结果已写入表单，请核对后开始测算。</span></>
-            : <span>上传已有项目资料，自动识别并填写项目信息；你也可以继续手动填写。</span>}
+            : <span>自动识别基础资料、设备场地及服务计划，提示缺项与冲突；实际费用和收入不导入。</span>}
       </div>
       <div className="excel-import-action">
         {status === 'recognizing' ? <GenerationProgress
@@ -117,7 +120,7 @@ export default function ExcelImportPanel({ onApply }: Props) {
         >
           <FileExcelOutlined />
           <span>{status === 'applied' || status === 'error' ? '重新上传 Excel' : '选择或拖入 Excel'}</span>
-          <small>.xlsx，最大 10MB</small>
+          <small>.xlsx，最大 4MB</small>
         </Upload.Dragger>}
       </div>
     </section>
@@ -125,6 +128,7 @@ export default function ExcelImportPanel({ onApply }: Props) {
     <Modal
       className="recognition-review-modal"
       width={920}
+      styles={{ body: { maxHeight: '68vh', overflowY: 'auto', overflowX: 'hidden' } }}
       open={status === 'review'}
       title="识别结果确认"
       transitionName=""
@@ -133,14 +137,29 @@ export default function ExcelImportPanel({ onApply }: Props) {
       footer={<><Button onClick={() => setStatus('idle')}>取消</Button><Button type="primary" onClick={applyResult}>采用识别结果</Button></>}
     >
       {result && <div className="recognition-review">
-        <div className="recognition-summary"><div><FileExcelOutlined /><span><strong>{fileName}</strong><small>请确认以下数据，再写入测算表单</small></span></div><div><strong>{recognizedCount}</strong> 项已识别</div><div className={result.missingFields.length ? 'has-missing' : ''}><strong>{result.missingFields.length}</strong> 项待补充</div></div>
+        <div className="recognition-summary"><div><FileExcelOutlined /><span><strong>{fileName}</strong><small>{result.provider === 'local-rules' ? '字段规则识别完成' : '字段规则与智能识别完成'}，请确认后写入测算表单</small></span></div><div><strong>{recognizedCount}</strong> 项已识别</div><div className={result.missingFields.length ? 'has-missing' : ''}><strong>{result.missingFields.length}</strong> 项待补充</div></div>
+        {result.project.revenueScenario && <Collapse items={[{ key: 'revenue', label: '表6收入已识别 · 用于结果页收费试算', children: <div>
+          {REVENUE_FIELDS.filter(([key])=>key!=='otherAnnual').map(([key,label])=><p key={key}>{label}：{result.project.revenueScenario?.[key] ?? '待填写'} 元/年</p>)}
+          <Typography.Text type="secondary">收入单独用于抵扣和利润试算，不会改变服务成本；可在测算结果页修改。</Typography.Text>
+        </div> }]} />}
         {result.warnings.map((warning) => <Alert key={warning} type="warning" showIcon title={warning} />)}
+        {!!result.issues?.length && <section className="recognition-group"><h3>待处理事项（{result.issues.length} 项）</h3><Typography.Paragraph type="secondary">采用识别结果后，可在页面中补充缺项、修改数值并确认服务范围；原表位置会保留供核对。</Typography.Paragraph><RecognitionIssues issues={result.issues} /></section>}
+        {!!result.ignoredSheets?.length && <Typography.Paragraph type="secondary">已忽略：{result.ignoredSheets.join('、')}。{result.ignoredFields?.length ? `另有 ${result.ignoredFields.length} 项不属于本次测算输入或已排除服务范围。` : ''}</Typography.Paragraph>}
+        {!!result.recognition.parameters?.length && <Collapse items={[...new Set(result.recognition.parameters.map(p => p.group))].map(group => ({
+          key: group, label: `${group}（${result.recognition.parameters!.filter(p => p.group === group).length} 项）`,
+          children: <Table<RecognizedParameter> size="small" rowKey="key" pagination={false} scroll={{ x: 600 }} dataSource={result.recognition.parameters!.filter(p => p.group === group)} columns={[
+            { title: '测算参数', dataIndex: 'label', width: 210 },
+            { title: '采用值', key: 'value', width: 140, render: (_, p) => displayValue(p.value, { key: p.key, label: p.label, unit: p.unit }) },
+            { title: '状态', key: 'status', width: 90, render: (_, p) => fieldTag(p) },
+            { title: '来源', key: 'source', render: (_, p) => <><div>{p.source ? `${p.source.sheet} · ${p.source.cell}` : '原表未提供'}</div>{p.note && <small>{p.note}</small>}</> },
+          ]} />,
+        }))} />}
         {groups.map((group) => <section className="recognition-group" key={group.title}><h3>{group.title}</h3><dl>{group.fields.map((field) => {
           const evidence = result.recognition.fields[field.key];
           const value = result.project[field.key as keyof typeof result.project];
           return <div key={field.key}><dt>{field.label}{fieldTag(evidence)}</dt><dd className={value === null ? 'is-missing' : ''}>{displayValue(value, field)}</dd><small>{evidence?.source ? `来源：${evidence.source.sheet}` : '原表未提供'}</small></div>;
         })}</dl></section>)}
-        {result.project.buildings.length > 0 && <section className="recognition-group"><h3>楼栋概况</h3>{result.project.buildings.map((building, index) => <div className="recognition-building" key={index}><strong>{result.recognition.buildings[index]?.label || `楼栋类型 ${index + 1}`}</strong><dl>{buildingFields.map((field) => {
+        {result.project.buildings.length > 0 && <section className="recognition-group"><h3>楼栋概况</h3>{toBuildingTotalProject(result.project).buildings.map((building, index) => <div className="recognition-building" key={index}><strong>{result.recognition.buildings[index]?.label || `楼栋类型 ${index + 1}`}</strong><dl>{buildingFields.map((field) => {
           const evidence = result.recognition.buildings[index]?.fields[field.key];
           const value = building[field.key as keyof typeof building];
           return <div key={field.key}><dt>{field.label}{fieldTag(evidence)}</dt><dd className={value === null ? 'is-missing' : ''}>{displayValue(value, field)}</dd></div>;

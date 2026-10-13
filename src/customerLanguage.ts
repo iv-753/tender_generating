@@ -14,8 +14,9 @@ export function customerParameterNote(item: WorkbookInput) {
   if (range) return `珠江标准范围：${range}。可按本项目实际情况调整。`;
   if (item.key === 'zhuj.management.accountant.count') return '珠江规定每2～3个项目配1名会计；初始参考比例为40%，请按实际分工调整。';
   if (item.key === 'zhuj.management.warehouse.count') return '珠江标准：管理面积10万㎡及以下由工程主任兼任，不增加人员；超过10万㎡配置1名仓管。另有兼任或分摊安排时可按实际调整。';
-  if (item.key === 'zhuj.managerConcurrentRole') return '项目经理兼任其他岗位时，只计算一次人员和费用。';
+  if (item.key === 'zhuj.managerConcurrentRole') return '小于15万㎡默认按经理兼工程主任试算，扣减1名主任，经理费用只计一次；可按实际修改。';
   if (item.key === 'zhuj.garageIncluded') return '本项目仍承担车库服务时选择纳入；全部由其他单位负责时选择不纳入。';
+  if (item.group === '珠江·安保排班' && item.note) return item.note;
   if (/^zhuj\.(annualCost\.|managementAnnualCost\.)/.test(item.key) && item.note) return item.note;
   if (/annualCost|AnnualCost/.test(item.key)) return item.key.includes('Contract') ? '填写全年外包合同费用，合同内的服务不再重复收费。' : '填写每人全年工资、社保和福利等费用的合计。';
   if (item.key.includes('.hours') || /^清洁!F/.test(item.key)) return '按所示单位填写每次作业所需的总人工时间，包含必要往返时间；已由其他服务承担的部分不重复填写。';

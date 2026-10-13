@@ -11,7 +11,26 @@ export interface BuildingTypeInput {
   rooftopArea: number;
 }
 
+export interface RevenueScenario {
+  commercialAnnual: number | null;
+  parkingAnnual: number | null;
+  valueAddedAnnual: number | null;
+  nonContractAnnual: number | null;
+  otherAnnual: number | null;
+  currentResidentialRate: number | null;
+  collectionRate: number | null;
+  targetMargin: number | null;
+  additionalAnnualCost: number | null;
+  sources: Record<string, string>;
+  notes: string[];
+  sourceProjectName?: string;
+  sourceResidentialArea?: number;
+}
+
 export interface ProjectData {
+  revenueScenario?: RevenueScenario;
+  stairAreaBasis?: 'per-building' | 'per-floor';
+  importReviewIssues?: ImportReviewIssue[];
   exampleDataVersion?: string;
   calculationModel?: 'workbook-v3' | 'zhujiang-v1';
   budgetBasis?: 'standard' | 'workload';
@@ -44,12 +63,13 @@ export interface ProjectData {
 
 export type RecognizedBuildingData = { [Field in keyof BuildingTypeInput]: BuildingTypeInput[Field] | null };
 export type RecognizedProjectData = {
-  [Field in Exclude<keyof ProjectData, 'buildings' | 'advancedParameterOverrides' | 'calculationModel' | 'district' | 'workbookOverrides' | 'budgetBasis' | 'exampleDataVersion'>]: ProjectData[Field] | null;
+  [Field in Exclude<keyof ProjectData, 'buildings' | 'advancedParameterOverrides' | 'calculationModel' | 'district' | 'workbookOverrides' | 'budgetBasis' | 'exampleDataVersion' | 'importReviewIssues' | 'stairAreaBasis' | 'revenueScenario'>]: ProjectData[Field] | null;
 } & {
+  revenueScenario?: RevenueScenario;
   buildings: RecognizedBuildingData[];
   calculationModel?: ProjectData['calculationModel'];
   budgetBasis?: ProjectData['budgetBasis'];
-  district?: string;
+  district?: string | null;
   workbookOverrides?: Record<string, number | string>;
   advancedParameterOverrides?: Record<string, number> | null;
 };
@@ -63,6 +83,23 @@ export interface RecognitionEvidence {
   note: string;
 }
 
+export interface ImportReviewIssue {
+  key: string;
+  label: string;
+  kind: 'missing' | 'conflict' | 'invalid' | 'unmatched';
+  message: string;
+  sources: Array<{ sheet: string; cell: string; raw: unknown }>;
+  resolution?: { decision: 'value' | 'covered' | 'extra' | 'ignore'; value?: number | string; fingerprint: string };
+}
+
+export interface RecognizedParameter extends RecognitionEvidence {
+  key: string;
+  label: string;
+  group: string;
+  unit: string;
+  value: number | string | null;
+}
+
 export interface ExcelRecognitionResult {
   version: 1;
   provider: string;
@@ -71,7 +108,11 @@ export interface ExcelRecognitionResult {
   recognition: {
     fields: Record<string, RecognitionEvidence>;
     buildings: Array<{ label: string; fields: Record<string, RecognitionEvidence> }>;
+    parameters?: RecognizedParameter[];
   };
+  issues?: ImportReviewIssue[];
+  ignoredSheets?: string[];
+  ignoredFields?: string[];
   missingFields: string[];
   warnings: string[];
 }
@@ -169,6 +210,8 @@ export interface CategorySummary {
 }
 
 interface CalculationResultBase {
+  staffingScope?: 'onsite';
+  securityRosterMode?: 'project' | 'reference';
   calculationModel?: ProjectData['calculationModel'];
   budgetBasis?: ProjectData['budgetBasis'];
   budgetComparison?: Record<'standard' | 'workload', { annualCost: number; headcount: number; unitPrice: number | null }>;

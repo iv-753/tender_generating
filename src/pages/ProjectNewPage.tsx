@@ -4,6 +4,11 @@ import { useMemo, useState } from 'react';
 import { COST_BAND_LABELS, gradeLabel, isCompleteModel, validateProjectData } from '../calculation';
 import { CITY_CATALOG_VERSION, allowedCostBands, cityOptions, getCityRecommendation, normalizeProjectLocation, provinceOptions } from '../cityCatalog';
 import ExcelImportPanel from '../components/ExcelImportPanel';
+import ImportReviewPanel from '../components/ImportReviewPanel';
+import { resolveImportIssue, unresolvedImportIssues } from '../../scripts/calculation/import-review.mjs';
+import { toBuildingTotalProject } from '../../scripts/calculation/building-area-basis.mjs';
+import { importedSecurityRoster } from '../../scripts/calculation/security-roster.mjs';
+import type { ReviewDecision } from '../../scripts/calculation/import-review.mjs';
 import AdvancedParametersDrawer from '../components/AdvancedParametersDrawer';
 import WorkbookParametersDrawer from '../components/WorkbookParametersDrawer';
 import { workbookCities, workbookDistricts } from '../workbookLocation';
@@ -45,7 +50,9 @@ function profileNumber(value?: number) {
 
 export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
   const [form] = Form.useForm<ProjectData>();
-  const draft = useMemo(() => ({ ...normalizeProjectLocation(storage.loadDraft() ?? createZhujiangExampleProject()), calculationModel: 'zhujiang-v1' as const }), []);
+  const savedDraft = useMemo(() => storage.loadDraft(), []);
+  const draft = useMemo(() => toBuildingTotalProject({ ...normalizeProjectLocation(savedDraft ?? createZhujiangExampleProject()), calculationModel: 'zhujiang-v1' as const }), [savedDraft]);
+  const [legacyStairs, setLegacyStairs] = useState(!!savedDraft && !savedDraft.exampleDataVersion && savedDraft.stairAreaBasis !== 'per-building' && savedDraft.buildings.some(b => b.evacuationStairArea > 0));
   const [exampleDataVersion, setExampleDataVersion] = useState(draft.exampleDataVersion);
   const [exampleGrade, setExampleGrade] = useState(draft.serviceGrade);
   const [currentStep, setCurrentStep] = useState(0);
@@ -60,7 +67,13 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
   const [advancedDirty, setAdvancedDirty] = useState(false);
   const [workbookInputs, setWorkbookInputs] = useState<WorkbookInput[]>([]);
   const [workbookOverrides, setWorkbookOverrides] = useState<Record<string, number | string>>(draft.workbookOverrides ?? {});
+  const [importReviewIssues, setImportReviewIssues] = useState(draft.importReviewIssues ?? []);
+  const [revenueScenario, setRevenueScenario] = useState(draft.revenueScenario);
+  const [parameterFocus, setParameterFocus] = useState<string>();
   const watched = Form.useWatch([], form) as Partial<ProjectData> | undefined;
+  const reviewProject = { ...draft, ...watched, workbookOverrides, importReviewIssues, revenueScenario } as ProjectData;
+  const rosterPlan = importedSecurityRoster(reviewProject);
+  const pendingReview = unresolvedImportIssues(reviewProject).filter(issue => issue.kind !== 'missing');
   const province = Form.useWatch('region', form);
   const city = Form.useWatch('city', form);
   const selectedCostBand = Form.useWatch('costBand', form);
@@ -77,6 +90,8 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
       calculationModel: 'zhujiang-v1' as const,
       budgetBasis: draft.budgetBasis ?? 'standard',
       workbookOverrides,
+      importReviewIssues,
+      revenueScenario,
       advancedParameterOverrides: Object.keys(advancedParameterOverrides).length ? advancedParameterOverrides : undefined,
     };
     const errors = validateProjectData(project);
@@ -84,7 +99,8 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
     return project;
   };
 
-  const openAdvancedParameters = async () => {
+  const openAdvancedParameters = async (focusKey?: string) => {
+    setParameterFocus(focusKey);
     setError('');
     setAdvancedError('');
     let drawerOpened = false;
@@ -120,9 +136,39 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
     }
   };
 
+  const locateReview = (key: string, basic: boolean) => {
+    if (!basic) { void openAdvancedParameters(key || undefined); return; }
+    setCurrentStep(firstMissingStep([key]) ?? 0);
+    const building = key.match(/^buildings\[(\d+)\]\.(\w+)$/);
+    requestAnimationFrame(() => form.scrollToField(building ? ['buildings', Number(building[1]), building[2]] : key, { focus: true, block: 'center' }));
+  };
+
+  const confirmReview = (key: string, decision: ReviewDecision, value?: number | string) => {
+    try {
+      const current = { ...reviewProject, ...form.getFieldsValue(true), workbookOverrides, importReviewIssues };
+      const next = resolveImportIssue(current, key, decision, value);
+      setWorkbookOverrides(next.workbookOverrides ?? {});
+      setImportReviewIssues(next.importReviewIssues ?? []);
+      storage.saveDraft({ ...next, exampleDataVersion });
+      setError('');
+      message.success('已保存本项核对结果');
+    } catch (reason) { message.error(reason instanceof Error ? reason.message : '请核对填写值'); }
+  };
+
   const changeAdvancedParameters = (next: Record<string, number>) => {
     setAdvancedParameterOverrides(next);
     setAdvancedDirty(true);
+  };
+
+  const useProjectRoster = () => {
+    if (!rosterPlan) return;
+    const next = { ...workbookOverrides, 'zhuj.securityRosterMode': 1, 'zhuj.securityLeaderConcurrent': 1,
+      'zhuj.projectGatePosts': rosterPlan.gatePosts, 'zhuj.projectGateDailyHours': rosterPlan.gateHours,
+      'zhuj.projectGatePeople': rosterPlan.gatePeople, 'zhuj.projectPatrolDailyHours': rosterPlan.patrolHours };
+    setWorkbookOverrides(next);
+    storage.saveDraft({ ...reviewProject, ...form.getFieldsValue(true), workbookOverrides: next, importReviewIssues, exampleDataVersion });
+    setError('');
+    message.success('本项目已采用值守安排和班长兼岗试算，可在项目服务设置中调整');
   };
 
   const closeAdvancedParameters = () => {
@@ -145,6 +191,11 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
     setError('');
     const startedAt = Date.now();
     try {
+      const pending = unresolvedImportIssues({ ...reviewProject, ...form.getFieldsValue(true), workbookOverrides, importReviewIssues }).filter(i => i.kind !== 'missing');
+      if (pending.length) {
+        document.getElementById('import-review')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        throw new Error(`还有 ${pending.length} 项待核对，请在上方逐项修改或确认。`);
+      }
       const values = await getValidProject();
       setCalculationStartedAt(startedAt);
       setCalculating(true);
@@ -164,12 +215,15 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
   };
 
   const applyRecognition = (result: ExcelRecognitionResult) => {
-    form.setFieldsValue({ ...result.project, calculationModel: 'zhujiang-v1' } as ProjectData);
+    form.setFieldsValue(toBuildingTotalProject({ ...result.project, district: result.project.district ?? undefined, calculationModel: 'zhujiang-v1' } as ProjectData));
+    setLegacyStairs(false);
     // Importing a real project must not retain hidden demonstration facts or costs.
     setWorkbookOverrides(result.project.workbookOverrides ?? {});
+    setRevenueScenario(result.project.revenueScenario);
     setAdvancedParameterOverrides(result.project.advancedParameterOverrides ?? {});
     setExampleDataVersion(undefined);
     setWorkbookInputs([]);
+    setImportReviewIssues(result.issues?.filter(issue => issue.kind !== 'missing') ?? []);
     const missingStep = firstMissingStep(result.missingFields);
     if (missingStep !== undefined) setCurrentStep(missingStep);
     setError('');
@@ -177,14 +231,17 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
   };
 
   const loadExample = () => {
-    const example = createZhujiangExampleProject(form.getFieldValue('serviceGrade') ?? draft.serviceGrade);
+    const example = toBuildingTotalProject(createZhujiangExampleProject(form.getFieldValue('serviceGrade') ?? draft.serviceGrade));
+    setLegacyStairs(false);
     form.resetFields();
     form.setFieldsValue(example);
     setWorkbookOverrides(example.workbookOverrides ?? {});
+    setRevenueScenario(undefined);
     setAdvancedParameterOverrides({});
     setExampleDataVersion(example.exampleDataVersion);
     setExampleGrade(example.serviceGrade);
     setWorkbookInputs([]);
+    setImportReviewIssues([]);
     setError('');
     setAdvancedError('');
     setCurrentStep(0);
@@ -199,6 +256,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
         <Button onClick={loadExample} disabled={calculating || previewingAdvanced}>载入示例数据</Button>
       </div>
       <ExcelImportPanel onApply={applyRecognition} />
+      <ImportReviewPanel project={reviewProject} onResolve={confirmReview} onLocate={locateReview} />
         <div className="input-workspace">
           <aside className="step-rail"><Typography.Text className="panel-kicker">录入进度</Typography.Text><Steps direction="vertical" current={currentStep} items={steps.map((title) => ({ title }))} onChange={setCurrentStep} /></aside>
           <Card className="form-panel" bordered={false}>
@@ -211,6 +269,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
               }
             }}>
               <Form.Item name="calculationModel" hidden><Input /></Form.Item>
+              <Form.Item name="stairAreaBasis" hidden><Input /></Form.Item>
               <Typography.Paragraph type="secondary">按所选珠江服务等级和项目资料，估算所需人员与费用。</Typography.Paragraph>
               <section className={currentStep === 0 ? 'form-section' : 'form-section is-hidden'}>
                 <Typography.Title level={4}>01 / 项目概况</Typography.Title>
@@ -237,28 +296,35 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
               </section>
               <section className={currentStep === 2 ? 'form-section' : 'form-section is-hidden'}>
                 <div className="section-title-row"><Typography.Title level={4}>03 / 楼栋概况</Typography.Title><Typography.Text type="secondary">最多 5 类</Typography.Text></div>
+                <Alert type="info" showIcon title="楼梯填写每栋整栋合计面积" description="例如一栋29层楼的楼梯合计1200㎡，直接填1200，不用除以29。本组楼层总数为各栋层数相加；同组楼栋面积不同时请分组填写。" style={{ marginBottom: 16 }} />
+                {legacyStairs && <Alert type="warning" showIcon title="旧草稿楼梯面积已按原来的每层口径换算" description={<><p>若你之前填的已经是整栋合计（如1200、1240），请沿用原值，修正重复乘楼层的问题。</p><Space wrap><Button onClick={() => {
+                  form.setFieldsValue({ buildings: form.getFieldValue('buildings').map((b: BuildingTypeInput, i: number) => ({ ...b, evacuationStairArea: savedDraft?.buildings[i]?.evacuationStairArea ?? b.evacuationStairArea })) });
+                  setLegacyStairs(false);
+                  message.success('已沿用原数值作为每栋整栋合计面积，请保存并重新测算');
+                }}>原来填的就是整栋合计，沿用原值</Button><Button type="text" onClick={() => setLegacyStairs(false)}>原来填的是每层，保留换算值</Button></Space></>} style={{ marginBottom: 16 }} />}
                 <Form.List name="buildings" rules={[{ validator: async (_, value) => { if (!value?.length || value.length > 5) throw new Error('楼栋类型必须为 1—5 类'); } }]}>
                   {(fields, { add, remove }, { errors }) => <>{fields.map((field, index) => <div className="building-block" key={field.key}>
                     <div className="building-heading"><strong>楼栋类型 {index + 1}</strong>{fields.length > 1 && <Button type="text" danger icon={<DeleteOutlined />} onClick={() => remove(field.name)}>删除</Button>}</div>
-                    <Row gutter={12}><Col xs={12} md={6}><NumberField name={[field.name, 'buildingCount']} label="楼栋数" suffix="栋" /></Col><Col xs={12} md={6}><NumberField name={[field.name, 'lobbyElevatorCount']} label="大堂/电梯厅面积" suffix="㎡" /></Col><Col xs={12} md={6}><NumberField name={[field.name, 'stiltFloorArea']} label="架空层" suffix="㎡" /></Col><Col xs={12} md={6}><NumberField name={[field.name, 'totalFloors']} label="楼层总数" suffix="层" /></Col><Col xs={12} md={8}><NumberField name={[field.name, 'standardLobbyArea']} label="标准前厅" suffix="㎡" /></Col><Col xs={12} md={8}><NumberField name={[field.name, 'evacuationStairArea']} label="疏散楼梯" suffix="㎡" /></Col><Col xs={12} md={8}><NumberField name={[field.name, 'rooftopArea']} label="天台" suffix="㎡" /></Col></Row>
+                    <Row gutter={12}><Col xs={12} md={6}><NumberField name={[field.name, 'buildingCount']} label="楼栋数" suffix="栋" /></Col><Col xs={12} md={6}><NumberField name={[field.name, 'lobbyElevatorCount']} label="大堂/电梯厅（每栋）" suffix="㎡" /></Col><Col xs={12} md={6}><NumberField name={[field.name, 'stiltFloorArea']} label="架空层（每栋）" suffix="㎡" /></Col><Col xs={12} md={6}><NumberField name={[field.name, 'totalFloors']} label="楼层总数（本组）" suffix="层" /></Col><Col xs={12} md={8}><NumberField name={[field.name, 'standardLobbyArea']} label="标准前厅（每层）" suffix="㎡" /></Col><Col xs={12} md={8}><NumberField name={[field.name, 'evacuationStairArea']} label="疏散楼梯（每栋合计）" suffix="㎡" /></Col><Col xs={12} md={8}><NumberField name={[field.name, 'rooftopArea']} label="天台（每栋）" suffix="㎡" /></Col></Row>
                   </div>)}<Form.ErrorList errors={errors} />{fields.length < 5 && <Button block type="dashed" icon={<PlusOutlined />} onClick={() => add({ ...emptyBuilding })}>添加楼栋类型</Button>}</>}
                 </Form.List>
               </section>
               <section className={currentStep === 3 ? 'form-section' : 'form-section is-hidden'}><Typography.Title level={4}>04 / 地库概况</Typography.Title><Row gutter={16}><Col xs={24} md={12}><NumberField name="garageFloorArea" label="单层车库面积" suffix="㎡" /></Col><Col xs={24} md={12}><NumberField name="garageFloors" label="车库层数" suffix="层" /></Col></Row></section>
               <section className={currentStep === 4 ? 'form-section' : 'form-section is-hidden'}>
                 <Typography.Title level={4}>05 / 测算参数</Typography.Title>
+                {rosterPlan && <Alert type="info" showIcon title="本项目可按已导入的值守安排试算" description={<><p>门岗{rosterPlan.gatePosts}处×{rosterPlan.gateHours}小时×同时{rosterPlan.gatePeople}人，巡逻{rosterPlan.patrolHours}人·小时/天；中控仍按24小时覆盖，保留替休。班长由值守人员兼任，仅用于本项目试算。</p>{rosterPlan.twoTowerAssumption && <p>原表1个点位备注“南北塔门岗”，此处保守按两处，人数和时段均可修改。</p>}<Space wrap><Button onClick={useProjectRoster}>采用本项目排班与班长兼岗</Button><Button onClick={() => void openAdvancedParameters('zhuj.securityRosterMode')}>查看排班参数</Button></Space></>} style={{ marginBottom: 16 }} />}
                 <Form.Item name="serviceGrade" label="服务等级" rules={[{ required: true, message: '请选择服务等级' }]}><Select options={(Object.keys({ A: 1, B: 1, C: 1, D: 1 }) as ServiceGrade[]).map((value) => ({ value, label: gradeLabel(value, model) }))} /></Form.Item>
                 <Form.Item name="costBand" hidden={restored} label="城市成本档位" rules={[{ required: true, message: '请选择城市成本档位' }]} extra={recommendedCostBand && selectedCostBand ? `系统建议：${COST_BAND_LABELS[recommendedCostBand]}；当前采用：${COST_BAND_LABELS[selectedCostBand]}${selectedCostBand !== recommendedCostBand ? '（已手动调整）' : ''}` : '请先选择省份和城市'}><Select disabled={!recommendedCostBand} options={costBandOptions} /></Form.Item>
                 <Form.Item name="recommendedCostBand" hidden><Input /></Form.Item>
                 <Form.Item name="costBandSourceVersion" hidden><Input /></Form.Item>
               </section>
               <Divider />
-              <div className="form-footer"><Space><Button icon={<ArrowLeftOutlined />} disabled={currentStep === 0} onClick={() => setCurrentStep((value) => value - 1)}>上一步</Button><Button disabled={currentStep === 4} onClick={() => setCurrentStep((value) => value + 1)}>下一步 <ArrowRightOutlined /></Button></Space><Space wrap><Button onClick={saveDraft}>保存草稿</Button><Button loading={previewingAdvanced} onClick={openAdvancedParameters}>{restored ? '项目服务设置' : '高级参数（可选，系统已估算）'}</Button><Button type="primary" loading={calculating} onClick={startCalculation}>开始测算</Button></Space></div>
+              <div className="form-footer"><Space><Button icon={<ArrowLeftOutlined />} disabled={currentStep === 0} onClick={() => setCurrentStep((value) => value - 1)}>上一步</Button><Button disabled={currentStep === 4} onClick={() => setCurrentStep((value) => value + 1)}>下一步 <ArrowRightOutlined /></Button></Space><Space wrap><Button onClick={saveDraft}>保存草稿</Button><Button loading={previewingAdvanced} onClick={() => void openAdvancedParameters()}>{restored ? '项目服务设置' : '高级参数（可选，系统已估算）'}</Button><Button type="primary" loading={calculating} onClick={startCalculation}>开始测算</Button></Space></div>
             </Form>
           </Card>
           <aside className="profile-panel"><div className="profile-icon"><FileProtectOutlined /></div><Typography.Text className="panel-kicker">实时项目档案</Typography.Text><Typography.Title level={4}>{watched?.projectName || '未命名项目'}</Typography.Title><Typography.Text type="secondary">{[watched?.region, watched?.city, restored ? watched?.district : undefined].filter(Boolean).join(' / ') || '等待录入地区'}</Typography.Text><Divider /><dl className="profile-list"><div><dt>服务等级</dt><dd>{watched?.serviceGrade ? gradeLabel(watched.serviceGrade, model) : '—'}</dd></div><div><dt>{restored ? '采用单价' : '成本档位'}</dt><dd>{restored ? '项目所在地人工参考价' : watched?.costBand ? COST_BAND_LABELS[watched.costBand] : '待选择'}</dd></div><div><dt>总建筑面积</dt><dd>{profileNumber(watched?.totalBuildingArea)} ㎡</dd></div><div><dt>楼栋类型</dt><dd>{watched?.buildings?.length ?? 0} 类</dd></div><div><dt>常住户数</dt><dd>{profileNumber(watched?.occupiedHouseholds)} 户</dd></div></dl></aside>
         </div>
-      {restored ? <WorkbookParametersDrawer zhujiang={model === 'zhujiang-v1'} open={advancedOpen} loading={previewingAdvanced} error={advancedError} parameters={workbookInputs} overrides={workbookOverrides} onClose={() => setAdvancedOpen(false)} onSave={(next) => { setWorkbookOverrides(next); setAdvancedOpen(false); message.success('计算参数已保存，将用于正式测算'); }} /> : <AdvancedParametersDrawer open={advancedOpen} loading={previewingAdvanced} error={advancedError} parameters={advancedParameters} overrides={advancedParameterOverrides} onClose={closeAdvancedParameters} onChange={changeAdvancedParameters} />}
+      {restored ? <WorkbookParametersDrawer zhujiang={model === 'zhujiang-v1'} open={advancedOpen} loading={previewingAdvanced} error={advancedError} parameters={workbookInputs} overrides={workbookOverrides} focusKey={parameterFocus} reviewCount={pendingReview.length} onReview={() => { setAdvancedOpen(false); document.getElementById('import-review')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} onClose={() => setAdvancedOpen(false)} onSave={(next) => { setWorkbookOverrides(next); setAdvancedOpen(false); setError(''); storage.saveDraft({ ...reviewProject, ...form.getFieldsValue(true), workbookOverrides: next, importReviewIssues, exampleDataVersion }); message.success('计算参数已保存，将用于正式测算'); }} /> : <AdvancedParametersDrawer open={advancedOpen} loading={previewingAdvanced} error={advancedError} parameters={advancedParameters} overrides={advancedParameterOverrides} onClose={closeAdvancedParameters} onChange={changeAdvancedParameters} />}
       <Modal className="generation-modal" open={calculating} title="正在生成测算方案" width={620} centered closable={false} mask={{ closable: false }} footer={null}>
         <GenerationProgress startedAt={calculationStartedAt} durationMs={CALCULATION_MINIMUM_MS} stages={calculationStages} subtitle={watched?.projectName || '当前项目'} />
       </Modal>

@@ -342,7 +342,7 @@ test('shows a real waiting state while Excel recognition is running', async () =
   const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]');
   fireEvent.change(fileInput!, { target: { files: [new File(['xlsx'], '项目资料.xlsx')] } });
   expect(screen.getByText('正在识别项目数据')).toBeTruthy();
-  expect(screen.getByText(/通常需要约 1 分钟/)).toBeTruthy();
+  expect(screen.getByText(/先按字段规则匹配/)).toBeTruthy();
   expect(screen.getByText('读取工作表')).toBeTruthy();
   expect(screen.queryByText('表格内容较多，正在继续核对')).toBeNull();
   await act(() => vi.advanceTimersByTimeAsync(30_000));

@@ -22,6 +22,20 @@ import { PARITY_PROJECTS } from '../scripts/calculation/fixtures/parity-projects
 import { createCalculator } from '../scripts/calculation/calculator.mjs';
 import { resultValidationError } from './_lib/result-validation.mjs';
 
+test('unresolved import issues do not lock parameter editing but still block calculation', async () => {
+  const project = { ...PARITY_PROJECTS[0], calculationModel: 'zhujiang-v1', region: '广东省', city: '广州市', district: '增城区', serviceGrade: 'C',
+    importReviewIssues: [{ key: 'zhuj.asset.building.stiltFloorArea', label: '架空层面积', kind: 'conflict', message: '100与1700不一致', sources: [] }] };
+  const response = await createWorkbookInputsHandler().fetch(new Request('http://local/api/workbook-inputs', { method: 'POST', body: JSON.stringify(project) }));
+  assert.equal(response.status, 200);
+  assert.ok((await response.json()).some(item => item.key === 'zhuj.asset.building.stiltFloorArea'));
+  const { validateProject } = await import('../scripts/calculation/calculator.mjs');
+  assert.match(validateProject(project), /待核对|冲突/);
+  const { resolveImportIssue } = await import('../scripts/calculation/import-review.mjs');
+  const confirmed = resolveImportIssue(project, project.importReviewIssues[0].key, 'value', 1700);
+  assert.equal(validateProject(JSON.parse(JSON.stringify(confirmed))), undefined);
+  assert.match(validateProject({ ...confirmed, workbookOverrides: { ...confirmed.workbookOverrides, 'zhuj.asset.building.stiltFloorArea': -1 } }), /待核对|冲突/);
+});
+
 test('Zhujiang API exposes ratios and both budgets with a valid result contract', async () => {
   const project={...PARITY_PROJECTS[0],calculationModel:'zhujiang-v1',region:'广东省',city:'广州市',district:'增城区',serviceGrade:'A',workbookOverrides:{'zhuj.cleaningAreaPerPerson':4000}};
   const response=await createWorkbookInputsHandler().fetch(new Request('http://local/api/workbook-inputs',{method:'POST',body:JSON.stringify(project)}));

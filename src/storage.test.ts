@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, test } from 'vitest';
 import { EXAMPLE_PROJECT } from './exampleProject';
 import { storage } from './storage';
+import { emptyRevenueScenario } from '../scripts/calculation/revenue-scenario.mjs';
 import type { CalculationAdjustments, CalculationResult } from './types';
 
 const adjustments: CalculationAdjustments = {
@@ -69,6 +70,21 @@ function result(projectName: string, calculatedAt: string, annualCost = 481800):
 afterEach(() => localStorage.clear());
 
 describe('project storage', () => {
+  test('revenue changes persist with the active project without replacing cost results or adjustments', () => {
+    const first = storage.saveCalculatedProject(result('项目一', '2026-09-03T08:00:00.000Z'));
+    storage.saveProjectAdjustments(first.id, adjustments, first.result);
+    const scenario = { ...emptyRevenueScenario(), commercialAnnual: 100, targetMargin: 15 };
+    storage.saveRevenueScenario(scenario);
+    expect(storage.loadResult()?.project.revenueScenario).toEqual(scenario);
+    expect(storage.loadDraft()?.revenueScenario).toEqual(scenario);
+    expect(storage.loadResult()?.annualCost).toBe(first.result.annualCost);
+    expect(storage.loadActiveAdjustments()).toEqual(adjustments);
+    storage.startNewProject();
+    storage.saveCalculatedProject(result('项目二', '2026-09-03T09:00:00.000Z'));
+    expect(storage.loadResult()?.project.revenueScenario).toBeUndefined();
+    storage.selectProject(first.id);
+    expect(storage.loadResult()?.project.revenueScenario).toEqual(scenario);
+  });
   test('saves reusable company profile data', () => {
     const profile = {
       companyName: '安序物业', socialCreditCode: '91440000TEST', legalRepresentative: '张三',

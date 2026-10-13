@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { createCalculator, validateProject, getCalculationInputs } from './scripts/calculation/calculator.mjs';
 import { applyAdjustments } from './scripts/calculation/adjustments.mjs';
 import { loadRecognitionConfig } from './scripts/excel-recognition/config.mjs';
-import { recognizeExcel, recognizeExcelWithFallback } from './scripts/excel-recognition/recognize-excel.mjs';
+import { recognizeExcelSmart, recognizeExcelWithFallback } from './scripts/excel-recognition/recognize-excel.mjs';
 import { recognizeExcelRemotely } from './scripts/excel-recognition/remote-recognition.mjs';
 import { resultValidationError } from './api/_lib/result-validation.mjs';
 
@@ -259,7 +259,7 @@ const server = createServer(async (request, response) => {
     if (url.pathname === '/api/workbook-inputs') {
       if (request.method !== 'POST') return json(response, 405, { error: '仅支持 POST 请求' });
       const project = await readJson(request);
-      const validationError = validateProject(project);
+      const validationError = validateProject(project, { allowImportReview: true });
       if (validationError) return json(response, 400, { error: validationError });
       return json(response, 200, getCalculationInputs(project));
     }
@@ -293,7 +293,7 @@ const server = createServer(async (request, response) => {
         return json(response, 200, await recognizeExcelWithFallback(bytes, { remoteRecognize }));
       }
       const config = await loadRecognitionConfig({ projectRoot: resolve(ROOT, '..') });
-      return json(response, 200, await recognizeExcel(bytes, { config }));
+      return json(response, 200, await recognizeExcelSmart(bytes, { config }));
     }
     if (url.pathname === '/api/presentation/jobs') {
       if (request.method !== 'POST') return json(response, 405, { error: '仅支持 POST 请求' });
