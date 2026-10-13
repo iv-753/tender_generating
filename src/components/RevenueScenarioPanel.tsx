@@ -14,7 +14,7 @@ export default function RevenueScenarioPanel({ result, disabled, onChange }: Pro
   const [uploading, setUploading] = useState(false);
   const [candidate, setCandidate] = useState<RevenueScenario | null>(null);
   const [fileName, setFileName] = useState('');
-  const calc = calculateRevenueScenario(result.annualCost, result.project.residentialChargeArea, s);
+  const calc = calculateRevenueScenario(result.annualCost, result.project.residentialChargeArea, s, { allowMissingIncome: true });
   const pending = result.actions.filter(a => a.standardStatus === 'pending').length;
   const update = (key: keyof RevenueScenario, value: number | null) => onChange({ ...s, [key]: value,
     sources: { ...s.sources, [key]: s.sources[key]?.startsWith('手动调整') ? s.sources[key] : `手动调整${s.sources[key] ? `；原来源：${s.sources[key]}` : ''}` } });
@@ -57,10 +57,10 @@ export default function RevenueScenarioPanel({ result, disabled, onChange }: Pro
         <p className="revenue-hint">默认100%收缴；其他收入请直接填写预计可实现的全年金额。</p>
       </div>
       <div className="revenue-outcomes">
-        <div className="revenue-break-even"><span>住宅物业费盈亏平衡点 <Tag>当前口径</Tag></span><div><strong data-testid="break-even">{rate(calc.breakEvenRate)}</strong><span>元/㎡·月</span></div><small>年度成本 ¥{money(calc.totalCost)} − 其他收入 ¥{money(calc.otherIncome)}<br />再除以住宅收费面积 {money(result.project.residentialChargeArea)} ㎡ × 12个月 × 收缴率 {money(s.collectionRate)}%</small></div>
+        <div className="revenue-break-even"><span>住宅物业费盈亏平衡点 <Tag>{calc.missingIncome.length ? '暂估 · 仅计已知收入' : '当前口径'}</Tag></span><div><strong data-testid="break-even">{rate(calc.breakEvenRate)}</strong><span>元/㎡·月</span></div><small>年度成本 ¥{money(calc.totalCost)} − 其他收入 ¥{money(calc.otherIncome)}<br />再除以住宅收费面积 {money(result.project.residentialChargeArea)} ㎡ × 12个月 × 收缴率 {money(s.collectionRate)}%</small></div>
         <div className="revenue-margin-control"><label htmlFor="revenue-margin">目标利润率 <small>占项目全部收入</small></label><Space><InputNumber id="revenue-margin" aria-label="目标利润率" min={0} max={99} precision={1} value={s.targetMargin} disabled={disabled} onChange={v=>update('targetMargin',v)} /><span>%</span></Space></div>
         <div className="revenue-presets">{[0,10,15].map(m => {
-          const item = calculateRevenueScenario(result.annualCost, result.project.residentialChargeArea, { ...s, targetMargin: m });
+          const item = calculateRevenueScenario(result.annualCost, result.project.residentialChargeArea, { ...s, targetMargin: m }, { allowMissingIncome: true });
           return <button type="button" key={m} aria-pressed={s.targetMargin === m} disabled={disabled} onClick={()=>update('targetMargin',m)}>
             <span>{m === 0 ? '收支平衡 · 0%' : `利润率 ${m}%`}</span><strong>{rate(item.chargeRate)}<small> 元/㎡·月</small></strong>
           </button>;
@@ -72,7 +72,8 @@ export default function RevenueScenarioPanel({ result, disabled, onChange }: Pro
         </div>
       </div>
     </div>
-    {calc.errors.length > 0 && <Alert type="info" showIcon title="补齐收入与收费条件后显示结果" description={calc.errors.join('；')} />}
+    {calc.missingIncome.length > 0 && <Alert type="info" showIcon title="已按已知收入显示暂估结果" description={`${calc.missingIncome.join('、')}尚未填写，暂未计入收入；没有这项收入可填0，有收入时补充后会自动重算。空白原值已保留。`} />}
+    {calc.errors.length > 0 && <Alert type="info" showIcon title="请修正以下数据后显示结果" description={calc.errors.join('；')} />}
     <Alert type="warning" showIcon title="这是当前已计费用口径下的试算，尚非完整经营净利润" description={`${pending ? `还有${pending}条服务待补资料。` : ''}未纳入的经营费用、税费及收入配套成本，需在补充年度费用中计入；新增费用后平衡价会变化。`} />
     {sourceAreaMismatch && <Alert type="warning" showIcon title={`表6住宅收费面积为${money(s.sourceResidentialArea!)}㎡，本页采用项目当前面积${money(result.project.residentialChargeArea)}㎡，请核对差异。`} />}
     <Collapse ghost items={[{ key:'source', label:'查看收入来源、计算公式与口径说明', children:<>

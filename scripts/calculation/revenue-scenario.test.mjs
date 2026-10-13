@@ -33,3 +33,13 @@ test('missing, zero area, negative and invalid percentages do not produce a misl
   assert.equal(calculateRevenueScenario(NaN, 100, scenario()).targetRate, null);
   assert.equal(calculateRevenueScenario(100, 100, { ...scenario(), currentResidentialRate: null }).currentAnnualProfit, null);
 });
+test('optional income gaps permit an explicit provisional estimate without changing the source', () => {
+  const s = { ...emptyRevenueScenario(), commercialAnnual:1587820.13, parkingAnnual:443040, valueAddedAnnual:20000 };
+  const r = calculateRevenueScenario(23615587,432245.2374,s,{allowMissingIncome:true});
+  assert.equal(r.breakEvenRate.toFixed(2),'4.16');
+  assert.deepEqual(r.missingIncome,['非合同收入']);
+  assert.equal(s.nonContractAnnual,null);
+  assert.equal(calculateRevenueScenario(23615587,432245.2374,s).breakEvenRate,null);
+  assert.equal(calculateRevenueScenario(23615587,0,s,{allowMissingIncome:true}).breakEvenRate,null);
+  assert.equal(calculateRevenueScenario(23615587,432245.2374,{...s,nonContractAnnual:-1},{allowMissingIncome:true}).breakEvenRate,null);
+});

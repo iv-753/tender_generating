@@ -6,6 +6,16 @@ import { unresolvedImportIssues, resolveImportIssue, reviewField } from './impor
 const issue = (key, label = key) => ({ key, label, kind: 'conflict', message: '需确认', sources: [] });
 const project = () => ({ ...EXAMPLE_PROJECT, district: '增城区', calculationModel: 'zhujiang-v1', workbookOverrides: {} });
 
+test('covered post decisions survive missing-field completion and only reopen for changed source evidence', () => {
+  let p = { ...project(), serviceGrade: null, gatehouses: null, importReviewIssues: [issue('posts.前台'), issue('posts.其他')] };
+  p = resolveImportIssue(p, 'posts.前台', 'covered');
+  p = resolveImportIssue(p, 'posts.其他', 'extra', 2);
+  p = { ...p, serviceGrade: 'C', gatehouses: 38 };
+  assert.ok(!unresolvedImportIssues(JSON.parse(JSON.stringify(p))).some(i => i.key === 'posts.前台'));
+  p.importReviewIssues[0] = { ...p.importReviewIssues[0], sources: [{sheet:'岗位',cell:'C1',raw:3}] };
+  assert.ok(unresolvedImportIssues(p).some(i => i.key === 'posts.前台'));
+});
+
 test('confirming an area uses current values and changes later reopen the review', () => {
   let p = { ...project(), importReviewIssues: [issue('zhuj.asset.building.stiltFloorArea')] };
   p = resolveImportIssue(p, p.importReviewIssues[0].key, 'value', 1700);

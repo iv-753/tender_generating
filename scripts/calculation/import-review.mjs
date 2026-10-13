@@ -39,6 +39,15 @@ function resolved(issue, project) {
   const field = reviewField(issue, project);
   if (issue.kind === 'missing') return typeof field.current === 'string' ? !!field.current.trim() : validNumber(field.current, field);
   const r = issue.resolution;
+  // “Covered by existing posts” is a classification decision. Changing grade,
+  // entrance counts or another post's extra staffing does not undo it.
+  // Accept the same source evidence in older saved fingerprints as well.
+  if (r?.decision === 'covered' && field.kind === 'post') {
+    try {
+      const saved = JSON.parse(r.fingerprint);
+      return JSON.stringify(saved.slice(0, 3)) === JSON.stringify([issue.key, issue.kind, issue.sources]);
+    } catch { return false; }
+  }
   if (!r || r.fingerprint !== fingerprint(issue, project)) return false;
   if (field.kind === 'post') return r.decision === 'covered' || (r.decision === 'extra' && validNumber(field.current, field) && r.value === field.current);
   if (field.kind === 'activity') return (r.decision === 'covered' && field.current === 0) || (r.decision === 'extra' && validNumber(field.current, field) && r.value === field.current);

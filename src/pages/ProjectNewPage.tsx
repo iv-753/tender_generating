@@ -179,7 +179,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
 
   const saveDraft = async () => {
     try {
-      const values = await getValidProject();
+      const values = { ...reviewProject, ...form.getFieldsValue(true), workbookOverrides, importReviewIssues, revenueScenario, advancedParameterOverrides, exampleDataVersion };
       storage.saveDraft(values);
       message.success('草稿已保存');
     } catch (reason) {
@@ -189,6 +189,8 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
 
   const startCalculation = async () => {
     setError('');
+    // Preserve partial input and confirmations even when validation fails.
+    storage.saveDraft({ ...reviewProject, ...form.getFieldsValue(true), workbookOverrides, importReviewIssues, revenueScenario, advancedParameterOverrides, exampleDataVersion });
     const startedAt = Date.now();
     try {
       const pending = unresolvedImportIssues({ ...reviewProject, ...form.getFieldsValue(true), workbookOverrides, importReviewIssues }).filter(i => i.kind !== 'missing');
@@ -208,7 +210,12 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
       onNavigate();
     } catch (reason) {
       setCalculating(false);
-      const text = reason instanceof Error ? reason.message : '测算失败，请稍后重试';
+      const fields = (reason as { errorFields?: { name: (string | number)[]; errors: string[] }[] })?.errorFields;
+      if (fields?.length) {
+        setCurrentStep(firstMissingStep(fields.map(field => String(field.name[0]))) ?? 0);
+        requestAnimationFrame(() => form.scrollToField(fields[0].name, { focus: true, block: 'center' }));
+      }
+      const text = fields?.length ? `还有 ${fields.length} 项基础资料需要补充，已定位到缺项；已填内容和核对结果已保存。` : reason instanceof Error ? reason.message : '测算失败，请稍后重试';
       setError(text);
       message.error(text);
     }
