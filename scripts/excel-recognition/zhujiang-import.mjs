@@ -19,17 +19,23 @@ export function parseImportValue(raw, def, unit = '', note = '') {
     : { kind: 'missing', message: '请确认对应的御享、雅享、悦享或善享档位；“重点项目”等分类不能直接换算。' };
   let text = String(raw ?? '').trim().replace(/[,，\s]/g, '');
   if (def.type === 'frequency') {
-    if (absentText.test(text) || (/^[/／—-]+$/.test(text) && /不涉及|不提供|无需/.test(note))) return { value: 0 };
+    // Accept an explicit zero with an unambiguous absence explanation, not
+    // arbitrary parenthesized caveats such as “0（另有2次）”.
+    const explainedZero = /^0(?:次)?[（(](?:(?:无|没有)(?:空巢老人|服务对象|该设施|此设施|此项目)|不涉及|不提供|无需|不适用)[）)]$/.test(text);
+    if (absentText.test(text) || explainedZero || (/^[/／—-]+$/.test(text) && /不涉及|不提供|无需/.test(note))) return { value: 0 };
     if (missingText.test(text)) return { kind: 'missing', message: '未提供明确计划，不按零次处理。' };
     if (def.eventCount) return { kind: 'conflict', message: '测算需要全年服务总次数；“提供”或每人频次不能直接换成全年总量。' };
     const factors = { 天: 365, 日: 365, 周: 52, 月: 12, 季: 4, 季度: 4, 年: 1 };
     let m = text.match(/^(?:每)?(\d+(?:\.\d+)?)?(天|日|周|月|季度|季|年)(\d+(?:\.\d+)?)次$/);
     if (m && Number(m[1] ?? 1) > 0) return { value: Number(m[3]) * factors[m[2]] / Number(m[1] ?? 1) };
-    m = text.match(/^(\d+(?:\.\d+)?)次[/／](?:(\d+(?:\.\d+)?))?(天|日|周|月|季度|季|年)$/);
+    m = text.match(/^(\d+(?:\.\d+)?)(?:次)?[/／](?:(\d+(?:\.\d+)?))?(天|日|周|月|季度|季|年)$/);
     if (m && Number(m[2] ?? 1) > 0) return { value: Number(m[1]) * factors[m[3]] / Number(m[2] ?? 1) };
     return { kind: 'invalid', message: '频次需带明确周期，例如每月1次、2次/季；按需开展不能自动折算。' };
   }
   if (!hasValue(raw) || missingText.test(text)) return { kind: 'missing', message: '原表未填写明确数值；空白和“—”不会当成0。' };
+  if (/^\d+(?:\.\d+)?[/／]\d+(?:\.\d+)?$/.test(text)) return { kind: 'invalid', message: '原表用斜杠列出两个数，无法确定采用哪一个；请填写本次服务范围内的实际数值。' };
+  if (def.unit === '层' && /[（(]/.test(text)) return { kind: 'invalid', message: '原表层数附有分期或范围说明，不能直接把开头数字用于整个车库；请核对各期层数及对应面积。' };
+  if (/市政道路/.test(text)) return { kind: 'invalid', message: '原表说明属于市政道路，但没有明确本项目是否承担维护；不承担时填0，承担时填实际服务面积。' };
   if (unit && def.unit && normalizeUnit(unit) !== normalizeUnit(def.unit)) return { kind: 'invalid', message: `单位为“${unit}”，需要“${def.unit}”，请核对口径。` };
   const inlineUnit = text.match(/(㎡|平方米|%|％|台|个|户|栋|层|米)$/)?.[1];
   if (inlineUnit && def.unit && normalizeUnit(inlineUnit) !== normalizeUnit(def.unit)) return { kind: 'invalid', message: `数值中的单位“${inlineUnit}”与“${def.unit}”不一致。` };

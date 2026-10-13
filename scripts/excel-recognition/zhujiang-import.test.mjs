@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { recognizeZhujiangWorkbook } from './zhujiang-import.mjs';
+import { recognizeZhujiangWorkbook, parseImportValue } from './zhujiang-import.mjs';
 import { recognizeExcelSmart, recognizeExcelWithFallback } from './recognize-excel.mjs';
 import { createExcelRecognitionHandler } from '../../api/excel/recognize.mjs';
 import { createRecognitionProvider } from './providers.mjs';
@@ -89,6 +89,29 @@ test('reports contradictory geometry, unknown grade and missing values without g
   assert.equal(r.project.workbookOverrides['zhuj.asset.building.stiltFloorArea'], undefined);
   assert.ok(r.issues.some(x => x.key === 'zhuj.asset.building.stiltFloorArea' && x.kind === 'conflict' && x.sources.length >= 2));
   assert.ok(r.issues.some(x => x.key === 'greenArea' && x.kind === 'missing'));
+});
+
+test('accepts implied units and shorthand frequencies, but preserves ambiguous values', () => {
+  for (const unit of ['㎡', '个', '层']) for (const value of [38, '38']) assert.equal(parseImportValue(value, { unit }).value, 38);
+  for (const [text, value] of [['2/月', 24], ['1/季度', 4], ['1/年', 1], ['2次/月', 24], ['1/2月', 6], ['2／季', 8]]) assert.equal(parseImportValue(text, { type: 'frequency' }).value, value, text);
+  assert.equal(parseImportValue('0（无空巢老人）', { type: 'frequency', eventCount: true }).value, 0);
+  for (const text of ['2/月', '0（另有2次）', '0（无固定频次）']) assert.equal(parseImportValue(text, { type: 'frequency', eventCount: true }).kind, 'conflict');
+  for (const text of ['2', '按需', '2/月或3/月', '1/0月']) assert.equal(parseImportValue(text, { type: 'frequency' }).kind, 'invalid');
+  assert.equal(parseImportValue('30/37', { unit: '个' }).kind, 'invalid');
+  assert.equal(parseImportValue('2（部分一期只有一层）', { unit: '层', integer: true }).kind, 'invalid');
+  assert.equal(parseImportValue(38, { unit: '㎡' }, '个').kind, 'invalid');
+});
+
+test('imports explicit zero and shorthand plans without extra confirmation', () => {
+  const r = recognizeZhujiangWorkbook(fixture({ '合同约定服务标准': [
+    [8, { B: '空巢老人拜访', C: '0（无空巢老人）' }],
+    [12, { B: '出入口大门地面深度清扫', C: '2/月' }],
+    [21, { B: '车库地面深度清洁', C: '1/季度' }],
+  ] }));
+  assert.equal(r.project.workbookOverrides['服务!P13'], 0);
+  assert.equal(r.project.workbookOverrides['清洁!X7'], 24);
+  assert.equal(r.project.workbookOverrides['清洁!X49'], 4);
+  assert.ok(!r.issues.some(i => ['服务!P13','清洁!X7','清洁!X49'].includes(i.key)));
 });
 
 test('an excluded garage does not exclude shared pump or electrical rooms', () => {
