@@ -144,40 +144,40 @@ test('uses province and city selectors with an adjacent cost override', () => {
   expect(screen.getByText(/当前采用：较高成本城市.*已手动调整/)).toBeTruthy();
 });
 
-test('previews advanced parameters without saving or leaving the new-project page', async () => {
-  vi.mocked(previewAdvancedParameters).mockResolvedValue([{
-    key: 'basement.fireShutterCount', label: '地下停车区防火卷帘数量', group: 'basement', unit: '个', defaultValue: 252, value: 252, source: 'template', affectedActionIds: ['engineering-routine-6'],
+test('previews service settings without saving or leaving the new-project page', async () => {
+  const draft = { ...EXAMPLE_PROJECT, district: '增城区' };
+  vi.mocked(previewWorkbookInputs).mockResolvedValue([{
+    key: 'zhuj.annualCost.assistance', label: '安保全年人均费用', group: '珠江·全年人工费用', unit: '元/人·年', type: 'number', defaultValue: 96000, value: 96000, source: 'model',
   }]);
   window.history.replaceState({}, '', '/project/new');
-  storage.saveDraft(EXAMPLE_PROJECT);
+  storage.saveDraft(draft);
   render(<App />);
 
-  clickButtonText('高级参数（可选，系统已估算）');
+  clickButtonText('项目服务设置');
 
-  await waitFor(() => expect(document.querySelector('.advanced-parameters-drawer')).toBeTruthy());
-  expect(previewAdvancedParameters).toHaveBeenCalledWith(expect.objectContaining({ projectName: EXAMPLE_PROJECT.projectName }));
+  await screen.findByLabelText('安保每人全年用工费用');
+  expect(previewWorkbookInputs).toHaveBeenCalledWith(expect.objectContaining({ projectName: EXAMPLE_PROJECT.projectName }));
   expect(storage.loadProjects()).toHaveLength(0);
-  expect(storage.loadDraft()).toEqual(EXAMPLE_PROJECT);
+  expect(storage.loadDraft()).toEqual(draft);
   expect(window.location.pathname).toBe('/project/new');
 });
 
-test('includes advanced parameter overrides in the formal calculation', async () => {
-  vi.mocked(previewAdvancedParameters).mockResolvedValue([{
-    key: 'basement.fireShutterCount', label: '地下停车区防火卷帘数量', group: 'basement', unit: '个', defaultValue: 252, value: 252, source: 'template', affectedActionIds: ['engineering-routine-6'],
+test('includes service setting overrides in the formal calculation', async () => {
+  vi.mocked(previewWorkbookInputs).mockResolvedValue([{
+    key: 'zhuj.annualCost.assistance', label: '安保全年人均费用', group: '珠江·全年人工费用', unit: '元/人·年', type: 'number', defaultValue: 96000, value: 96000, source: 'model',
   }]);
   vi.mocked(calculateProject).mockRejectedValue(new Error('test stop after payload capture'));
   window.history.replaceState({}, '', '/project/new');
-  storage.saveDraft(EXAMPLE_PROJECT);
+  storage.saveDraft({ ...EXAMPLE_PROJECT, district: '增城区' });
   render(<App />);
-  clickButtonText('高级参数（可选，系统已估算）');
-  await waitFor(() => expect(document.querySelector('.advanced-parameters-drawer')).toBeTruthy());
-  fireEvent.click(screen.getByText('地下空间'));
-  fireEvent.change(screen.getByLabelText('地下停车区防火卷帘数量'), { target: { value: '300' } });
-  clickButtonText('完成');
+  clickButtonText('项目服务设置');
+  const salary = await screen.findByLabelText('安保每人全年用工费用');
+  fireEvent.change(salary, { target: { value: '84000' } });
+  clickButtonText('保存设置');
 
   clickButtonText('开始测算');
 
-  await waitFor(() => expect(calculateProject).toHaveBeenCalledWith(expect.objectContaining({ advancedParameterOverrides: { 'basement.fireShutterCount': 300 } })));
+  await waitFor(() => expect(calculateProject).toHaveBeenCalledWith(expect.objectContaining({ workbookOverrides: { 'zhuj.annualCost.assistance': 84000 } })));
 });
 
 test('keeps calculation progress visible for at least eight seconds', async () => {
@@ -315,7 +315,7 @@ test('imports an Excel workbook, reviews the result, and applies it only after c
 
   expect(screen.getByText('Excel 智能导入')).toBeTruthy();
   const projectName = screen.getByLabelText('项目名称') as HTMLInputElement;
-  expect(projectName.value).toBe('增城示范花园');
+  expect(projectName.value).toBe('增城示范花园（示例）');
   const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]');
   expect(fileInput).toBeTruthy();
   fireEvent.change(fileInput!, { target: { files: [new File(['xlsx'], '项目资料.xlsx')] } });
@@ -324,7 +324,7 @@ test('imports an Excel workbook, reviews the result, and applies it only after c
   expect(screen.getByText('云麓华庭')).toBeTruthy();
   expect(screen.getByText('108,000 ㎡')).toBeTruthy();
   expect(dialog.textContent).toContain('1 项待补充');
-  expect(projectName.value).toBe('增城示范花园');
+  expect(projectName.value).toBe('增城示范花园（示例）');
 
   fireEvent.click(screen.getByRole('button', { name: '采用识别结果' }));
   expect(projectName.value).toBe('云麓华庭');
@@ -364,7 +364,7 @@ test('keeps the form unchanged when the recognition result is cancelled', async 
   fireEvent.change(fileInput!, { target: { files: [new File(['xlsx'], '项目资料.xlsx')] } });
   await screen.findByRole('dialog', { name: '识别结果确认' });
   fireEvent.click(screen.getByRole('button', { name: /取\s*消/ }));
-  expect(projectName.value).toBe('增城示范花园');
+  expect(projectName.value).toBe('增城示范花园（示例）');
 });
 
 test('keeps the form unchanged when Excel recognition fails', async () => {
@@ -376,7 +376,7 @@ test('keeps the form unchanged when Excel recognition fails', async () => {
   const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]');
   fireEvent.change(fileInput!, { target: { files: [new File(['xlsx'], '项目资料.xlsx')] } });
   expect(await screen.findByText('AI服务暂不可用')).toBeTruthy();
-  expect(projectName.value).toBe('增城示范花园');
+  expect(projectName.value).toBe('增城示范花园（示例）');
 });
 
 test('does not expose the internal calculation-scope disclaimer on results', () => {
@@ -423,8 +423,9 @@ test('explains workload cost separately from the rounded staffing budget', () =>
 
   expect(screen.getByText('项目年度用工预算')).toBeTruthy();
   expect(screen.getByText('工作量折算成本')).toBeTruthy();
-  expect(screen.getByRole('columnheader', { name: /年工作量成本/ })).toBeTruthy();
-  expect(document.querySelector('.category-summary')?.textContent).toContain('工作量相当于 4.6 人，实际配置 5 人');
+  expect(screen.getByRole('columnheader', { name: /单项年度费用参考/ })).toBeTruthy();
+  expect(document.querySelector('.category-summary')?.textContent).toContain('配置 5 人');
+  expect(screen.getByText('工作量折算成本').closest('.workload-cost-strip')?.textContent).toContain('410,000');
   expect(screen.getByRole('button', { name: /调整服务方案/ })).toBeTruthy();
 });
 
@@ -437,16 +438,16 @@ test('shows all seven complete-model categories, the 452-action library, managem
   const libraryCard = screen.getByText('标准动作库').closest('.ant-card');
   expect(libraryCard?.textContent).toContain('452项');
   expect(libraryCard?.textContent).toContain('当前启用 452 项');
-  for (const title of ['服务', '清洁', '绿化', '安保', '四害消杀', '工程委外', '工程常规']) {
+  for (const title of ['服务', '清洁', '绿化', '安保', '四害消杀', '工程外包', '工程维护']) {
     expect(screen.getByRole('tab', { name: new RegExp(title) })).toBeTruthy();
   }
   expect(screen.queryByRole('tab', { name: /客助/ })).toBeNull();
   fireEvent.click(screen.getByRole('tab', { name: /安保/ }));
-  expect(document.querySelector('.category-summary')?.textContent).toContain('安保共 6 项');
+  expect(document.querySelector('.category-summary')?.textContent).toContain('安保已计入 6 项');
   const managementCard = screen.getByText('管理人员成本').closest('.ant-card');
   expect(managementCard?.textContent).toContain(`${result.management.headcount}人`);
   expect(managementCard?.textContent).toContain(result.management.annualCost.toLocaleString('zh-CN'));
-  expect(screen.getByText('配置总人数').closest('.ant-card')?.textContent).toContain(`${Math.ceil(result.totalHeadcount)}人`);
+  expect(screen.getAllByText('配置人数')[0].closest('.ant-card')?.textContent).toContain(`${Math.ceil(result.totalHeadcount)}人`);
   expect(screen.getByText('项目年度用工预算').closest('.ant-card')?.textContent).toContain(Math.round(result.annualCost).toLocaleString('zh-CN'));
 });
 
@@ -478,8 +479,8 @@ test('filters zero, adjusted, disabled, and custom actions without changing summ
   fireEvent.click(screen.getByRole('checkbox', { name: '只看已停用/自定义' }));
   fireEvent.click(screen.getByRole('checkbox', { name: '只看已调整' }));
   expect(screen.getByText(displayActionName(adjusted.action))).toBeTruthy();
-  fireEvent.click(screen.getByRole('tab', { name: /工程常规/ }));
-  fireEvent.change(screen.getByPlaceholderText('搜索动作、属性、依据或频次'), { target: { value: displayActionName(zero.action) } });
+  fireEvent.click(screen.getByRole('tab', { name: /工程维护/ }));
+  fireEvent.change(screen.getByPlaceholderText('搜索服务内容或服务次数'), { target: { value: displayActionName(zero.action) } });
   expect(screen.queryByText(displayActionName(zero.action))).toBeNull();
   fireEvent.click(screen.getByRole('checkbox', { name: '只看已调整' }));
   fireEvent.click(screen.getByRole('checkbox', { name: '显示零值' }));
@@ -707,10 +708,10 @@ test('new projects use district rates and pass salary overrides to standalone ca
   expect(screen.queryByLabelText('计算口径')).toBeNull();
   expect(screen.queryByText('原表完整算法（广东）')).toBeNull();
   expect(screen.queryByText('历史简化算法')).toBeNull();
-  clickButtonText('项目测算参数');
-  const salary = await screen.findByLabelText('安保全年人均费用');
+  clickButtonText('项目服务设置');
+  const salary = await screen.findByLabelText('安保每人全年用工费用');
   fireEvent.change(salary, {target:{value:'84000'}});
-  clickButtonText('应用参数');
+  clickButtonText('保存设置');
   clickButtonText('开始测算');
-  await waitFor(() => expect(calculateProject).toHaveBeenCalledWith(expect.objectContaining({calculationModel:'zhujiang-v1', district:'增城区', workbookOverrides:{'zhuj.annualCost.assistance':84000}})));
+  await waitFor(() => expect(calculateProject).toHaveBeenCalledWith(expect.objectContaining({calculationModel:'zhujiang-v1', district:'增城区', workbookOverrides:expect.objectContaining({'zhuj.annualCost.assistance':84000})})));
 });
