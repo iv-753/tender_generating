@@ -17,6 +17,10 @@ import {
 import { EXAMPLE_PROJECT } from './exampleProject';
 
 describe('property calculation rules', () => {
+  test('accepts imported projects with twelve building groups', () => {
+    const project = { ...EXAMPLE_PROJECT, buildings: Array.from({ length: 12 }, () => ({ ...EXAMPLE_PROJECT.buildings[0] })) };
+    expect(validateProjectData(project).filter(message => message.includes('楼栋类型'))).toEqual([]);
+  });
   test('separates shared payroll allocation from actual staffing without rounding cost allocations', () => {
     const result={calculationModel:'zhujiang-v1',totalHeadcount:65.4,management:{roles:[{title:'共享会计',headcount:.4},{title:'经理',headcount:1}]}};
     expect(staffingPresentation(result)).toEqual({headcount:65,sharedText:'会计费用：本项目暂按40%分摊'});

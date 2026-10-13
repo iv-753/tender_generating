@@ -99,7 +99,7 @@ export function normalizeRecognition(workbook, mapping, { provider, model } = {}
   if (!project.costBand) missingFields.push('costBand');
 
   const buildingEvidence = [];
-  project.buildings = (Array.isArray(mapping?.buildings) ? mapping.buildings : []).slice(0, 5).map((building, index) => {
+  project.buildings = (Array.isArray(mapping?.buildings) ? mapping.buildings : []).slice(0, 50).map((building, index) => {
     const normalized = {};
     const evidence = {};
     for (const [field, [, type]] of Object.entries(BUILDING_FIELD_DEFINITIONS)) {

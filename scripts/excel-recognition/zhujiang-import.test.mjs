@@ -141,6 +141,42 @@ async function xlsx(w) {
   return zip.generateAsync({ type: 'nodebuffer' });
 }
 
+test('imports more than five annotated groups and reads the relocated notes column', () => {
+  const w = fixture();
+  const basic = w.sheets[0];
+  const groupRows = basic.rows.filter(r => r.row >= 29);
+  const columns = ['C','D','E','F','G','H','I','J','K','L','M','N'];
+  for (const row of groupRows) {
+    const original = row.cells.find(c => c.address === `C${row.row}`)?.value;
+    row.cells = row.cells.filter(c => /^[AB]\d+$/.test(c.address));
+    for (const [i, col] of columns.entries()) row.cells.push({ address: `${col}${row.row}`, value: row.row === 29 ? `第${i + 1}组（${i + 1}栋）` : original });
+    row.cells.push({ address: `O${row.row}`, value: row.row === 29 ? '怎么填' : row.row === 35 ? '每栋整栋面积' : '' });
+  }
+  const r = recognizeZhujiangWorkbook(w);
+  assert.equal(r.project.buildings.length, 12);
+  assert.equal(r.project.buildings[11].lobbyElevatorCount, 100);
+  assert.equal(r.project.buildings[11].evacuationStairArea, 10);
+  assert.equal(r.recognition.buildings[11].label, '第12组（12栋）');
+  assert.ok(!r.issues.some(i => i.key === 'buildings'));
+});
+
+test('formula values reach project fields while out-of-scope garages remain excluded', async () => {
+  const zip = await JSZip.loadAsync(await xlsx(fixture()));
+  let xml = await zip.file('xl/worksheets/sheet1.xml').async('string');
+  xml = xml.replace('<row r="20">', '<row r="20"><c r="C20"><f>850</f><v>850</v></c>')
+    .replace('<row r="24">', '<row r="24"><c r="C24"><f>4500*4</f><v>18000</v></c>')
+    .replace('<c r="C31"><v>100</v></c>', '<c r="C31"><f>100+20</f><v>120</v></c>')
+    .replace('<c r="C35"><v>290</v></c>', '<c r="C35"><f>29*2*20+80</f><v>1240</v></c>');
+  zip.file('xl/worksheets/sheet1.xml', xml);
+  const r = await recognizeExcelSmart(await zip.generateAsync({ type: 'nodebuffer' }));
+  assert.equal(r.project.greenArea, 850);
+  assert.equal(r.project.garageFloorArea, 18000);
+  assert.equal(r.project.workbookOverrides['zhuj.garageIncluded'], 0);
+  assert.equal(r.project.buildings[0].lobbyElevatorCount, 120);
+  assert.equal(r.project.buildings[0].evacuationStairArea * 29, 1240);
+  assert.ok(r.issues.some(issue => issue.key === 'zhuj.asset.building.stiltFloorArea'));
+});
+
 test('known template uses rules without calling AI, even when source data needs correction', async () => {
   let calls = 0;
   const bytes = await xlsx(fixture());

@@ -105,7 +105,7 @@ export function validateProjectData(data: ProjectData): string[] {
   if (data.occupiedHouseholds > data.receivedHouseholds) errors.push('常住户数不能大于已收楼户数');
   if (data.receivedHouseholds > data.deliveredHouseholds) errors.push('已收楼户数不能大于已交付户数');
   if (data.lawnRatio < 0 || data.lawnRatio > 1) errors.push('草坪比例必须在 0%—100% 之间');
-  if (data.buildings.length < 1 || data.buildings.length > 5) errors.push('楼栋类型必须为 1—5 类');
+  if (data.buildings.length < 1 || data.buildings.length > 50) errors.push('楼栋类型必须为 1—50 类');
 
   const numericValues = [
     data.totalBuildingArea,

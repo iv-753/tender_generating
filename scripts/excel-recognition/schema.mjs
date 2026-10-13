@@ -58,7 +58,7 @@ export const RECOGNITION_JSON_SCHEMA = {
       buildings: {
         type: 'array',
         minItems: 0,
-        maxItems: 5,
+        maxItems: 50,
         items: {
           type: 'object',
           additionalProperties: false,
@@ -101,14 +101,14 @@ export const REVIEW_JSON_SCHEMA = {
     additionalProperties: false,
     properties: {
       fieldCorrections: { type: 'array', items: correctionSchema(Object.keys(FIELD_DEFINITIONS)) },
-      removeBuildingIndexes: { type: 'array', items: { type: 'integer', minimum: 0, maximum: 4 } },
+      removeBuildingIndexes: { type: 'array', items: { type: 'integer', minimum: 0, maximum: 49 } },
       buildingCorrections: {
         type: 'array',
         items: {
           type: 'object',
           additionalProperties: false,
           properties: {
-            index: { type: 'integer', minimum: 0, maximum: 4 },
+            index: { type: 'integer', minimum: 0, maximum: 49 },
             label: nullableString,
             fieldCorrections: { type: 'array', items: buildingCorrectionSchema },
           },
@@ -153,5 +153,5 @@ export function recognitionPrompt(workbookText, candidates) {
   const outputRule = compactCandidates
     ? '候选即规则草稿。不要复述正确候选，只输出需要修正/补充的 fieldCorrections、需删除的楼栋下标 removeBuildingIndexes、楼栋修正 buildingCorrections 和规则漏掉的 newBuildings；四个数组都必须返回，无内容就返回空数组。'
     : '规则没有形成草稿，请按完整结构返回所有字段和楼栋映射。';
-  return `请核对工作簿中的物业项目数据映射。只返回字段来源，不要自行计算或改写原值。\n\n标准字段：\n${scalarFields}\n\n每种楼栋类型字段：\n${buildingFields}\n\n规则候选映射（仅用于加快定位，不是最终答案；每项格式为 [工作表, 单元格, 置信度]）：\n${candidateText}\n\n输出要求：\n${outputRule}\n\n核对要求：\n1. 完整工作簿是唯一权威来源，必须核对候选；候选错误时应纠正，候选缺失时应结合全文补充。\n2. sheet 必须使用原工作表名，cell 必须使用原 A1 地址。\n3. 找不到就把 sheet、cell 设为 null，confidence 设为 0；绝不猜测或补默认值。\n4. 当前有效口径优先；明确标注历史、失效、预算、参考或无关的数据不得采用。\n5. city 没有独立字段时，可引用 region 的单元格。\n6. 楼栋类型按原表有效数据行输出，最多 5 类。\n7. confidence 表示语义匹配把握。\n\n完整工作簿内容：\n${workbookText}`;
+  return `请核对工作簿中的物业项目数据映射。只返回字段来源，不要自行计算或改写原值。\n\n标准字段：\n${scalarFields}\n\n每种楼栋类型字段：\n${buildingFields}\n\n规则候选映射（仅用于加快定位，不是最终答案；每项格式为 [工作表, 单元格, 置信度]）：\n${candidateText}\n\n输出要求：\n${outputRule}\n\n核对要求：\n1. 完整工作簿是唯一权威来源，必须核对候选；候选错误时应纠正，候选缺失时应结合全文补充。\n2. sheet 必须使用原工作表名，cell 必须使用原 A1 地址。\n3. 找不到就把 sheet、cell 设为 null，confidence 设为 0；绝不猜测或补默认值。\n4. 当前有效口径优先；明确标注历史、失效、预算、参考或无关的数据不得采用。\n5. city 没有独立字段时，可引用 region 的单元格。\n6. 楼栋类型按原表有效数据行输出，最多 50 类。\n7. confidence 表示语义匹配把握。\n\n完整工作簿内容：\n${workbookText}`;
 }

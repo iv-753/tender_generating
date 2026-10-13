@@ -59,6 +59,6 @@ export function applyRuleReview(candidates, review = {}) {
     }
     mapping.buildings.push({ label: String(addition?.label || `楼栋类型${mapping.buildings.length + 1}`), fields });
   }
-  mapping.buildings = mapping.buildings.slice(0, 5);
+  mapping.buildings = mapping.buildings.slice(0, 50);
   return mapping;
 }

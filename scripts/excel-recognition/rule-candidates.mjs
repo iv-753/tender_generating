@@ -133,7 +133,7 @@ function findBuildingTables(workbook) {
       if (Object.keys(headers).length < 3) continue;
       const minimumHeaderColumn = Math.min(...Object.values(headers).map(({ cell }) => sourceColumn(cell.address)));
       for (const dataRow of sheet.rows.slice(rowIndex + 1)) {
-        if (buildings.length >= 5 || dataRow.row > headerRow.row + 5) break;
+        if (buildings.length >= 50 || dataRow.row > headerRow.row + 50) break;
         const cellByColumn = new Map(dataRow.cells.map((cell) => [sourceColumn(cell.address), cell]));
         const labelCell = [...dataRow.cells]
           .filter((cell) => sourceColumn(cell.address) < minimumHeaderColumn && isUsableValue(cell.value))

@@ -74,11 +74,13 @@ export function recognizeZhujiangWorkbook(workbook, suggestions = []) {
   };
   const headerCol = (sheet, pattern, fallback) => sheet?.rows.flatMap(r => r.cells).find(c => pattern.test(String(c.value)))?.address.replace(/\d+/g, '') ?? fallback;
   const valueCol = headerCol(basic, /^填写内容$/, 'C');
-  const groupHeader = basic.rows.find(r => r.cells.some(c => /^第[1一]组$/.test(String(c.value))));
+  const isGroup = value => /^第\s*(?:\d+|[一二三四五六七八九十百]+)\s*组(?:\s*[（(].*)?$/.test(String(value).trim());
+  const groupHeader = basic.rows.find(r => r.cells.some(c => isGroup(c.value)));
+  const noteCol = headerCol(basic, /^怎么填$|^填报说明$|^备注$/, 'H');
   const basicRows = basic.rows.filter(r => !groupHeader || r.row < groupHeader.row);
   for (const def of BASIC_IMPORT_FIELDS) {
     const rows = basicRows.filter(r => matches(at(r, 'A')?.value, def));
-    for (const row of rows) put(def, at(row, valueCol)?.value, ref(basic, row, valueCol), at(row, 'B')?.value, noteOf(row, ['H']));
+    for (const row of rows) put(def, at(row, valueCol)?.value, ref(basic, row, valueCol), at(row, 'B')?.value, noteOf(row, [noteCol]));
     if (!rows.length) {
       entries.set(def.key, { ...def, kind: 'missing', sources: [], value: undefined });
       addIssue(def.key, def.label, 'missing', '未找到该测算字段。');
@@ -87,16 +89,16 @@ export function recognizeZhujiangWorkbook(workbook, suggestions = []) {
   for (const row of basicRows) {
     const label = String(at(row, 'A')?.value ?? '');
     if (label && hasValue(at(row, valueCol)?.value) && !/项目$|填写|怎么填|单位/.test(label) && !BASIC_IMPORT_FIELDS.some(d => matches(label, d))) {
-      result.unmatchedRows.push({ label, ...ref(basic, row, valueCol), unit: at(row, 'B')?.value ?? '', note: noteOf(row, ['H']), section: '基础资料' });
+      result.unmatchedRows.push({ label, ...ref(basic, row, valueCol), unit: at(row, 'B')?.value ?? '', note: noteOf(row, [noteCol]), section: '基础资料' });
     }
   }
-  const excludedGarage = basicRows.find(r => /车库/.test(String(at(r, 'A')?.value)) && /不[在再属].*(?:管理|服务)范围|不纳入|不承担.*车库/.test(noteOf(r, ['H'])));
+  const excludedGarage = basicRows.find(r => /车库/.test(String(at(r, 'A')?.value)) && /不[在再属].*(?:管理|服务)范围|不纳入|不承担.*车库/.test(noteOf(r, [noteCol])));
   if (excludedGarage) {
-    put({ key: 'zhuj.garageIncluded', label: '车库不纳入服务', target: 'override', section: '服务范围' }, 0, ref(basic, excludedGarage, 'H'));
+    put({ key: 'zhuj.garageIncluded', label: '车库不纳入服务', target: 'override', section: '服务范围' }, 0, ref(basic, excludedGarage, noteCol));
     const entry = entries.get('garageFloorArea');
     if (entry?.kind === 'missing') { Object.assign(entry, { value: 0, kind: undefined, note: '按原表明确的车库服务排除说明，测算面积取0。' }); result.issues = result.issues.filter(i => i.key !== entry.key); }
   }
-  const groups = groupHeader?.cells.filter(c => /^第[1-5一二三四五]组$/.test(String(c.value))) ?? [];
+  const groups = groupHeader?.cells.filter(c => isGroup(c.value)) ?? [];
   for (const column of groups) {
     const col = column.address.replace(/\d+/g, '');
     const rows = basic.rows.filter(r => r.row > groupHeader.row);
@@ -108,7 +110,7 @@ export function recognizeZhujiangWorkbook(workbook, suggestions = []) {
       const def = { ...field, key: `buildings[${index}].${field.key}`, label: `${column.value} · ${field.label}`, target: 'building', index, field: field.key };
       const found = rows.filter(r => matches(at(r, 'A')?.value, field));
       if (!found.length) { put(def, undefined, { sheet: basic.name, cell: column.address, raw: null }); continue; }
-      for (const row of found) put(def, at(row, col)?.value, ref(basic, row, col), at(row, 'B')?.value, noteOf(row, ['H']));
+      for (const row of found) put(def, at(row, col)?.value, ref(basic, row, col), at(row, 'B')?.value, noteOf(row, [noteCol]));
     }
     const stairs = entries.get(`buildings[${index}].evacuationStairArea`);
     const count = entries.get(`buildings[${index}].buildingCount`)?.value;

@@ -295,18 +295,18 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
                 </Row>
               </section>
               <section className={currentStep === 2 ? 'form-section' : 'form-section is-hidden'}>
-                <div className="section-title-row"><Typography.Title level={4}>03 / 楼栋概况</Typography.Title><Typography.Text type="secondary">最多 5 类</Typography.Text></div>
+                <div className="section-title-row"><Typography.Title level={4}>03 / 楼栋概况</Typography.Title><Typography.Text type="secondary">最多 50 类</Typography.Text></div>
                 <Alert type="info" showIcon title="楼梯填写每栋整栋合计面积" description="例如一栋29层楼的楼梯合计1200㎡，直接填1200，不用除以29。本组楼层总数为各栋层数相加；同组楼栋面积不同时请分组填写。" style={{ marginBottom: 16 }} />
                 {legacyStairs && <Alert type="warning" showIcon title="旧草稿楼梯面积已按原来的每层口径换算" description={<><p>若你之前填的已经是整栋合计（如1200、1240），请沿用原值，修正重复乘楼层的问题。</p><Space wrap><Button onClick={() => {
                   form.setFieldsValue({ buildings: form.getFieldValue('buildings').map((b: BuildingTypeInput, i: number) => ({ ...b, evacuationStairArea: savedDraft?.buildings[i]?.evacuationStairArea ?? b.evacuationStairArea })) });
                   setLegacyStairs(false);
                   message.success('已沿用原数值作为每栋整栋合计面积，请保存并重新测算');
                 }}>原来填的就是整栋合计，沿用原值</Button><Button type="text" onClick={() => setLegacyStairs(false)}>原来填的是每层，保留换算值</Button></Space></>} style={{ marginBottom: 16 }} />}
-                <Form.List name="buildings" rules={[{ validator: async (_, value) => { if (!value?.length || value.length > 5) throw new Error('楼栋类型必须为 1—5 类'); } }]}>
+                <Form.List name="buildings" rules={[{ validator: async (_, value) => { if (!value?.length || value.length > 50) throw new Error('楼栋类型必须为 1—50 类'); } }]}>
                   {(fields, { add, remove }, { errors }) => <>{fields.map((field, index) => <div className="building-block" key={field.key}>
                     <div className="building-heading"><strong>楼栋类型 {index + 1}</strong>{fields.length > 1 && <Button type="text" danger icon={<DeleteOutlined />} onClick={() => remove(field.name)}>删除</Button>}</div>
                     <Row gutter={12}><Col xs={12} md={6}><NumberField name={[field.name, 'buildingCount']} label="楼栋数" suffix="栋" /></Col><Col xs={12} md={6}><NumberField name={[field.name, 'lobbyElevatorCount']} label="大堂/电梯厅（每栋）" suffix="㎡" /></Col><Col xs={12} md={6}><NumberField name={[field.name, 'stiltFloorArea']} label="架空层（每栋）" suffix="㎡" /></Col><Col xs={12} md={6}><NumberField name={[field.name, 'totalFloors']} label="楼层总数（本组）" suffix="层" /></Col><Col xs={12} md={8}><NumberField name={[field.name, 'standardLobbyArea']} label="标准前厅（每层）" suffix="㎡" /></Col><Col xs={12} md={8}><NumberField name={[field.name, 'evacuationStairArea']} label="疏散楼梯（每栋合计）" suffix="㎡" /></Col><Col xs={12} md={8}><NumberField name={[field.name, 'rooftopArea']} label="天台（每栋）" suffix="㎡" /></Col></Row>
-                  </div>)}<Form.ErrorList errors={errors} />{fields.length < 5 && <Button block type="dashed" icon={<PlusOutlined />} onClick={() => add({ ...emptyBuilding })}>添加楼栋类型</Button>}</>}
+                  </div>)}<Form.ErrorList errors={errors} />{fields.length < 50 && <Button block type="dashed" icon={<PlusOutlined />} onClick={() => add({ ...emptyBuilding })}>添加楼栋类型</Button>}</>}
                 </Form.List>
               </section>
               <section className={currentStep === 3 ? 'form-section' : 'form-section is-hidden'}><Typography.Title level={4}>04 / 地库概况</Typography.Title><Row gutter={16}><Col xs={24} md={12}><NumberField name="garageFloorArea" label="单层车库面积" suffix="㎡" /></Col><Col xs={24} md={12}><NumberField name="garageFloors" label="车库层数" suffix="层" /></Col></Row></section>
