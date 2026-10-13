@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { calculateZhujiangProject, getZhujiangInputs } from './zhujiang-model.mjs';
 import { PARITY_PROJECTS } from './fixtures/parity-projects.mjs';
-import { dailyCoverageHours } from './security-roster.mjs';
+import { dailyCoverageHours, readSecurityPosts, importedSecurityRoster } from './security-roster.mjs';
 import { resultValidationError } from '../../api/_lib/result-validation.mjs';
 
 const issue = (name, row, time, note) => ({ key: `posts.${name}`, kind: 'conflict', sources: [
@@ -15,6 +15,25 @@ const project = { ...PARITY_PROJECTS[0], calculationModel: 'zhujiang-v1', region
   importReviewIssues: [issue('服务处前台', 10, 'A更：8：00-16：00 B更：16：00-24：00', '南北塔门岗'), issue('其他固定位置', 8, 'A更：8：00-16：00', '巡逻岗，包含在表五10名安保编制内')] };
 const calc = overrides => calculateZhujiangProject({ ...project, workbookOverrides: { ...project.workbookOverrides, 'zhuj.securityRosterMode': 1, 'zhuj.securityLeaderConcurrent': 1, ...overrides } });
 const security = r => r.categories.find(c => c.category === 'assistance');
+
+test('header-based schedules preserve included relief and keep the manager out of frontline payroll', () => {
+  const cells = (row,values)=>({row,cells:values.map((value,i)=>({address:String.fromCharCode(65+i)+row,value}))});
+  // Deliberately put time before count and move notes ahead of the shift count.
+  const sheet={name:'3 固定值守点',rows:[cells(1,['值守位置','值守时间','有几个点位','备注','每天几班','每班每个点位几人','例休几人','合计人数']),
+    ...[['大门',6,1,2,14],['车场出入口',7,1,2,16],['巡逻',3,2,1,13],['中控室',3,2,2,14],['保安带班',3,1,1,7],['保安经理',1,1,0,1]].map(([label,count,people,relief,total],i)=>cells(i+2,[label,label==='保安经理'?'09:00:00-18:00':'24小时',count,'',label==='保安经理'?1:2,people,relief,total])),
+    cells(9,['服务处前台','09:00:00-18:00',3,'客服中心',1,5,0,15])]};
+  const importedSecurityPosts=readSecurityPosts(sheet);
+  const p={...project,projectName:'任意项目',importedSecurityPosts,workbookOverrides:{...project.workbookOverrides,'zhuj.securityRosterMode':2}};
+  assert.equal(importedSecurityRoster(p).total,65);
+  const result=calculateZhujiangProject(p);
+  assert.equal(security(result).headcount,64);
+  assert.equal(result.management.roles[3].headcount,1);
+  assert.equal(result.actions.find(a=>a.id==='assistance-9').headcount,0);
+  assert.equal(result.actions.find(a=>a.id==='assistance-10').headcount,7);
+  assert.equal(result.securityRosterMode,'project');
+  const malformed=structuredClone(sheet);malformed.rows[1].cells[7].value=99;
+  assert.equal(importedSecurityRoster({...p,importedSecurityPosts:readSecurityPosts(malformed)}),null);
+});
 
 test('imported covered assignments use daily coverage, preserve relief, and share leaders explicitly', () => {
   const result = calc({});

@@ -1,5 +1,6 @@
 import { CITY_CATALOG_VERSION, normalizeCityLocation } from '../calculation/city-catalog.mjs';
 import { recognizeRevenue } from './revenue-import.mjs';
+import { readSecurityPosts } from '../calculation/security-roster.mjs';
 import { BASIC_IMPORT_FIELDS, BUILDING_IMPORT_FIELDS, ASSET_IMPORT_FIELDS, PLAN_IMPORT_FIELDS, SUPPLEMENT_FIELDS, GARAGE_ASSET_KEYS, normalizeLabel } from './zhujiang-import-fields.mjs';
 
 const missingText = /^(?:待核实|待确认|不清楚|未知|未约定|未提供|暂无|[-—/／]*)$/;
@@ -60,6 +61,7 @@ export function recognizeZhujiangWorkbook(workbook, suggestions = []) {
     recognition: { fields: {}, buildings: [], parameters: [] }, issues: [], missingFields: [], warnings: [],
     ignoredSheets: workbook.sheets.filter(s => !relevant.includes(s)).map(s => s.name), ignoredFields: [], unmatchedRows: [] };
   const entries = new Map();
+  result.project.importedSecurityPosts = readSecurityPosts(posts);
   const addIssue = (key, label, kind, message, sources = []) => {
     result.issues = result.issues.filter(i => i.key !== key);
     result.issues.push({ key, label, kind, message, sources });
@@ -195,11 +197,13 @@ export function recognizeZhujiangWorkbook(workbook, suggestions = []) {
     for (const row of posts.rows) {
       const label = String(at(row, 'A')?.value ?? '');
       if (!['大门', '车场出入口', '其他固定位置', '中控室', '服务处前台'].includes(label)) continue;
+      const schedule = result.project.importedSecurityPosts.find(p=>p.label===label);
+      if (schedule?.role === 'other' && label === '服务处前台') { result.ignoredFields.push('服务处前台按客服归属，不重复计入安保排班。'); continue; }
       const source = ref(posts, row, 'B');
-      const count = parseImportValue(source.raw, { integer: true });
-      const shifts = parseImportValue(at(row, 'C')?.value, { integer: true });
-      const people = parseImportValue(at(row, 'D')?.value, { integer: true });
-      const notes = noteOf(row, ['E', 'F']);
+      const count = parseImportValue(schedule ? schedule.count : source.raw, { integer: true });
+      const shifts = parseImportValue(schedule ? schedule.shifts : at(row, 'C')?.value, { integer: true });
+      const people = parseImportValue(schedule ? schedule.people : at(row, 'D')?.value, { integer: true });
+      const notes = schedule?.note ?? noteOf(row, ['E', 'F']);
       if ([count, shifts, people].some(x => x.kind)) {
         addIssue(`posts.${label}`, `${label}值守安排`, 'missing', '点位、班次和每班人数需填写明确非负整数。', [source]); continue;
       }
@@ -213,7 +217,7 @@ export function recognizeZhujiangWorkbook(workbook, suggestions = []) {
       } else if (count.value > 0) {
         addIssue(`posts.${label}`, `${label}值守安排`, 'conflict', /巡逻|包含|门岗/.test(notes)
           ? `备注涉及巡逻、兼岗或其他岗位，需确认归属，避免重复配置。原备注：${notes}`
-          : '需核实主次入口、覆盖时长及替休后的净增人数，不能将点位×班次直接当作编制。', [source, ref(posts, row, 'C'), ref(posts, row, 'D'), ref(posts, row, 'E'), ref(posts, row, 'F')]);
+          : '需核实主次入口、覆盖时长及替休后的净增人数，不能将点位×班次直接当作编制。', schedule?.sources ?? [source, ref(posts, row, 'C'), ref(posts, row, 'D'), ref(posts, row, 'E'), ref(posts, row, 'F')]);
       }
     }
   }

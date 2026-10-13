@@ -28,6 +28,7 @@ export interface RevenueScenario {
 }
 
 export interface ProjectData {
+  importedSecurityPosts?: SecurityPost[];
   revenueScenario?: RevenueScenario;
   stairAreaBasis?: 'per-building' | 'per-floor';
   importReviewIssues?: ImportReviewIssue[];
@@ -61,10 +62,17 @@ export interface ProjectData {
   advancedParameterOverrides?: Record<string, number>;
 }
 
+export interface SecurityPost {
+  label: string; role: string; count: number | null; shifts: number | null; people: number | null;
+  relief: number | null; total: number | null; hours: number | null; note: string; valid: boolean;
+  sources: Array<{sheet:string;cell:string;raw:unknown}>;
+}
+
 export type RecognizedBuildingData = { [Field in keyof BuildingTypeInput]: BuildingTypeInput[Field] | null };
 export type RecognizedProjectData = {
-  [Field in Exclude<keyof ProjectData, 'buildings' | 'advancedParameterOverrides' | 'calculationModel' | 'district' | 'workbookOverrides' | 'budgetBasis' | 'exampleDataVersion' | 'importReviewIssues' | 'stairAreaBasis' | 'revenueScenario'>]: ProjectData[Field] | null;
+  [Field in Exclude<keyof ProjectData, 'buildings' | 'advancedParameterOverrides' | 'calculationModel' | 'district' | 'workbookOverrides' | 'budgetBasis' | 'exampleDataVersion' | 'importReviewIssues' | 'stairAreaBasis' | 'revenueScenario' | 'importedSecurityPosts'>]: ProjectData[Field] | null;
 } & {
+  importedSecurityPosts?: SecurityPost[];
   revenueScenario?: RevenueScenario;
   buildings: RecognizedBuildingData[];
   calculationModel?: ProjectData['calculationModel'];

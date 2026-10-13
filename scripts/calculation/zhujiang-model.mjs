@@ -44,18 +44,19 @@ for(const [name,label,unit,sheet,row] of [
 parameter('mainEntrances','主出入口数量','个',p=>p.gatehouses>0?1:0,{integer:true,note:'按现有岗亭暂分主次入口，需要项目确认，不能用出入口清扫面积代替。'});
 parameter('secondaryEntrances','次出入口数量','个',p=>Math.max(0,p.gatehouses-1),{integer:true,note:'暂按剩余岗亭数量填写，可与实际点位不同。'});
 parameter('securityDailyHours','安保每人每日计岗工时','小时/人·天',()=>8,{min:0.01,max:24,note:'沿用成本模型8小时工日，用于将值守覆盖时长折算岗位；不是珠江规定班制。'});
+for (const [role,label] of [['gate','门岗'],['car','车场'],['patrol','巡逻'],['monitor','中控'],['leader','带班'],['manager','安保经理']]) parameter(`rosterStaff.${role}`,`项目排班·${label}合计人数`,'人',p=>importedSecurityRoster(p)?.totals?.[role]??null,{integer:true,group:'珠江·安保排班',note:'按原表每天班次×点位×每班人数＋明确替休，或已核实的合计人数；已含替休，不再重复加替班。'});
 parameter('mainDayHours','主入口白班时长','小时/天',()=>12,{max:24,sheet:'安全管理',row:29});
 parameter('mainNightHours','主入口夜班时长','小时/天',()=>11.5,{max:24,sheet:'安全管理',row:29,note:'原稿20:00—07:30为11.5小时，与白班之间有半小时空档，须项目核实补齐；善享按24小时基础值守另算。'});
 parameter('peakWeekdays','全年工作日高峰天数','天/年',()=>260,{max:366,note:'周一至周五按52周折算，未扣除法定假日，可按项目调整。'});
 parameter('monitorPosts','消防安防合用监控中心数量','个',()=>1,{integer:true,sheet:'安全管理',row:52,note:'默认合用监控中心1处，请按项目实际调整。'});
 parameter('monitorStaff','每班监控中心人员','人/班',()=>2,{integer:true,sheet:'安全管理',row:52,note:'原稿1—2人/班，中值1.5人向上取整为2；分设中心须另核，不能替代属地要求确认。'});
 parameter('securityLeaders','安保班长人数','人',()=>3,{integer:true,sheet:'安全管理',row:3,note:'原稿2—3人，中值2.5人向上取整为3。'});
-parameter('securityRosterMode','安保排班依据','',()=>0,{integer:true,max:1,group:'珠江·安保排班',note:'选择项目值守安排后，按点位和每日覆盖时段试算，替代主次入口参考布岗。未填齐时保留参考配置；不代表已经验证达到全部服务标准。'});
+parameter('securityRosterMode','安保排班依据','',()=>0,{integer:true,max:2,group:'珠江·安保排班',note:'选择项目值守安排后，按点位和每日覆盖时段试算，替代主次入口参考布岗。未填齐时保留参考配置；不代表已经验证达到全部服务标准。'});
 parameter('projectGatePosts','项目门岗值守点数量','个',p=>importedSecurityRoster(p)?.gatePosts??null,{integer:true,group:'珠江·安保排班',note:'同时需要值守的独立点位数。原表1点备注南北塔时暂按两处试算，可按实际修改；不会再叠加主次入口参考人数。'});
 parameter('projectGateDailyHours','项目每处门岗每日覆盖时长','小时/天',p=>importedSecurityRoster(p)?.gateHours??null,{max:24,group:'珠江·安保排班',note:'每天需要有人在岗的时长，各班相加，不是一个人的每日工作时长。例如8—16、16—24合计16小时。'});
 parameter('projectGatePeople','项目门岗每处同时在岗人数','人',p=>importedSecurityRoster(p)?.gatePeople??null,{integer:true,group:'珠江·安保排班',note:'每个点位同时值守人数，不是班次数。旧导入记录未保留每班人数时暂按1人试算，可修改。'});
 parameter('projectPatrolDailyHours','项目巡逻每日覆盖总人时','人·小时/天',p=>importedSecurityRoster(p)?.patrolHours??null,{group:'珠江·安保排班',note:'所有巡逻岗位每天安排的人时合计，替代面积配比的巡逻估算；尚须核对路线和服务频次是否能在此时间内完成。'});
-parameter('securityLeaderConcurrent','安保班长兼岗安排','',()=>0,{integer:true,max:1,group:'珠江·安保排班',note:'仅在本项目选择兼岗时，从现有值守人员中安排班长；默认独立增配，不能替其他项目假定兼岗。两种方式都保留替班人数。'});
+parameter('securityLeaderConcurrent','安保班长兼岗安排','',()=>0,{integer:true,max:2,group:'珠江·安保排班',note:'仅在本项目选择兼岗时，从现有值守人员中安排班长；默认独立增配，不能替其他项目假定兼岗。两种方式都保留替班人数。'});
 parameter('outdoorPatrolMinutes','园区每轮巡逻总工时','人·分钟/轮',()=>null,{sheet:'安全管理',row:44,note:'未填完整路线时按动态成本表面积配比估算；填写完整路线人时后按珠江频次重算。没有此范围才填0。'});
 parameter('indoorPatrolMinutes','楼内每层每轮巡逻工时','人·分钟/层·轮',()=>null,{sheet:'安全管理',row:46,note:'珠江只规定频次，未规定耗时；请按实际路线填写，未填写不代表零工时。'});
 parameter('priorityPatrolMinutes','重点部位额外巡逻每日总工时','人·分钟/天',()=>null,{sheet:'安全管理',row:44,note:'重点部位另有每1/2/3小时巡查要求；填写常规路线尚未覆盖部分的额外日工时，避免重复计算。常规路线已全部覆盖时可明确填0。'});
@@ -224,6 +225,7 @@ export function calculateZhujiangProject(project) {
   if(concurrent===null) need('zhuj.managerConcurrentRole','小于15万㎡项目需确认经理兼任哪个专业主任，避免重复配置。','management');
   if(concurrent>0) base.management.roles[concurrent].headcount=Math.max(0,base.management.roles[concurrent].headcount-1);
   base.management.roles[3].title='安保主任';
+  if(value('securityRosterMode')===2 && ['gate','car','patrol','monitor','leader','manager'].every(k=>value(`rosterStaff.${k}`)!==null)) base.management.roles[3].headcount=value('rosterStaff.manager');
   base.management.roles.forEach((role,i)=>role.annualCost=role.headcount*(value(`managementAnnualCost.${i}`)??role.monthlyRate*12*1.06));
   for(const [key,title] of [['accountant','共享会计'],['cashier','出纳'],['warehouse','仓管'],['environmentHead','环境主管'],['deputy','项目副经理'],['support','运营支持人员']]) {
     const count=value(`management.${key}.count`),rate=value(`management.${key}.annualCost`);
@@ -307,6 +309,10 @@ export function calculateZhujiangProject(project) {
   const workingHours=value('securityDailyHours');
   const rosterKeys=['projectGatePosts','projectGateDailyHours','projectGatePeople','projectPatrolDailyHours'];
   const rosterRequested=value('securityRosterMode')===1;
+  const declaredRequested=value('securityRosterMode')===2;
+  const declaredKeys=['gate','car','patrol','monitor','leader','manager'];
+  const declaredReady=declaredRequested&&declaredKeys.every(k=>value(`rosterStaff.${k}`)!==null);
+  if(declaredRequested&&!declaredReady) for(const k of declaredKeys) if(value(`rosterStaff.${k}`)===null) need(`zhuj.rosterStaff.${k}`,'项目排班人数未齐，不能把缺项当零。','assistance-4');
   const rosterReady=rosterRequested&&rosterKeys.every(k=>value(k)!==null);
   if(rosterRequested&&!rosterReady) for(const key of rosterKeys) if(value(key)===null) need(`zhuj.${key}`,'项目排班资料未齐，暂保留参考配置，不能按缺项为零减少人数。','assistance-4');
   const mainCoverage=grade==='D'?24+5*value('peakWeekdays')/365:value('mainDayHours')*2+value('mainNightHours');
@@ -355,6 +361,13 @@ export function calculateZhujiangProject(project) {
     for(const key of extras) if(value(key)===null) need(`zhuj.${key}`,'需确认独立岗位/备勤是否由现有排班覆盖；没有额外人员填0。','assistance-6');
   }
 
+  if(declaredReady) {
+    for(const [id,role,label] of [[4,'gate','项目门岗值守'],[5,'car','项目车场值守'],[7,'monitor','项目中控值守'],[8,'patrol','项目巡逻'],[10,'leader','项目带班']]) {
+      post(`assistance-${id}`,value(`rosterStaff.${role}`),'原表排班合计人数（已含明确替休），不再按8小时工日或参考比例重复折算',3);
+      Object.assign(security.find(a=>a.id===`assistance-${id}`),{action:label,standardStatus:'manual',standardSource:'项目原表排班（含替休）'});
+    }
+    post('assistance-9',0,'原表排班合计已含替休，不再另加替班',3);
+  }
   const categories=base.categories.map(c=>{
     const items=actions.filter(a=>a.category===c.category&&a.enabled);
     const annualHours=sum(items.map(a=>a.annualHours??0));
@@ -394,7 +407,7 @@ export function calculateZhujiangProject(project) {
     '珠江未明确的同类计划和工时由动态成本表参考值补充；设备数量、面积及业务量须由项目填写或从项目基础数据计算，不套用原表示例数量。原稿差异、服务范围及无同类参考的新增动作仍需确认。旧消杀共享估算与乔灌木合并施肥已停用，由珠江分项替代。',
     '所示单价只是当前服务支出÷住宅收费面积÷12；尚未扣除车库等收入、分摊非住宅成本，也未计入完整经营费用，不能作为盈亏平衡价或报价。',
   ];
-  if(!patrolReady) warnings.unshift(rosterReady?'巡逻暂按项目安排的人时配置，尚未验证满足全部巡逻频次；填写完整路线工时后重新核算。':'巡逻人数暂按动态成本表面积配比估算；填写完整路线工时后按珠江频次重算。');
+  if(!patrolReady&&!declaredReady) warnings.unshift(rosterReady?'巡逻暂按项目安排的人时配置，尚未验证满足全部巡逻频次；填写完整路线工时后重新核算。':'巡逻人数暂按动态成本表面积配比估算；填写完整路线工时后按珠江频次重算。');
   if(rosterReady) {
     const imported=importedSecurityRoster(project);
     warnings.unshift(`试算假设：安保采用项目值守安排，门岗${value('projectGatePosts')}处、每处${value('projectGateDailyHours')}小时、同时${value('projectGatePeople')}人，中控按24小时覆盖；保留替班。此为项目排班试算，并非全部珠江标准已经满足。`);
@@ -403,6 +416,7 @@ export function calculateZhujiangProject(project) {
     if(value('securityLeaderConcurrent')===1) warnings.unshift(`试算假设：${Math.min(value('securityLeaders'),basicSecurity)}名班长由现有值守人员兼任，不重复增配；若需独立班长，可在安保排班中切换。`);
   }
   if(rosterRequested&&!rosterReady) warnings.unshift('项目排班资料未填齐，当前保留参考布岗，尚未按项目排班降配。');
+  if(declaredReady) warnings.unshift('按项目原表班次及已列替休人数试算；安保经理计入管理岗位一次，班长按原表独立配置。排班不代表已验证满足全部服务标准或工时要求。');
   if(area<150000&&!has(manual,'zhuj.managerConcurrentRole')) warnings.unshift('试算假设：管理面积小于15万㎡，暂按项目经理兼工程主任，扣减1名工程主任费用；可在项目服务设置中修改兼任岗位。');
   if(value('garageIncluded')===0) warnings.unshift('车库停车区域已排除服务范围；共用泵房、电房等不自动排除。物业管理面积、设备实际归属及车库收入须另行确认。');
   const perHousehold=project.deliveredHouseholds>0?project.residentialChargeArea/project.deliveredHouseholds:null;
@@ -414,5 +428,5 @@ export function calculateZhujiangProject(project) {
   }
   const missingInputs=[...missing.values()];
   const unreviewedActionCount=actions.filter(a=>a.ruleKind==='unreviewed').length;
-  return {...base,calculationModel:ZHUJIANG_VERSION,staffingScope:'onsite',securityRosterMode:rosterReady?'project':'reference',project:enteredProject,missingInputs,standard:{...STANDARD_SOURCE,revision:'2026-09-23-source-boundary',label:ZHUJIANG_GRADES[grade].label,mappedActionCount:mappedCount,referenceActionCount:actions.filter(a=>a.standardStatus==='reference').length,pendingActionCount:pendingCount,unreviewedActionCount,reviewedActionCount:actions.length-unreviewedActionCount,complete:missingInputs.length===0&&unreviewedActionCount===0,patrolReady},budgetComparison:comparison,budgetBasis:project.budgetBasis??'standard',categories,actions,warnings,totalActionCount:actions.length,standardActionCount:actions.length,activeActionCount:actions.filter(a=>a.enabled).length,totalHeadcount:chosen.headcount,annualCost:chosen.annualCost,unitPrice:chosen.unitPrice,workloadAnnualCost:sum(categories.map(c=>c.workloadAnnualCost))};
+  return {...base,calculationModel:ZHUJIANG_VERSION,staffingScope:'onsite',securityRosterMode:rosterReady||declaredReady?'project':'reference',project:enteredProject,missingInputs,standard:{...STANDARD_SOURCE,revision:'2026-09-23-source-boundary',label:ZHUJIANG_GRADES[grade].label,mappedActionCount:mappedCount,referenceActionCount:actions.filter(a=>a.standardStatus==='reference').length,pendingActionCount:pendingCount,unreviewedActionCount,reviewedActionCount:actions.length-unreviewedActionCount,complete:missingInputs.length===0&&unreviewedActionCount===0,patrolReady},budgetComparison:comparison,budgetBasis:project.budgetBasis??'standard',categories,actions,warnings,totalActionCount:actions.length,standardActionCount:actions.length,activeActionCount:actions.filter(a=>a.enabled).length,totalHeadcount:chosen.headcount,annualCost:chosen.annualCost,unitPrice:chosen.unitPrice,workloadAnnualCost:sum(categories.map(c=>c.workloadAnnualCost))};
 }
