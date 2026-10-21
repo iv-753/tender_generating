@@ -197,6 +197,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
       const pending = unresolvedImportIssues({ ...reviewProject, ...form.getFieldsValue(true), workbookOverrides, importReviewIssues, importedSecurityPosts });
       let fieldErrors: string[]=[];
       try { await form.validateFields(); } catch(reason) {fieldErrors=((reason as {errorFields?:{errors:string[]}[]}).errorFields??[]).flatMap(f=>f.errors);}
+      if(!fieldErrors.length) fieldErrors.push(...validateProjectData({...reviewProject,...form.getFieldsValue(true),workbookOverrides,importReviewIssues,importedSecurityPosts,calculationModel:model}));
       setReviewErrors([...new Set(fieldErrors)]);
       if (pending.length || fieldErrors.length) {
         setReviewOpen(true);
