@@ -1,5 +1,6 @@
 import { CITY_CATALOG_VERSION, normalizeCityLocation } from '../calculation/city-catalog.mjs';
 import { recognizeRevenue } from './revenue-import.mjs';
+import { applyConfirmedProjectRule } from './confirmed-project-rules.mjs';
 import { readSecurityPosts } from '../calculation/security-roster.mjs';
 import { BASIC_IMPORT_FIELDS, BUILDING_IMPORT_FIELDS, ASSET_IMPORT_FIELDS, PLAN_IMPORT_FIELDS, SUPPLEMENT_FIELDS, GARAGE_ASSET_KEYS, normalizeLabel } from './zhujiang-import-fields.mjs';
 
@@ -258,5 +259,5 @@ export function recognizeZhujiangWorkbook(workbook, suggestions = []) {
   }
   result.warnings.push('实际在岗人数、已发生费用不写入测算参数；表6收入单独用于结果页收费试算，不改变服务成本。');
   if (result.recognition.parameters.some(p => p.group === '合同服务计划' && p.value > 0)) result.warnings.push('已识别的合同频次按年度换算，采用后作为项目服务计划；请核对与所选服务档位的差异。');
-  return result;
+  return applyConfirmedProjectRule(workbook, result);
 }

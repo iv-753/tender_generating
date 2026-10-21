@@ -27,7 +27,7 @@ export function createExcelRecognitionHandler({ recognize = recognizeExcelSmart,
         const config = await loadConfig();
         const result = await recognize(bytes, { config });
         result.project.comparisonData = recognizeComparisonData(await extractWorkbook(bytes), { fileName, recognition: result });
-        result.ignoredSheets = result.ignoredSheets?.filter(name => !/实际人数和费用/.test(name));
+        result.ignoredSheets = result.ignoredSheets?.filter(name => !/实际人数和费用|财务报表/.test(name));
         return json(result);
       } catch (error) {
         console.error(error);

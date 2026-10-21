@@ -7,7 +7,6 @@ import ExcelImportPanel from '../components/ExcelImportPanel';
 import ImportReviewPanel from '../components/ImportReviewPanel';
 import { resolveImportIssue, unresolvedImportIssues } from '../../scripts/calculation/import-review.mjs';
 import { toBuildingTotalProject } from '../../scripts/calculation/building-area-basis.mjs';
-import { importedSecurityRoster } from '../../scripts/calculation/security-roster.mjs';
 import type { ReviewDecision } from '../../scripts/calculation/import-review.mjs';
 import AdvancedParametersDrawer from '../components/AdvancedParametersDrawer';
 import WorkbookParametersDrawer from '../components/WorkbookParametersDrawer';
@@ -70,11 +69,12 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
   const [importReviewIssues, setImportReviewIssues] = useState(draft.importReviewIssues ?? []);
   const [importedSecurityPosts, setImportedSecurityPosts] = useState(draft.importedSecurityPosts);
   const [comparisonData, setComparisonData] = useState(draft.comparisonData);
+  const [confirmedConfiguration,setConfirmedConfiguration] = useState(draft.confirmedConfiguration);
   const [revenueScenario, setRevenueScenario] = useState(draft.revenueScenario);
   const [parameterFocus, setParameterFocus] = useState<string>();
   const watched = Form.useWatch([], form) as Partial<ProjectData> | undefined;
-  const reviewProject = { ...draft, ...watched, workbookOverrides, importReviewIssues, revenueScenario, comparisonData, importedSecurityPosts } as ProjectData;
-  const rosterPlan = importedSecurityRoster(reviewProject);
+  const reviewProject = { ...draft, ...watched, workbookOverrides, importReviewIssues, revenueScenario, comparisonData, confirmedConfiguration, importedSecurityPosts } as ProjectData;
+
   const pendingReview = unresolvedImportIssues(reviewProject).filter(issue => issue.kind !== 'missing');
   const province = Form.useWatch('region', form);
   const city = Form.useWatch('city', form);
@@ -96,6 +96,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
       importedSecurityPosts,
       revenueScenario,
       comparisonData,
+      confirmedConfiguration,
       advancedParameterOverrides: Object.keys(advancedParameterOverrides).length ? advancedParameterOverrides : undefined,
     };
     const errors = validateProjectData(project);
@@ -164,16 +165,6 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
     setAdvancedDirty(true);
   };
 
-  const useProjectRoster = () => {
-    if (!rosterPlan) return;
-    const next = rosterPlan.mode === 'declared' ? { ...workbookOverrides, 'zhuj.securityRosterMode': 2, 'zhuj.securityLeaderConcurrent': 0, ...Object.fromEntries(Object.entries(rosterPlan.totals!).map(([role,count])=>[`zhuj.rosterStaff.${role}`,count])) } : { ...workbookOverrides, 'zhuj.securityRosterMode': 1, 'zhuj.securityLeaderConcurrent': 1,
-      'zhuj.projectGatePosts': rosterPlan.gatePosts, 'zhuj.projectGateDailyHours': rosterPlan.gateHours,
-      'zhuj.projectGatePeople': rosterPlan.gatePeople, 'zhuj.projectPatrolDailyHours': rosterPlan.patrolHours };
-    setWorkbookOverrides(next);
-    storage.saveDraft({ ...reviewProject, ...form.getFieldsValue(true), workbookOverrides: next, importReviewIssues, importedSecurityPosts, comparisonData, exampleDataVersion });
-    setError('');
-    message.success('已采用本项目排班，可在项目服务设置中调整');
-  };
 
   const closeAdvancedParameters = () => {
     setAdvancedOpen(false);
@@ -183,7 +174,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
 
   const saveDraft = async () => {
     try {
-      const values = { ...reviewProject, ...form.getFieldsValue(true), workbookOverrides, importReviewIssues, importedSecurityPosts, revenueScenario, comparisonData, advancedParameterOverrides, exampleDataVersion };
+      const values = { ...reviewProject, ...form.getFieldsValue(true), workbookOverrides, importReviewIssues, importedSecurityPosts, revenueScenario, comparisonData, confirmedConfiguration, advancedParameterOverrides, exampleDataVersion };
       storage.saveDraft(values);
       message.success('草稿已保存');
     } catch (reason) {
@@ -194,7 +185,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
   const startCalculation = async () => {
     setError('');
     // Preserve partial input and confirmations even when validation fails.
-    storage.saveDraft({ ...reviewProject, ...form.getFieldsValue(true), workbookOverrides, importReviewIssues, importedSecurityPosts, revenueScenario, comparisonData, advancedParameterOverrides, exampleDataVersion });
+    storage.saveDraft({ ...reviewProject, ...form.getFieldsValue(true), workbookOverrides, importReviewIssues, importedSecurityPosts, revenueScenario, comparisonData, confirmedConfiguration, advancedParameterOverrides, exampleDataVersion });
     const startedAt = Date.now();
     try {
       const pending = unresolvedImportIssues({ ...reviewProject, ...form.getFieldsValue(true), workbookOverrides, importReviewIssues, importedSecurityPosts }).filter(i => i.kind !== 'missing');
@@ -226,6 +217,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
   };
 
   const applyRecognition = (result: ExcelRecognitionResult) => {
+    setConfirmedConfiguration(result.project.confirmedConfiguration ?? undefined);
     setComparisonData(result.project.comparisonData ? { ...result.project.comparisonData, actions: result.project.comparisonData.actions ? {...result.project.comparisonData.actions, confirmed:true} : null } : undefined);
     setImportedSecurityPosts(result.project.importedSecurityPosts ?? undefined);
     form.setFieldsValue(toBuildingTotalProject({ ...result.project, district: result.project.district ?? undefined, calculationModel: 'zhujiang-v1' } as ProjectData));
@@ -251,6 +243,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
     setWorkbookOverrides(example.workbookOverrides ?? {});
     setRevenueScenario(undefined);
     setComparisonData(undefined);
+    setConfirmedConfiguration(undefined);
     setAdvancedParameterOverrides({});
     setExampleDataVersion(example.exampleDataVersion);
     setExampleGrade(example.serviceGrade);
@@ -327,7 +320,6 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
               <section className={currentStep === 3 ? 'form-section' : 'form-section is-hidden'}><Typography.Title level={4}>04 / 地库概况</Typography.Title><Row gutter={16}><Col xs={24} md={12}><NumberField name="garageFloorArea" label="单层车库面积" suffix="㎡" /></Col><Col xs={24} md={12}><NumberField name="garageFloors" label="车库层数" suffix="层" /></Col></Row></section>
               <section className={currentStep === 4 ? 'form-section' : 'form-section is-hidden'}>
                 <Typography.Title level={4}>05 / 测算参数</Typography.Title>
-                {rosterPlan && <Alert type="info" showIcon title="本项目可按已导入的值守安排试算" description={<>{rosterPlan.mode === 'declared' ? <p>原表排班含替休共{rosterPlan.total}人：门岗{rosterPlan.totals!.gate}、车场{rosterPlan.totals!.car}、巡逻{rosterPlan.totals!.patrol}、中控{rosterPlan.totals!.monitor}、带班{rosterPlan.totals!.leader}、安保经理{rosterPlan.totals!.manager}。经理计入管理岗位一次，不默认班长兼岗。</p> : <p>门岗{rosterPlan.gatePosts}处×{rosterPlan.gateHours}小时×同时{rosterPlan.gatePeople}人，巡逻{rosterPlan.patrolHours}人·小时/天；中控仍按24小时覆盖，保留替休。班长由值守人员兼任，仅用于本项目试算。</p>}{rosterPlan.twoTowerAssumption && <p>原表1个点位备注“南北塔门岗”，此处保守按两处，人数和时段均可修改。</p>}<Space wrap><Button onClick={useProjectRoster}>{rosterPlan.mode === 'declared' ? '采用本项目原表排班（含替休）' : '采用本项目排班与班长兼岗'}</Button><Button onClick={() => void openAdvancedParameters('zhuj.securityRosterMode')}>查看排班参数</Button></Space></>} style={{ marginBottom: 16 }} />}
                 <Form.Item name="serviceGrade" label="服务等级" rules={[{ required: true, message: '请选择服务等级' }]}><Select options={(Object.keys({ A: 1, B: 1, C: 1, D: 1 }) as ServiceGrade[]).map((value) => ({ value, label: gradeLabel(value, model) }))} /></Form.Item>
                 <Form.Item name="costBand" hidden={restored} label="城市成本档位" rules={[{ required: true, message: '请选择城市成本档位' }]} extra={recommendedCostBand && selectedCostBand ? `系统建议：${COST_BAND_LABELS[recommendedCostBand]}；当前采用：${COST_BAND_LABELS[selectedCostBand]}${selectedCostBand !== recommendedCostBand ? '（已手动调整）' : ''}` : '请先选择省份和城市'}><Select disabled={!recommendedCostBand} options={costBandOptions} /></Form.Item>
                 <Form.Item name="recommendedCostBand" hidden><Input /></Form.Item>

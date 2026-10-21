@@ -1,0 +1,172 @@
+[
+  {
+    "id": "confirmed-project-1-20261021",
+    "fingerprint": "128034a92ace1a8855945e03ee713705ff2a2ebbe10220c10fb7f94a75100418",
+    "basic": {
+      "serviceGrade": "C"
+    },
+    "overrides": {
+      "服务!P15": 0,
+      "zhuj.asset.building.groundFloorLobbyArea": 240,
+      "zhuj.asset.building.stiltFloorArea": 1700,
+      "zhuj.asset.grounds.zoneArea": 850,
+      "zhuj.asset.building.standardFloorArea": 1140,
+      "zhuj.asset.building.evacuationStairArea": 2440,
+      "zhuj.securityRosterMode": 1,
+      "zhuj.securityLeaderConcurrent": 1,
+      "zhuj.projectGatePosts": 2,
+      "zhuj.projectGateDailyHours": 16,
+      "zhuj.projectGatePeople": 1,
+      "zhuj.projectPatrolDailyHours": 8
+    },
+    "decisions": [
+      {
+        "key": "服务!P15",
+        "decision": "covered",
+        "value": 0
+      },
+      {
+        "key": "zhuj.asset.grounds.zoneArea",
+        "decision": "value",
+        "value": 850
+      },
+      {
+        "key": "zhuj.asset.building.groundFloorLobbyArea",
+        "decision": "value",
+        "value": 240
+      },
+      {
+        "key": "zhuj.asset.building.stiltFloorArea",
+        "decision": "value",
+        "value": 1700
+      },
+      {
+        "key": "zhuj.asset.building.standardFloorArea",
+        "decision": "value",
+        "value": 1140
+      },
+      {
+        "key": "zhuj.asset.building.evacuationStairArea",
+        "decision": "value",
+        "value": 2440
+      },
+      {
+        "key": "posts.其他固定位置",
+        "decision": "covered"
+      },
+      {
+        "key": "posts.服务处前台",
+        "decision": "covered"
+      }
+    ],
+    "staffing": {
+      "service": 1,
+      "cleaning": 5,
+      "greening": 0,
+      "engineeringRoutine": 3
+    },
+    "notes": "悦服务；活动已包含；面积采用基础资料合计；南北塔门岗2处、每天16小时；巡逻8人·小时/天，班长兼岗。客服1人、保洁5人、独立绿化0人、常规工程3人，绿化由现有人员兼顾。"
+  },
+  {
+    "id": "confirmed-project-2-20261021",
+    "fingerprint": "8108240a9303573d92b9c3c8d8a9f380e854e9efe0168f9eb09eaa07cbb746e7",
+    "basic": {
+      "serviceGrade": "C",
+      "perimeterEntrances": 0,
+      "gatehouses": 30,
+      "pavedRoadArea": 0,
+      "garageFloorArea": 179187,
+      "garageFloors": 1
+    },
+    "overrides": {
+      "zhuj.asset.building.groundFloorLobbyArea": 6037.12,
+      "服务!P15": 0,
+      "zhuj.asset.building.stiltFloorArea": 3415,
+      "zhuj.asset.building.standardFloorArea": 53425,
+      "zhuj.asset.building.evacuationStairArea": 15395,
+      "zhuj.asset.building.roofArea": 14820,
+      "zhuj.securityRosterMode": 2,
+      "zhuj.securityLeaderConcurrent": 0,
+      "zhuj.rosterStaff.gate": 14,
+      "zhuj.rosterStaff.car": 16,
+      "zhuj.rosterStaff.patrol": 13,
+      "zhuj.rosterStaff.monitor": 14,
+      "zhuj.rosterStaff.leader": 7,
+      "zhuj.rosterStaff.manager": 1
+    },
+    "decisions": [
+      {
+        "key": "perimeterEntrances",
+        "decision": "value",
+        "value": 0
+      },
+      {
+        "key": "gatehouses",
+        "decision": "value",
+        "value": 30
+      },
+      {
+        "key": "pavedRoadArea",
+        "decision": "value",
+        "value": 0
+      },
+      {
+        "key": "garageFloors",
+        "decision": "value",
+        "value": 1
+      },
+      {
+        "key": "服务!P15",
+        "decision": "extra",
+        "value": 0
+      },
+      {
+        "key": "zhuj.asset.building.groundFloorLobbyArea",
+        "decision": "value",
+        "value": 6037.12
+      },
+      {
+        "key": "zhuj.asset.building.stiltFloorArea",
+        "decision": "value",
+        "value": 3415
+      },
+      {
+        "key": "zhuj.asset.building.standardFloorArea",
+        "decision": "value",
+        "value": 53425
+      },
+      {
+        "key": "zhuj.asset.building.roofArea",
+        "decision": "value",
+        "value": 14820
+      },
+      {
+        "key": "zhuj.asset.building.evacuationStairArea",
+        "decision": "value",
+        "value": 15395
+      },
+      {
+        "key": "posts.大门",
+        "decision": "covered"
+      },
+      {
+        "key": "posts.车场出入口",
+        "decision": "covered"
+      },
+      {
+        "key": "posts.其他固定位置",
+        "decision": "covered"
+      },
+      {
+        "key": "1 项目基本情况!C24",
+        "decision": "ignore"
+      },
+      {
+        "key": "2 设备和场地!D13",
+        "decision": "ignore"
+      }
+    ],
+    "staffing": null,
+    "notes": "悦服务；市政道路不纳入，门楼30；车库沿用已确认179187㎡、1层口径；大堂6037.12㎡，架空层3415㎡、标准层53425㎡、屋面14820㎡、楼梯15395㎡；活动不额外增加；安保按原表人数（含替休）计入，经理仅计一次。"
+  }
+]

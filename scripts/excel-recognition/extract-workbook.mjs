@@ -70,7 +70,7 @@ function modelValue(value) {
   }
 }
 
-export async function extractWorkbook(bytes, { maxCells = 6000, maxScanCells = 100000 } = {}) {
+export async function extractWorkbook(bytes, { maxCells = 20000, maxScanCells = 100000 } = {}) {
   if (!(bytes instanceof Uint8Array) && !Buffer.isBuffer(bytes)) throw new TypeError('Excel 文件内容无效');
   await init();
   const workbook = Workbook.fromXlsxBytes(bytes);

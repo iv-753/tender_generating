@@ -34,6 +34,7 @@ export async function recognizeExcelLocally(bytes, { buildCandidates = buildRule
 }
 
 function needsOnlineEnhancement(result) {
+  if (result.project.confirmedConfiguration) return false;
   // Known blank/invalid/conflicting cells need human source correction, not AI guesses.
   if (result.model === 'zhujiang-template') return result.unmatchedRows.length > 0;
   if (result.missingFields.length > 0) return true;

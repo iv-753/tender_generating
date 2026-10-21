@@ -5,9 +5,10 @@ import { COST_BAND_LABELS, gradeLabel } from '../calculation';
 import { recognizeExcelFile } from '../excelRecognition';
 import { REVENUE_FIELDS } from '../../scripts/calculation/revenue-scenario.mjs';
 import { toBuildingTotalProject } from '../../scripts/calculation/building-area-basis.mjs';
-import type { CostBand, ExcelRecognitionResult, RecognitionEvidence, RecognizedParameter, ServiceGrade } from '../types';
+import type { CostBand, ExcelRecognitionResult, RecognitionEvidence, RecognizedParameter, ProjectData, ServiceGrade } from '../types';
 import GenerationProgress from './GenerationProgress';
 import RecognitionIssues from './RecognitionIssues';
+import { unresolvedImportIssues } from '../../scripts/calculation/import-review.mjs';
 
 type ImportStatus = 'idle' | 'recognizing' | 'review' | 'error' | 'applied';
 type Props = { onApply: (result: ExcelRecognitionResult) => void };
@@ -64,6 +65,7 @@ export default function ExcelImportPanel({ onApply }: Props) {
   const [fileName, setFileName] = useState('');
   const [error, setError] = useState('');
   const [recognitionStartedAt, setRecognitionStartedAt] = useState(0);
+  const pendingIssues = result?.project.confirmedConfiguration ? unresolvedImportIssues(result.project as ProjectData) : result?.issues ?? [];
   const recognizedCount = useMemo(() => {
     if (!result) return 0;
     const fields = Object.values(result.recognition.fields);
@@ -144,7 +146,7 @@ export default function ExcelImportPanel({ onApply }: Props) {
           <Typography.Text type="secondary">收入单独用于抵扣和利润试算，不会改变服务成本；可在测算结果页修改。</Typography.Text>
         </div> }]} />}
         {result.warnings.map((warning) => <Alert key={warning} type="warning" showIcon title={warning} />)}
-        {!!result.issues?.length && <section className="recognition-group"><h3>待处理事项（{result.issues.length} 项）</h3><Typography.Paragraph type="secondary">采用识别结果后，可在页面中补充缺项、修改数值并确认服务范围；原表位置会保留供核对。</Typography.Paragraph><RecognitionIssues issues={result.issues} /></section>}
+        {!!pendingIssues.length && <section className="recognition-group"><h3>待处理事项（{pendingIssues.length} 项）</h3><Typography.Paragraph type="secondary">采用识别结果后，可在页面中补充缺项、修改数值并确认服务范围；原表位置会保留供核对。</Typography.Paragraph><RecognitionIssues issues={pendingIssues} /></section>}
         {!!result.ignoredSheets?.length && <Typography.Paragraph type="secondary">已忽略：{result.ignoredSheets.join('、')}。{result.ignoredFields?.length ? `另有 ${result.ignoredFields.length} 项不属于本次测算输入或已排除服务范围。` : ''}</Typography.Paragraph>}
         {!!result.recognition.parameters?.length && <Collapse items={[...new Set(result.recognition.parameters.map(p => p.group))].map(group => ({
           key: group, label: `${group}（${result.recognition.parameters!.filter(p => p.group === group).length} 项）`,

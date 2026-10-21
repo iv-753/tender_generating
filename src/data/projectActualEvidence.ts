@@ -34,7 +34,9 @@ export function projectActualEvidence(project: ProjectData) {
 }
 
 export function projectActionInventory(result: CalculationResult) {
-  const imported=result.project.comparisonData?.actions;
+  // The contract-frequency worksheet supplements the full applicable model list.
+  // Confirmed project rules use that full list, including pending/covered actions.
+  const imported=result.project.confirmedConfiguration ? null : result.project.comparisonData?.actions;
   if(imported?.confirmed && imported.items.some(item=>item.mappingKeys.length)) {
     const used=imported.items.filter(item=>item.mappingKeys.length && item.applicable);
     const unique=[...new Map(used.map(item=>[item.label.replace(/\s/g,''),item])).values()];

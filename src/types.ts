@@ -2,6 +2,7 @@ export interface ComparisonSource { fileName: string; sheet: string; cell: strin
 export interface ComparisonPeriod { label: string; year: number|null; startMonth: number|null; endMonth: number|null; endYear: number|null; months: number|null; annual: boolean; sources?: ComparisonSource[] }
 export interface ComparisonAggregate { value: number|null; complete: boolean; sources: ComparisonSource[]; rawUnit: string; method: string; missing: ComparisonSource[] }
 export interface ProjectComparisonData {
+ financial?: { revenue: number|null; cost: number|null; period: ComparisonPeriod; sources: ComparisonSource[]; unit: string };
  version: 1; fileName: string; importedAt: string; period: ComparisonPeriod; warnings: string[];
  personnel: { own: ComparisonAggregate; outsourced: ComparisonAggregate; total: number|null; kind: string; scope: string; scopeVerified: boolean; periodVerified: boolean; period: ComparisonPeriod; notes: string[]; sources: ComparisonSource[] } | null;
  cost: { amount: number|null; currency: string; own: ComparisonAggregate; outsourced: ComparisonAggregate; kind: 'actual'|'budget'|'reported'; scope: string; scopeVerified: boolean; periodVerified: boolean; period: ComparisonPeriod; notes: string[]; sources: ComparisonSource[] } | null;
@@ -39,6 +40,7 @@ export interface RevenueScenario {
 }
 
 export interface ProjectData {
+  confirmedConfiguration?: { sourceId:string; ruleId:string; staffing:Record<string,number>|null; notes:string };
   comparisonData?: ProjectComparisonData;
   importedSecurityPosts?: SecurityPost[];
   revenueScenario?: RevenueScenario;
@@ -82,8 +84,9 @@ export interface SecurityPost {
 
 export type RecognizedBuildingData = { [Field in keyof BuildingTypeInput]: BuildingTypeInput[Field] | null };
 export type RecognizedProjectData = {
-  [Field in Exclude<keyof ProjectData, 'buildings' | 'advancedParameterOverrides' | 'calculationModel' | 'district' | 'workbookOverrides' | 'budgetBasis' | 'exampleDataVersion' | 'importReviewIssues' | 'stairAreaBasis' | 'revenueScenario' | 'importedSecurityPosts' | 'comparisonData'>]: ProjectData[Field] | null;
+  [Field in Exclude<keyof ProjectData, 'buildings' | 'advancedParameterOverrides' | 'calculationModel' | 'district' | 'workbookOverrides' | 'budgetBasis' | 'exampleDataVersion' | 'importReviewIssues' | 'stairAreaBasis' | 'revenueScenario' | 'importedSecurityPosts' | 'comparisonData' | 'confirmedConfiguration'>]: ProjectData[Field] | null;
 } & {
+  confirmedConfiguration?: ProjectData['confirmedConfiguration'];
   comparisonData?: ProjectComparisonData;
   importedSecurityPosts?: SecurityPost[];
   revenueScenario?: RevenueScenario;

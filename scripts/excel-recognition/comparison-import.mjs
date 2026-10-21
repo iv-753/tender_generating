@@ -1,4 +1,4 @@
-
+import { recognizeFinancialStatement } from './financial-import.mjs';
 const text = v => String(v ?? '').trim();
 const clean = v => text(v).replace(/\s/g, '');
 const at = (row,col) => row?.cells.find(c=>c.address.replace(/\d/g,'')===col);
@@ -118,5 +118,16 @@ export function recognizeComparisonData(workbook,{fileName='',recognition}={}) {
   if(actionItems.length)data.actions={confirmed:false,items:actionItems};
   const revenue=recognition?.project?.revenueScenario;
   if(revenue&&typeof revenue.currentResidentialRate==='number')data.rate={value:revenue.currentResidentialRate,area:revenue.sourceResidentialArea??null,period:data.period,source:revenue.sources.currentResidentialRate??'',fileName};
+  const financial=recognizeFinancialStatement(workbook,fileName);
+  if(!financial && workbook.sheets.some(s=>s.name==='财务报表')) {
+    data.cost=null;
+    data.warnings.push('财务报表期间或营业成本无法识别，请核对；不使用人员费用替代。');
+  }
+  if(financial) {
+    data.financial=financial;
+    const sources=financial.sources.filter(s=>{const row=workbook.sheets.find(t=>t.name===s.sheet).rows.find(r=>r.row===Number(s.cell.match(/\d+/)[0]));return row.cells.some(c=>String(c.value).includes('营业成本'));});
+    const total={value:financial.cost,complete:financial.cost!==null,sources,rawUnit:'元',method:'营业成本总行的同年月份合计，不叠加明细和汇总列',missing:[]};
+    data.cost={amount:financial.cost,currency:'元',own:total,outsourced:{value:null,complete:false,sources:[],rawUnit:'元',method:'已含在营业成本总行',missing:[]},kind:'actual',scope:'财务报表营业成本',scopeVerified:true,period:financial.period,periodVerified:true,notes:['采用财务报表营业成本，不以表5人员费用替代。'],sources};
+  }
   return data;
 }

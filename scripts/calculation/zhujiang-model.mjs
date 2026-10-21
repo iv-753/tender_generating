@@ -301,6 +301,13 @@ export function calculateZhujiangProject(project) {
     greening:Math.ceil(project.greenArea/value('greeningAreaPerPerson')),
     engineeringRoutine:Math.ceil(area/value('electricianAreaPerPerson'))+Math.ceil(area/value('generalAreaPerPerson'))+value('paidEngineeringStaff')+value('elevatorAdministrators')+value('otherEngineeringStaff'),
   };
+  const confirmed = project.confirmedConfiguration?.staffing;
+  if (project.confirmedConfiguration?.sourceId && confirmed) {
+    for (const key of ['service','cleaning','greening','engineeringRoutine']) {
+      if (!Number.isInteger(confirmed[key]) || confirmed[key] < 0) throw new Error('项目已确认人员配置无效');
+      staff[key] = confirmed[key];
+    }
+  }
 
   const security=actions.filter(a=>a.category==='assistance');
   const post=(id,headcount,basis,sourceRow)=>{

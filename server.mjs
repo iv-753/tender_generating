@@ -294,13 +294,13 @@ const server = createServer(async (request, response) => {
           : (workbookBytes) => recognizeExcelRemotely(workbookBytes, { fileName });
         const result = await recognizeExcelWithFallback(bytes, { remoteRecognize });
         result.project.comparisonData = recognizeComparisonData(await extractWorkbook(bytes), {fileName,recognition:result});
-        result.ignoredSheets = result.ignoredSheets?.filter(name=>!/实际人数和费用/.test(name));
+        result.ignoredSheets = result.ignoredSheets?.filter(name=>!/实际人数和费用|财务报表/.test(name));
         return json(response,200,result);
       }
       const config = await loadRecognitionConfig({ projectRoot: resolve(ROOT, '..') });
       const result = await recognizeExcelSmart(bytes, { config });
       result.project.comparisonData = recognizeComparisonData(await extractWorkbook(bytes), {fileName,recognition:result});
-      result.ignoredSheets = result.ignoredSheets?.filter(name=>!/实际人数和费用/.test(name));
+      result.ignoredSheets = result.ignoredSheets?.filter(name=>!/实际人数和费用|财务报表/.test(name));
       return json(response,200,result);
     }
     if (url.pathname === '/api/presentation/jobs') {
