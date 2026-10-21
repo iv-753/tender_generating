@@ -41,7 +41,7 @@ export default function ImportReviewPanel(props: Props) {
   const group=(i:ImportReviewIssue)=>i.key.startsWith('posts.')?'人员安排':i.key.startsWith('服务!')||/^[清洁绿化]/.test(i.key)?'服务计划':'面积口径与设备';
   if(!issues.length&&!props.errors?.length) return null;
   return <section id="import-review" aria-label="导入资料核对">
-    <Space wrap><Typography.Text>{pending.length?`${pending.length}项待核对`:'核对已完成'} · {reviewed.length}项已核对</Typography.Text><Button onClick={props.onOpen}>核对资料</Button></Space>
+    <Space wrap><Typography.Text>{pending.length ? `${pending.length}项待核对` : props.errors?.length ? '资料待核对' : '资料已核对'}</Typography.Text><Button onClick={props.onOpen}>核对资料</Button></Space>
     <Drawer title="核对资料" width="min(960px, calc(100vw - 48px))" open={props.open} afterOpenChange={open=>{if(open)document.querySelector('.ant-drawer-body .import-review-card:not(.is-reviewed)')?.scrollIntoView({block:'start'});}} onClose={props.onClose}>
       {!!props.errors?.length && <Alert type="warning" title="请处理以下问题" description={props.errors.map((e,i)=><div key={i}>{e}</div>)} />}
       {['面积口径与设备','人员安排','服务计划'].map(label=>{const rows=pending.filter(i=>group(i)===label);return rows.length?<div key={label}><Typography.Title level={5}>{label}</Typography.Title>{rows.map(issue=><ReviewCard {...props} key={issue.key} issue={issue} pending />)}</div>:null;})}

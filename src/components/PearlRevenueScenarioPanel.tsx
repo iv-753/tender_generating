@@ -50,7 +50,7 @@ export default function PearlRevenueScenarioPanel({result,disabled,onChange,chil
     <div><span>测算保本单价{provisional && <small className="pricing-estimate">暂估</small>}</span><Metric value={c.breakEvenRate} unit="元/㎡·月" testId="break-even" /></div>
     <div className={deficit ? 'pricing-deficit' : 'pricing-surplus'}><span>预计年度结余／缺口</span><Metric value={profit === null ? null : Math.abs(profit)/10000} unit="万元" testId="current-profit" /></div>
    </div>
-   <div className="pricing-status-line"><span>按现行收费测算，模型预测，非实际财务结果。{provisional ? '资料未齐，仅计已纳入收入及费用。' : '按当前收入与费用口径测算。'}</span>{c.breakEvenRate !== null && s.currentResidentialRate !== null && <span className="pricing-unit-gap">单价差额 <b>{c.breakEvenRate-s.currentResidentialRate>0?'+':''}{(c.breakEvenRate-s.currentResidentialRate).toFixed(2)}</b> 元/㎡·月</span>}</div>
+   <div className="pricing-status-line"><span>按现行收费及已录入收支估算{provisional ? ' · 资料待补' : ''}</span>{c.breakEvenRate !== null && s.currentResidentialRate !== null && <span className="pricing-unit-gap">单价差额 <b>{c.breakEvenRate-s.currentResidentialRate>0?'+':''}{(c.breakEvenRate-s.currentResidentialRate).toFixed(2)}</b> 元/㎡·月</span>}</div>
    {c.errors.length>0 && <Alert type="error" showIcon title="资料无效，暂不显示测算结果" description={c.errors.join('；')}/>}
   </section>
   <section className="pricing-quote pricing-surface" aria-labelledby="quote-title">

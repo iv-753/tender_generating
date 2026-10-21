@@ -66,6 +66,8 @@ export default function ExcelImportPanel({ onApply, currentProject }: Props) {
   const [error, setError] = useState('');
   const [recognitionStartedAt, setRecognitionStartedAt] = useState(0);
   const pendingIssues = result ? unresolvedImportIssues({...result.project,importReviewIssues:result.issues??[]} as ProjectData) : [];
+  const isRuleExplanation = (warning: string) => warning.startsWith('实际在岗人数、已发生费用不写入测算参数；') || warning.startsWith('采用已确认项目规则：');
+  const ruleExplanations = result?.warnings.filter(isRuleExplanation) ?? [];
   const recognizedCount = useMemo(() => {
     if (!result) return 0;
     const fields = Object.values(result.recognition.fields);
@@ -102,12 +104,11 @@ export default function ExcelImportPanel({ onApply, currentProject }: Props) {
     <section className={`excel-import-panel is-${status}`} aria-label="Excel智能导入">
       <div className="excel-import-mark">{status === 'recognizing' ? <LoadingOutlined spin /> : status === 'applied' ? <CheckCircleOutlined /> : <RobotOutlined />}</div>
       <div className="excel-import-copy">
-        <Typography.Text className="panel-kicker">智能录入</Typography.Text>
         <Typography.Title level={4}>Excel 智能导入</Typography.Title>
         {status === 'recognizing'
           ? <><strong>正在识别项目数据</strong><span>先按字段规则匹配，仅未匹配内容交由智能识别。</span></>
           : status === 'applied'
-            ? <><strong>{fileName}</strong><span>识别结果已写入表单，请核对后开始测算。</span></>
+            ? <strong>{fileName}</strong>
             : <span>识别项目资料、服务计划、填报人数与费用；对比数据单独保存，不覆盖测算参数。</span>}
       </div>
       <div className="excel-import-action">
@@ -149,7 +150,8 @@ export default function ExcelImportPanel({ onApply, currentProject }: Props) {
           {REVENUE_FIELDS.filter(([key])=>key!=='otherAnnual').map(([key,label])=><p key={key}>{label}：{result.project.revenueScenario?.[key] ?? '待填写'} 元/年</p>)}
           <Typography.Text type="secondary">收入单独用于抵扣和利润试算，不会改变服务成本；可在测算结果页修改。</Typography.Text>
         </div> }]} />}
-        {result.warnings.map((warning) => <Alert key={warning} type="warning" showIcon title={warning} />)}
+        {result.warnings.filter(warning => !isRuleExplanation(warning)).map((warning) => <Alert key={warning} type="warning" showIcon title={warning} />)}
+        {!!ruleExplanations.length && <Collapse items={[{key:'recognition-details',label:'识别详情',children:ruleExplanations.map(warning => <p key={warning}>{warning}</p>)}]} />}
         {!!pendingIssues.length && <section className="recognition-group"><h3>待处理事项（{pendingIssues.length} 项）</h3><Typography.Paragraph type="secondary">采用识别结果后，可在页面中补充缺项、修改数值并确认服务范围；原表位置会保留供核对。</Typography.Paragraph><RecognitionIssues issues={pendingIssues} /></section>}
         {!!result.ignoredSheets?.length && <Typography.Paragraph type="secondary">已忽略：{result.ignoredSheets.join('、')}。{result.ignoredFields?.length ? `另有 ${result.ignoredFields.length} 项不属于本次测算输入或已排除服务范围。` : ''}</Typography.Paragraph>}
         {!!result.recognition.parameters?.length && <Collapse items={[...new Set(result.recognition.parameters.map(p => p.group))].map(group => ({

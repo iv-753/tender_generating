@@ -245,7 +245,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
     const missingStep = firstMissingStep(result.missingFields);
     if (missingStep !== undefined) setCurrentStep(missingStep);
     setError('');
-    message.success(result.missingFields.length ? '识别结果已写入，请补充缺失字段' : '识别结果已写入，请核对后开始测算');
+    message.success(result.missingFields.length ? '资料已导入，请补充缺失字段' : '资料已导入');
   };
 
   const loadExample = () => {
@@ -272,7 +272,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
 
   return (
     <main className="workspace-page">
-      {model === 'zhujiang-v1' && <Alert type="info" showIcon title={exampleDataVersion ? '当前为示例数据，仅供体验，请替换为项目实际资料。' : '珠江四档测算 · 请核实项目数据'} description={exampleDataVersion ? undefined : '先填基础资料，再确认设备数量、服务范围、作业时间和人工费用。服务次数按珠江标准带入；也可载入示例数据体验。'} style={{ marginBottom: 16 }} />}
+      {model === 'zhujiang-v1' && exampleDataVersion && <Alert type="info" showIcon title="当前为示例数据，仅供体验，请替换为项目实际资料。" style={{ marginBottom: 16 }} />}
       <div className="page-heading blueprint-rule">
         <div><Typography.Title level={2}>新建物业测算项目</Typography.Title></div>
         <Button onClick={loadExample} disabled={calculating || previewingAdvanced}>载入示例数据</Button>

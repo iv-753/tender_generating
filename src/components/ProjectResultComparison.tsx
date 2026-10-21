@@ -20,11 +20,22 @@ export function ProjectResultComparison({ result, importControl }: { result: Cal
   const financial=evidence.data?.financial;
   const financialRevenue=financial?.revenue != null && financial.period.months ? financial.revenue/financial.period.months*12 : null;
   const costError=evidence.costComparable && evidence.cost!=null && evidence.cost>0 && prediction.totalCost!=null ? Math.abs(prediction.totalCost-evidence.cost)/evidence.cost*100 : null;
+  const personnelKind = evidence.data?.personnel?.kind;
+  const peopleNote = personnelKind === '年底在岗人数（项目填报）' ? '年底实际在岗' : personnelKind;
+  const costPeriod = evidence.data?.cost?.period;
+  const costPeriodText = costPeriod?.startMonth && costPeriod.endMonth
+    ? costPeriod.year && costPeriod.endYear && costPeriod.year !== costPeriod.endYear
+      ? `${costPeriod.year}年${costPeriod.startMonth}月—${costPeriod.endYear}年${costPeriod.endMonth}月`
+      : `${costPeriod.startMonth}—${costPeriod.endMonth}月`
+    : costPeriod?.label;
+  const costNote = evidence.annualized
+    ? `${costPeriodText ?? '期间待核'}${evidence.data?.cost?.kind === 'actual' ? '实际成本' : evidence.data?.cost?.kind === 'budget' ? '预算成本' : '项目填报成本'}年化`
+    : [evidence.costKind, costPeriod?.label].filter(Boolean).join(' · ');
   const rows = [
     { key: 'price', label: '住宅单价', unit: '元/㎡·月', actual: evidence.rate, model: prediction.breakEvenRate, comparable: evidence.rateComparable, digits: 2, actualNote: '', modelNote: '', reason: evidence.rateReason },
-    { key: 'people', label: '配置人员', unit: '人', actual: evidence.people, model: plan?.totalHeadcount ?? staffing.headcount, comparable: evidence.peopleComparable && result.staffingScope === 'onsite', digits: 0, actualNote: evidence.peopleLabel, modelNote: plan ? '方案配置' : result.staffingScope === 'onsite' ? '模型驻场配置' : '模型配置／折算用工', reason: evidence.peopleReason },
+    { key: 'people', label: '配置人员', unit: '人', actual: evidence.people, model: plan?.totalHeadcount ?? staffing.headcount, comparable: evidence.peopleComparable && result.staffingScope === 'onsite', digits: 0, actualNote: peopleNote, modelNote: plan ? '方案配置' : result.staffingScope === 'onsite' ? '模型驻场配置' : '模型配置／折算用工', reason: evidence.peopleReason },
     { key: 'items', label: '服务动作数量', unit: '条', actual: inventory.count, model: inventory.count, comparable: inventory.count !== null, digits: 0, actualNote: '', modelNote: '', reason: '两列共用本项目服务动作清单，数量一致，不代表实际执行情况已核验。' },
-    { key: 'cost', label: '成本', unit: '万元', actual: evidence.cost === null ? null : evidence.cost / 10000, model: prediction.totalCost === null ? null : prediction.totalCost / 10000, comparable: evidence.costComparable, digits: 2, actualNote: evidence.costLabel, modelNote: '标准测算 · 12个月服务成本及补充费用', reason: evidence.finance },
+    { key: 'cost', label: '成本', unit: '万元', actual: evidence.cost === null ? null : evidence.cost / 10000, model: prediction.totalCost === null ? null : prediction.totalCost / 10000, comparable: evidence.costComparable, digits: 2, actualNote: costNote, modelNote: '全年服务成本及补充费用', reason: evidence.finance },
   ];
   const comparable = (row: typeof rows[number]) => row.comparable && row.actual !== null && row.model !== null;
   const cell = (row: typeof rows[number], kind: 'actual' | 'model') => {
@@ -41,9 +52,11 @@ export function ProjectResultComparison({ result, importControl }: { result: Cal
       {title:'标准测算',key:'model',width:'27%',align:'right',render:(_,row)=><>{cell(row,'model')}{row.model!==null && row.modelNote && <small className="hc-unit" style={{display:'block'}}>{row.modelNote}</small>}</>},
       {title:'差值',key:'delta',align:'right',render:(_,row)=>{const delta=comparable(row)?row.model!-row.actual!:null;return <span className={delta===null?'is-missing':''} title={row.reason}>{delta!==null&&delta>0?'+':''}{delta===null && row.actual!==null && row.model!==null ? '口径待核' : format(delta,row.digits)}</span>;}},
     ]}/>
-    <div className="comparison-footnote">{plan?'人数差值＝方案－实际，其他差值＝测算－实际':'差值＝测算－实际'}；范围、期间或数据性质不同则显示“口径待核”。两列共用本项目服务动作清单，数量一致，不代表实际执行情况已核验。</div>
-    {financial && <p className="hc-muted">成本误差率：{format(costError)}{costError===null?'':'%'}；财务年化营收：{format(financialRevenue===null?null:financialRevenue/10000)} 万元；按财务营收口径的利润：{format(financialRevenue===null||prediction.totalCost===null?null:(financialRevenue-prediction.totalCost)/10000)} 万元。利润＝财务年化营收－测算成本，营收不是模型预测；与上方按现行收费测算的结余口径不同。</p>}
+    {financial && <p className="hc-muted">成本误差率：{format(costError)}{costError===null?'':'%'}</p>}
     <Collapse ghost items={[{key:'sources',label:'数据来源与口径',children:<div className="hc-source-notes">
+      <p>{plan?'人数差值＝方案－实际，其他差值＝测算－实际':'差值＝测算－实际'}；范围、期间或数据性质不同则显示“口径待核”。两列共用本项目服务动作清单，数量一致，不代表实际执行情况已核验。</p>
+      {financial && <p>财务年化营收：{format(financialRevenue===null?null:financialRevenue/10000)} 万元；按财务营收口径的利润：{format(financialRevenue===null||prediction.totalCost===null?null:(financialRevenue-prediction.totalCost)/10000)} 万元。利润＝财务年化营收－测算成本，营收不是模型预测；与上方按现行收费测算的结余口径不同。</p>}
+      {evidence.data?.personnel && <p>人员统计：{evidence.peopleLabel}。{evidence.data.personnel.sources.map(source => `${source.fileName} · ${source.sheet}!${source.cell}`).join('；')}</p>}
       <p>期间：{evidence.period}。{evidence.source}</p><p>{evidence.finance}</p>{evidence.annualized && <p>年化估算：原金额 {evidence.originalCost?.toLocaleString('zh-CN',{maximumFractionDigits:2})} 元 ÷ {evidence.annualizationMonths} 个月 × 12 = {evidence.cost?.toLocaleString('zh-CN',{maximumFractionDigits:2})} 元。保留原统计期间，不作为全年已发生实际成本。</p>}
       <p>住宅单价：实际为现行收费，测算为抵扣已知其他收入后的保本价。只有已核对相同项目、面积和期间的数据才展示差值与对比条。</p>
       <p>人员：{plan?'方案配置为驻场人员，不含共享会计及工程外包折算用工；测算成本沿用原模型预算。':result.staffingScope==='onsite'?'模型为驻场人数，不含共享会计及工程外包折算用工。':'模型人数范围尚需与驻场口径对齐。'}{staffing.sharedText}实际在岗时点未核实时不计算差值。</p>
@@ -56,7 +69,7 @@ export function ProjectResultComparison({ result, importControl }: { result: Cal
 export function ProjectResultBasis({result,children,personnel}:{result:CalculationResult;children:ReactNode;personnel?:ReactNode}) {
   const zhujiang=result.calculationModel==='zhujiang-v1';
   const plan=staffingPlanFor(result);
-  return <details className="pricing-basis"><summary>查看详细依据<span>服务标准、人员与成本、服务明细</span></summary><div className="pricing-basis-content"><Tabs defaultActiveKey="standards" items={[
+  return <details className="pricing-basis"><summary>查看详细依据</summary><div className="pricing-basis-content"><Tabs defaultActiveKey="standards" items={[
     {key:'standards',label:'服务标准',children:<>
       {!plan && result.project.confirmedConfiguration && <p className="hc-muted">人员配置采用项目提供的现有配置，费用按当前模型单价计算。{result.project.confirmedConfiguration.notes}</p>}
       <p className="hc-muted">当前档位：{gradeLabel(result.project.serviceGrade,result.calculationModel)}。{zhujiang?'标准调整建议暂未纳入本次测算。':'使用当前项目模型的服务标准，具体要求见服务明细。'}</p>
