@@ -53,6 +53,10 @@ export default function PearlRevenueScenarioPanel({result,disabled,onChange,chil
    <div className="pricing-status-line"><span>按现行收费测算，模型预测，非实际财务结果。{provisional ? '资料未齐，仅计已纳入收入及费用。' : '按当前收入与费用口径测算。'}</span>{c.breakEvenRate !== null && s.currentResidentialRate !== null && <span className="pricing-unit-gap">单价差额 <b>{c.breakEvenRate-s.currentResidentialRate>0?'+':''}{(c.breakEvenRate-s.currentResidentialRate).toFixed(2)}</b> 元/㎡·月</span>}</div>
    {c.errors.length>0 && <Alert type="error" showIcon title="资料无效，暂不显示测算结果" description={c.errors.join('；')}/>}
   </section>
+  <section className="pricing-quote pricing-surface" aria-labelledby="quote-title">
+   <div className="pricing-quote-heading"><h2 id="quote-title">调价与报价参考</h2></div>
+   <div className="pricing-quote-body"><div><label htmlFor="revenue-margin">目标利润率 <Tooltip title="利润 ÷ 总收入"><InfoCircleOutlined tabIndex={0} aria-label="目标利润率计算口径" /></Tooltip></label><Space><InputNumber id="revenue-margin" aria-label="目标利润率" min={0} max={99} precision={1} value={s.targetMargin} disabled={disabled} onChange={v=>update('targetMargin',v)}/><span>%</span></Space></div><div><div className="pricing-quote-value"><span>目标参考单价</span><Metric value={c.chargeRate} unit="元/㎡·月" testId="target-charge" /></div></div></div>
+  </section>
   <Collapse className="pricing-conditions" expandIconPlacement="end" items={[{key:'conditions',label:<div className="pricing-disclosure-label"><SlidersOutlined/><strong>调整测算条件</strong><span>{[s.commercialAnnual !== null ? `商业收入${wan(s.commercialAnnual)}万元/年` : null, s.parkingAnnual !== null ? `停车收入${wan(s.parkingAnnual)}万元/年` : null, c.missingIncome.length ? '收入资料待补' : null, s.collectionRate !== null ? `收缴率${money(s.collectionRate)}%` : null].filter(Boolean).join(' · ')}</span></div>,children:<>
    <Upload accept=".xlsx" showUploadList={false} beforeUpload={importFile} disabled={disabled || uploading}><Button icon={<UploadOutlined />} loading={uploading} disabled={disabled}>导入表6收入</Button></Upload>
    {sourceAreaMismatch && <p role="alert">表6住宅收费面积与当前项目不同，请核对。</p>}
@@ -69,10 +73,6 @@ export default function PearlRevenueScenarioPanel({result,disabled,onChange,chil
    </>}]} />
   </>}]} />
   {children}
-  <section className="pricing-quote pricing-surface" aria-labelledby="quote-title">
-   <div className="pricing-quote-heading"><h2 id="quote-title">调价与报价参考</h2></div>
-   <div className="pricing-quote-body"><div><label htmlFor="revenue-margin">目标利润率 <Tooltip title="利润 ÷ 总收入"><InfoCircleOutlined tabIndex={0} aria-label="目标利润率计算口径" /></Tooltip></label><Space><InputNumber id="revenue-margin" aria-label="目标利润率" min={0} max={99} precision={1} value={s.targetMargin} disabled={disabled} onChange={v=>update('targetMargin',v)}/><span>%</span></Space></div><div><div className="pricing-quote-value"><span>目标参考单价</span><Metric value={c.chargeRate} unit="元/㎡·月" testId="target-charge" /></div></div></div>
-  </section>
     <Modal title="核对本次收入导入" open={candidate !== null} onCancel={()=>setCandidate(null)} onOk={applyIncome} okText="采用这些收入" cancelText="取消">
       <p>{fileName} · {candidate?.sourceProjectName || '未识别项目名称'}</p>
       {candidate?.sourceProjectName && candidate.sourceProjectName !== result.project.projectName && <Alert type="warning" showIcon title="文件中的项目名称与当前项目不同，请确认是否采用。" />}
