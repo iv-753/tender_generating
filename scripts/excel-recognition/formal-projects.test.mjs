@@ -8,8 +8,9 @@ import {applyConfirmedProjectRule} from './confirmed-project-rules.mjs';
 import {calculateZhujiangProject} from '../calculation/zhujiang-model.mjs';
 import {unresolvedImportIssues} from '../calculation/import-review.mjs';
 import {staffingPlanFor} from '../calculation/staffing-plan.mjs';
+import {recognizeZhujiangWorkbook} from './zhujiang-import.mjs';
 const directory=process.env.FORMAL_PROJECT_DIRECTORY;
-for(const [name,expected,actual,people] of [['麓湖阁',1975383.8931811084,2003161.506666667,22.4],['珠江花城',15679281.767161015,15612681.73333333,214.4]]){
+for(const [name,expected,actual,people] of [['麓湖阁',1975383.8931811084,2003161.506666667,22.4],['珠江花城',15678306.773134824,15612681.73333333,214.4]]){
  test(`${name}: source import reproduces confirmed costs without changing other calculations`,{skip:!directory},async()=>{
   const file=`${directory}/${name}项目资料收集表（含财务报表）.xlsx`,bytes=fs.readFileSync(file);
   const r=await recognizeExcelLocally(bytes),w=await extractWorkbook(bytes);
@@ -27,6 +28,14 @@ for(const [name,expected,actual,people] of [['麓湖阁',1975383.8931811084,2003
    assert.equal(staffingPlanFor({...value,project:{...value.project,confirmedConfiguration:undefined}}),null);
    assert.equal(staffingPlanFor({...value,project:{...value.project,projectName:'另一个项目'}}),null);
   } else assert.equal(value.staffingPlan,undefined);
+  if(name==='珠江花城') {
+   const changed=structuredClone(w);
+   const cell=changed.sheets.find(s=>/设备和场地/.test(s.name)).rows.flatMap(r=>r.cells).find(c=>c.address==='D34');
+   cell.value='2,377.20';
+   assert.deepEqual(unresolvedImportIssues(recognizeZhujiangWorkbook(changed).project),[]);
+   cell.value=2400;
+   assert.deepEqual(unresolvedImportIssues(recognizeZhujiangWorkbook(changed).project).map(i=>i.key),['zhuj.asset.building.groundFloorLobbyArea']);
+  }
   assert.ok(Math.abs(d.financial.cost/d.financial.period.months*12-actual)<1e-6);
   const again=await recognizeExcelLocally(bytes);assert.equal(calculateZhujiangProject(again.project).annualCost,value.annualCost);
   assert.deepEqual(calculateZhujiangProject(again.project).staffingPlan,value.staffingPlan);
@@ -35,7 +44,7 @@ for(const [name,expected,actual,people] of [['麓湖阁',1975383.8931811084,2003
    assert.ok(Math.abs(baseline.annualCost-value.annualCost-144000)<1e-6);
    assert.deepEqual(baseline.actions,value.actions);assert.deepEqual(baseline.management,value.management);
   }
-  const modified=structuredClone(w);modified.sheets[0].rows[0].cells[0].value='modified source';
+  const modified=structuredClone(w);const nameCell=modified.sheets[0].rows.flatMap(r=>r.cells).find(c=>c.address==='C7');nameCell.value='different project';
   const unmatched={project:{},issues:[]};assert.equal(applyConfirmedProjectRule(modified,unmatched).project.confirmedConfiguration,undefined);
  });
 }

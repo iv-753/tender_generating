@@ -40,6 +40,7 @@ export interface RevenueScenario {
 }
 
 export interface ProjectData {
+  importIdentity?: string;
   confirmedConfiguration?: { sourceId:string; ruleId:string; staffing:Record<string,number>|null; notes:string };
   comparisonData?: ProjectComparisonData;
   importedSecurityPosts?: SecurityPost[];
@@ -84,9 +85,10 @@ export interface SecurityPost {
 
 export type RecognizedBuildingData = { [Field in keyof BuildingTypeInput]: BuildingTypeInput[Field] | null };
 export type RecognizedProjectData = {
-  [Field in Exclude<keyof ProjectData, 'buildings' | 'advancedParameterOverrides' | 'calculationModel' | 'district' | 'workbookOverrides' | 'budgetBasis' | 'exampleDataVersion' | 'importReviewIssues' | 'stairAreaBasis' | 'revenueScenario' | 'importedSecurityPosts' | 'comparisonData' | 'confirmedConfiguration'>]: ProjectData[Field] | null;
+  [Field in Exclude<keyof ProjectData, 'buildings' | 'advancedParameterOverrides' | 'calculationModel' | 'district' | 'workbookOverrides' | 'budgetBasis' | 'exampleDataVersion' | 'importReviewIssues' | 'stairAreaBasis' | 'revenueScenario' | 'importedSecurityPosts' | 'comparisonData' | 'confirmedConfiguration' | 'importIdentity'>]: ProjectData[Field] | null;
 } & {
   confirmedConfiguration?: ProjectData['confirmedConfiguration'];
+  importIdentity?: string;
   comparisonData?: ProjectComparisonData;
   importedSecurityPosts?: SecurityPost[];
   revenueScenario?: RevenueScenario;
@@ -108,6 +110,9 @@ export interface RecognitionEvidence {
 }
 
 export interface ImportReviewIssue {
+  classification?: 'scope'|'conflict'|'missing'|'unsupported'|'passed';
+  coverage?: boolean;
+  required?: boolean; unit?: string; scope?: string; ruleVersion?: string;
   key: string;
   label: string;
   kind: 'missing' | 'conflict' | 'invalid' | 'unmatched';

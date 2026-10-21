@@ -1,10 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { EXAMPLE_PROJECT } from '../../src/exampleProject.ts';
-import { unresolvedImportIssues, resolveImportIssue, reviewField } from './import-review.mjs';
+import { unresolvedImportIssues, resolveImportIssue, reviewField, reuseImportReview } from './import-review.mjs';
 
 const issue = (key, label = key) => ({ key, label, kind: 'conflict', message: '需确认', sources: [] });
 const project = () => ({ ...EXAMPLE_PROJECT, district: '增城区', calculationModel: 'zhujiang-v1', workbookOverrides: {} });
+
+test('reimport reuses only same-identity, same-source decisions; formatting and unrelated fields do not reset them',()=>{
+ const row={...issue('greenArea'),sources:[{sheet:'基本',cell:'C20',raw:850}]};
+ const p=resolveImportIssue({...project(),importIdentity:'same-project',importReviewIssues:[row]},row.key,'value',800);
+ assert.equal(unresolvedImportIssues({...p,occupiedHouseholds:p.occupiedHouseholds+1}).length,0);
+ const next={...project(),importIdentity:'same-project',importReviewIssues:[{...row,sources:[{sheet:'基本',cell:'C20',raw:'850.00'}]}]};
+ assert.equal(reuseImportReview(p,next).greenArea,800);
+ assert.equal(unresolvedImportIssues(reuseImportReview(p,next)).length,0);
+ assert.equal(reuseImportReview(p,{...next,importIdentity:'another'}).importReviewIssues[0].resolution,undefined);
+ assert.equal(reuseImportReview(p,{...next,importReviewIssues:[{...row,sources:[{sheet:'基本',cell:'C20',raw:900}]}]}).importReviewIssues[0].resolution,undefined);
+});
 
 test('covered post decisions survive missing-field completion and only reopen for changed source evidence', () => {
   let p = { ...project(), serviceGrade: null, gatehouses: null, importReviewIssues: [issue('posts.前台'), issue('posts.其他')] };

@@ -1,7 +1,7 @@
 // Separate staffing proposal. Never an input to the cost calculation.
 export const FLOWER_SOURCE_ID = '8108240a9303573d92b9c3c8d8a9f380e854e9efe0168f9eb09eaa07cbb746e7';
 export const FLOWER_RULE_ID = 'confirmed-project-2-20261021';
-const BASELINE = 'bbd49f86ae7a5d14';
+const BASELINES = ['bbd49f86ae7a5d14','8dd5bf533ee51be3','59ab60fca2e8eb6a']; // Original budget and the explicitly confirmed lobby-area correction.
 const stable = value => JSON.stringify(value, (_, item) => item && typeof item === 'object' && !Array.isArray(item)
   ? Object.fromEntries(Object.keys(item).sort().map(key => [key,item[key]])) : item);
 export function staffingBaseline(result) {
@@ -15,12 +15,12 @@ export function staffingBaseline(result) {
 }
 export function staffingPlanFor(result) {
   const identity=result.project.confirmedConfiguration;
-  if(result.project.exampleDataVersion || identity?.sourceId!==FLOWER_SOURCE_ID || identity?.ruleId!==FLOWER_RULE_ID || staffingBaseline(result)!==BASELINE) return null;
+  if(result.project.exampleDataVersion || identity?.sourceId!==FLOWER_SOURCE_ID || identity?.ruleId!==FLOWER_RULE_ID || !BASELINES.includes(staffingBaseline(result))) return null;
   const categories=result.categories.filter(c=>!['engineeringOutsourced','pestControl'].includes(c.category))
     .map(c=>({category:c.category,title:c.title,headcount:c.category==='cleaning'?58:c.headcount}));
   const roles=(result.management?.roles??[]).filter(r=>Number.isInteger(r.headcount)&&!r.title.includes('共享'));
   const management=roles.reduce((sum,r)=>sum+r.headcount,0);
-  return {id:'flower-staffing-20261021',sourceId:FLOWER_SOURCE_ID,baseline:BASELINE,
+  return {id:'flower-staffing-20261021',sourceId:FLOWER_SOURCE_ID,baseline:staffingBaseline(result),
     categories:[...categories,{category:'management',title:'管理人员',headcount:management}],
     totalHeadcount:categories.reduce((sum,c)=>sum+c.headcount,management)};
 }

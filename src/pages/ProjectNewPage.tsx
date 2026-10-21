@@ -5,7 +5,7 @@ import { COST_BAND_LABELS, gradeLabel, isCompleteModel, validateProjectData } fr
 import { CITY_CATALOG_VERSION, allowedCostBands, cityOptions, getCityRecommendation, normalizeProjectLocation, provinceOptions } from '../cityCatalog';
 import ExcelImportPanel from '../components/ExcelImportPanel';
 import ImportReviewPanel from '../components/ImportReviewPanel';
-import { resolveImportIssue, unresolvedImportIssues } from '../../scripts/calculation/import-review.mjs';
+import { reuseImportReview, resolveImportIssue, unresolvedImportIssues } from '../../scripts/calculation/import-review.mjs';
 import { toBuildingTotalProject } from '../../scripts/calculation/building-area-basis.mjs';
 import type { ReviewDecision } from '../../scripts/calculation/import-review.mjs';
 import AdvancedParametersDrawer from '../components/AdvancedParametersDrawer';
@@ -58,6 +58,9 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
   const [calculating, setCalculating] = useState(false);
   const [calculationStartedAt, setCalculationStartedAt] = useState(0);
   const [error, setError] = useState('');
+  const [reviewOpen,setReviewOpen]=useState(false);
+  const [reviewErrors,setReviewErrors]=useState<string[]>([]);
+  const [importIdentity,setImportIdentity]=useState(draft.importIdentity);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [previewingAdvanced, setPreviewingAdvanced] = useState(false);
   const [advancedError, setAdvancedError] = useState('');
@@ -73,9 +76,9 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
   const [revenueScenario, setRevenueScenario] = useState(draft.revenueScenario);
   const [parameterFocus, setParameterFocus] = useState<string>();
   const watched = Form.useWatch([], form) as Partial<ProjectData> | undefined;
-  const reviewProject = { ...draft, ...watched, workbookOverrides, importReviewIssues, revenueScenario, comparisonData, confirmedConfiguration, importedSecurityPosts } as ProjectData;
+  const reviewProject = { ...draft, ...watched, workbookOverrides, importReviewIssues, revenueScenario, comparisonData, confirmedConfiguration, importIdentity, importedSecurityPosts } as ProjectData;
 
-  const pendingReview = unresolvedImportIssues(reviewProject).filter(issue => issue.kind !== 'missing');
+  const pendingReview = unresolvedImportIssues(reviewProject);
   const province = Form.useWatch('region', form);
   const city = Form.useWatch('city', form);
   const selectedCostBand = Form.useWatch('costBand', form);
@@ -87,10 +90,12 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
   const getValidProject = async () => {
     const values = await form.validateFields();
     const project = {
+      ...form.getFieldsValue(true),
       ...values,
+      importIdentity,
       exampleDataVersion,
       calculationModel: 'zhujiang-v1' as const,
-      budgetBasis: draft.budgetBasis ?? 'standard',
+      budgetBasis: form.getFieldValue('budgetBasis') ?? draft.budgetBasis ?? 'standard',
       workbookOverrides,
       importReviewIssues,
       importedSecurityPosts,
@@ -152,6 +157,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
     try {
       const current = { ...reviewProject, ...form.getFieldsValue(true), workbookOverrides, importReviewIssues, importedSecurityPosts };
       const next = resolveImportIssue(current, key, decision, value);
+      form.setFieldsValue(next);
       setWorkbookOverrides(next.workbookOverrides ?? {});
       setImportReviewIssues(next.importReviewIssues ?? []);
       storage.saveDraft({ ...next, exampleDataVersion });
@@ -188,10 +194,13 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
     storage.saveDraft({ ...reviewProject, ...form.getFieldsValue(true), workbookOverrides, importReviewIssues, importedSecurityPosts, revenueScenario, comparisonData, confirmedConfiguration, advancedParameterOverrides, exampleDataVersion });
     const startedAt = Date.now();
     try {
-      const pending = unresolvedImportIssues({ ...reviewProject, ...form.getFieldsValue(true), workbookOverrides, importReviewIssues, importedSecurityPosts }).filter(i => i.kind !== 'missing');
-      if (pending.length) {
-        document.getElementById('import-review')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        throw new Error(`还有 ${pending.length} 项待核对，请在上方逐项修改或确认。`);
+      const pending = unresolvedImportIssues({ ...reviewProject, ...form.getFieldsValue(true), workbookOverrides, importReviewIssues, importedSecurityPosts });
+      let fieldErrors: string[]=[];
+      try { await form.validateFields(); } catch(reason) {fieldErrors=((reason as {errorFields?:{errors:string[]}[]}).errorFields??[]).flatMap(f=>f.errors);}
+      setReviewErrors([...new Set(fieldErrors)]);
+      if (pending.length || fieldErrors.length) {
+        setReviewOpen(true);
+        throw new Error(`还有 ${pending.length} 项待核对、${fieldErrors.length} 项填写问题，请在核对资料中处理。`);
       }
       const values = await getValidProject();
       setCalculationStartedAt(startedAt);
@@ -206,29 +215,32 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
     } catch (reason) {
       setCalculating(false);
       const fields = (reason as { errorFields?: { name: (string | number)[]; errors: string[] }[] })?.errorFields;
-      if (fields?.length) {
-        setCurrentStep(firstMissingStep(fields.map(field => String(field.name[0]))) ?? 0);
-        requestAnimationFrame(() => form.scrollToField(fields[0].name, { focus: true, block: 'center' }));
-      }
-      const text = fields?.length ? `还有 ${fields.length} 项基础资料需要补充，已定位到缺项；已填内容和核对结果已保存。` : reason instanceof Error ? reason.message : '测算失败，请稍后重试';
+      if (fields?.length) {setReviewErrors(fields.flatMap(f=>f.errors));setReviewOpen(true);}
+      const text = fields?.length ? `还有 ${fields.length} 项基础资料需要补充，请打开核对资料；已填内容和核对结果已保存。` : reason instanceof Error ? reason.message : '测算失败，请稍后重试';
       setError(text);
       message.error(text);
     }
   };
 
   const applyRecognition = (result: ExcelRecognitionResult) => {
-    setConfirmedConfiguration(result.project.confirmedConfiguration ?? undefined);
-    setComparisonData(result.project.comparisonData ? { ...result.project.comparisonData, actions: result.project.comparisonData.actions ? {...result.project.comparisonData.actions, confirmed:true} : null } : undefined);
-    setImportedSecurityPosts(result.project.importedSecurityPosts ?? undefined);
-    form.setFieldsValue(toBuildingTotalProject({ ...result.project, district: result.project.district ?? undefined, calculationModel: 'zhujiang-v1' } as ProjectData));
+    const incoming=toBuildingTotalProject({...result.project,calculationModel:'zhujiang-v1',importReviewIssues:result.issues??[]} as ProjectData);
+    const next=reuseImportReview({...reviewProject,...form.getFieldsValue(true)},incoming);
+    setImportIdentity(next.importIdentity);
+    setConfirmedConfiguration(next.confirmedConfiguration);
+    const comparison=next.comparisonData?{...next.comparisonData,actions:next.comparisonData.actions?{...next.comparisonData.actions,confirmed:true}:null}:undefined;
+    setComparisonData(comparison);
+    setImportedSecurityPosts(next.importedSecurityPosts);
+    form.resetFields();
+    form.setFieldsValue({...next,exampleDataVersion:undefined});
     setLegacyStairs(false);
-    // Importing a real project must not retain hidden demonstration facts or costs.
-    setWorkbookOverrides(result.project.workbookOverrides ?? {});
-    setRevenueScenario(result.project.revenueScenario);
-    setAdvancedParameterOverrides(result.project.advancedParameterOverrides ?? {});
+    setWorkbookOverrides(next.workbookOverrides??{});
+    setRevenueScenario(next.revenueScenario);
+    setAdvancedParameterOverrides(next.advancedParameterOverrides??{});
     setExampleDataVersion(undefined);
     setWorkbookInputs([]);
-    setImportReviewIssues(result.issues?.filter(issue => issue.kind !== 'missing') ?? []);
+    setImportReviewIssues(next.importReviewIssues??[]);
+    setReviewErrors([]);
+    storage.saveDraft({...next,comparisonData:comparison,exampleDataVersion:undefined});
     const missingStep = firstMissingStep(result.missingFields);
     if (missingStep !== undefined) setCurrentStep(missingStep);
     setError('');
@@ -244,6 +256,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
     setRevenueScenario(undefined);
     setComparisonData(undefined);
     setConfirmedConfiguration(undefined);
+    setImportIdentity(undefined);
     setAdvancedParameterOverrides({});
     setExampleDataVersion(example.exampleDataVersion);
     setExampleGrade(example.serviceGrade);
@@ -263,8 +276,8 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
         <div><Typography.Title level={2}>新建物业测算项目</Typography.Title></div>
         <Button onClick={loadExample} disabled={calculating || previewingAdvanced}>载入示例数据</Button>
       </div>
-      <ExcelImportPanel onApply={applyRecognition} />
-      <ImportReviewPanel project={reviewProject} onResolve={confirmReview} onLocate={locateReview} />
+      <ExcelImportPanel currentProject={reviewProject} onApply={applyRecognition} />
+      <ImportReviewPanel open={reviewOpen} onOpen={()=>setReviewOpen(true)} onClose={()=>setReviewOpen(false)} errors={reviewErrors} project={reviewProject} onResolve={confirmReview} onLocate={locateReview} />
         <div className="input-workspace">
           <aside className="step-rail"><Typography.Text className="panel-kicker">录入进度</Typography.Text><Steps direction="vertical" current={currentStep} items={steps.map((title) => ({ title }))} onChange={setCurrentStep} /></aside>
           <Card className="form-panel" bordered={false}>
@@ -331,7 +344,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
           </Card>
           <aside className="profile-panel"><div className="profile-icon"><FileProtectOutlined /></div><Typography.Text className="panel-kicker">实时项目档案</Typography.Text><Typography.Title level={4}>{watched?.projectName || '未命名项目'}</Typography.Title><Typography.Text type="secondary">{[watched?.region, watched?.city, restored ? watched?.district : undefined].filter(Boolean).join(' / ') || '等待录入地区'}</Typography.Text><Divider /><dl className="profile-list"><div><dt>服务等级</dt><dd>{watched?.serviceGrade ? gradeLabel(watched.serviceGrade, model) : '—'}</dd></div><div><dt>{restored ? '采用单价' : '成本档位'}</dt><dd>{restored ? '项目所在地人工参考价' : watched?.costBand ? COST_BAND_LABELS[watched.costBand] : '待选择'}</dd></div><div><dt>总建筑面积</dt><dd>{profileNumber(watched?.totalBuildingArea)} ㎡</dd></div><div><dt>楼栋类型</dt><dd>{watched?.buildings?.length ?? 0} 类</dd></div><div><dt>常住户数</dt><dd>{profileNumber(watched?.occupiedHouseholds)} 户</dd></div></dl></aside>
         </div>
-      {restored ? <WorkbookParametersDrawer zhujiang={model === 'zhujiang-v1'} open={advancedOpen} loading={previewingAdvanced} error={advancedError} parameters={workbookInputs} overrides={workbookOverrides} focusKey={parameterFocus} reviewCount={pendingReview.length} onReview={() => { setAdvancedOpen(false); document.getElementById('import-review')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} onClose={() => setAdvancedOpen(false)} onSave={(next) => { setWorkbookOverrides(next); setAdvancedOpen(false); setError(''); storage.saveDraft({ ...reviewProject, ...form.getFieldsValue(true), workbookOverrides: next, importReviewIssues, importedSecurityPosts, comparisonData, exampleDataVersion }); message.success('计算参数已保存，将用于正式测算'); }} /> : <AdvancedParametersDrawer open={advancedOpen} loading={previewingAdvanced} error={advancedError} parameters={advancedParameters} overrides={advancedParameterOverrides} onClose={closeAdvancedParameters} onChange={changeAdvancedParameters} />}
+      {restored ? <WorkbookParametersDrawer zhujiang={model === 'zhujiang-v1'} open={advancedOpen} loading={previewingAdvanced} error={advancedError} parameters={workbookInputs} overrides={workbookOverrides} focusKey={parameterFocus} reviewCount={pendingReview.length} onReview={() => { setAdvancedOpen(false); setReviewOpen(true); }} onClose={() => setAdvancedOpen(false)} onSave={(next) => { setWorkbookOverrides(next); setAdvancedOpen(false); setError(''); storage.saveDraft({ ...reviewProject, ...form.getFieldsValue(true), workbookOverrides: next, importReviewIssues, importedSecurityPosts, comparisonData, exampleDataVersion }); message.success('计算参数已保存，将用于正式测算'); }} /> : <AdvancedParametersDrawer open={advancedOpen} loading={previewingAdvanced} error={advancedError} parameters={advancedParameters} overrides={advancedParameterOverrides} onClose={closeAdvancedParameters} onChange={changeAdvancedParameters} />}
       <Modal className="generation-modal" open={calculating} title="正在生成测算方案" width={620} centered closable={false} mask={{ closable: false }} footer={null}>
         <GenerationProgress startedAt={calculationStartedAt} durationMs={CALCULATION_MINIMUM_MS} stages={calculationStages} subtitle={watched?.projectName || '当前项目'} />
       </Modal>

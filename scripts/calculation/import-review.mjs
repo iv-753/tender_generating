@@ -12,6 +12,7 @@ const validNumber = (v, field) => typeof v === 'number' && Number.isFinite(v) &&
 
 export function reviewField(issue, project) {
   const key = issue.key;
+  if(issue.coverage) return {kind:'coverage',key,unit:'',current:null};
   const building = key.match(/^buildings\[(\d+)\]\.(\w+)$/);
   const definition = SUPPLEMENT_FIELDS.find(f => f.key === key) ?? (building && BUILDING_IMPORT_FIELDS.find(f => f.key === building[2]));
   if (key.startsWith('posts.')) return { kind: 'post', key: 'zhuj.securityAdditionalStaff', unit: '人', integer: true, current: project.workbookOverrides?.['zhuj.securityAdditionalStaff'] ?? null };
@@ -27,31 +28,67 @@ export function reviewField(issue, project) {
   return { ...definition, kind: 'number', current: project.workbookOverrides?.[key] ?? project.advancedParameterOverrides?.[asset] ?? derived ?? null, derived };
 }
 
+export function normalizeReviewValue(value) {
+  if (typeof value !== 'string') return value;
+  const text=value.normalize('NFKC').trim().replace(/[,，\s]/g,'');
+  return /^-?\d+(?:\.\d+)?$/.test(text) ? Number(text) : text;
+}
+export function reviewEvidence(issue) {
+  return JSON.stringify([issue.key,issue.ruleVersion??'review-v2',issue.unit??'',issue.scope??'',
+    issue.sources.map(s=>[s.sheet,s.cell,normalizeReviewValue(s.raw)]).sort((a,b)=>(a[0]+a[1]).localeCompare(b[0]+b[1]))]);
+}
 function fingerprint(issue, project) {
-  const field = reviewField(issue, project);
-  const scope = field.kind === 'post'
-    ? [project.serviceGrade, project.gatehouses, ...['mainEntrances', 'secondaryEntrances', 'monitorPosts', 'monitorStaff', 'securityDailyHours', 'mainDayHours', 'mainNightHours', 'securityLeaders', 'outdoorPatrolMinutes', 'indoorPatrolMinutes', 'priorityPatrolMinutes'].map(k => project.workbookOverrides?.[`zhuj.${k}`] ?? null)]
-    : field.kind === 'activity' ? project.serviceGrade : field.kind === 'basic' ? [project.deliveredHouseholds, project.receivedHouseholds, project.occupiedHouseholds] : field.derived;
-  return JSON.stringify([issue.key, issue.kind, issue.sources, field.current ?? null, scope ?? null]);
+  const field=reviewField(issue,project);
+  const scope=field.kind==='activity'?project.serviceGrade:field.kind==='number'?field.derived:null;
+  return JSON.stringify([reviewEvidence(issue),normalizeReviewValue(field.current??null),scope??null]);
+}
+export function reviewChangeReason(issue, project) {
+  if(!issue.resolution || resolved(issue,project)) return '';
+  try {const old=JSON.parse(issue.resolution.fingerprint),next=JSON.parse(fingerprint(issue,project));
+    if(old[0]!==next[0]) return '来源数值、范围、单位或识别规则已变化，请重新核对本项。';
+    if(old[1]!==next[1]) return `采用值由${old[1]??'未填'}变为${next[1]??'未填'}，请重新核对本项。`;
+    return `关联汇总口径由${old[2]??'未填'}变为${next[2]??'未填'}，请重新核对本项。`;
+  } catch {return '旧确认记录需按当前口径核对。';}
+}
+export function reuseImportReview(previous, incoming) {
+  if(!previous?.importIdentity || previous.importIdentity!==incoming.importIdentity) return incoming;
+  let next=incoming;
+  for(const issue of incoming.importReviewIssues??[]) {
+    const old=previous.importReviewIssues?.find(i=>i.key===issue.key);
+    if(!old?.resolution || !resolved(old,previous) || reviewEvidence(old)!==reviewEvidence(issue)) continue;
+    try {
+      const candidate=resolveImportIssue(next,issue.key,old.resolution.decision,old.resolution.value);
+      if(fingerprint(issue,candidate)===fingerprint(old,previous)) next=candidate;
+    } catch { /* A changed field definition needs explicit review. */ }
+  }
+  return next;
 }
 
 function resolved(issue, project) {
   const field = reviewField(issue, project);
   if (issue.kind === 'missing') return typeof field.current === 'string' ? !!field.current.trim() : validNumber(field.current, field);
   const r = issue.resolution;
-  // “Covered by existing posts” is a classification decision. Changing grade,
-  // entrance counts or another post's extra staffing does not undo it.
-  // Accept the same source evidence in older saved fingerprints as well.
-  if (r?.decision === 'covered' && field.kind === 'post') {
-    try {
-      const saved = JSON.parse(r.fingerprint);
-      return JSON.stringify(saved.slice(0, 3)) === JSON.stringify([issue.key, issue.kind, issue.sources]);
-    } catch { return false; }
+  if(r) {
+    try {const saved=JSON.parse(r.fingerprint);
+      if(saved[0]===issue.key && Array.isArray(saved[2])) {
+        const original=saved[2];
+        const unchanged=original.every(old=>issue.sources.some(now=>now.sheet===old.sheet&&now.cell===old.cell&&normalizeReviewValue(now.raw)===normalizeReviewValue(old.raw)));
+        const current=normalizeReviewValue(field.current??null);
+        const sameValue=field.kind==='post'&&r.decision==='covered'||normalizeReviewValue(saved[3])===current;
+        const sameScope=field.kind==='number'?saved[4]===(field.derived??null):field.kind==='activity'?saved[4]===project.serviceGrade:true;
+        if(unchanged&&sameValue&&sameScope&&!issue.required) return true;
+      }
+    } catch { /* Invalid historical confirmation remains pending. */ }
+  }
+
+  if(r?.decision==='covered' && field.kind==='post') {
+    try {return JSON.parse(r.fingerprint)[0]===reviewEvidence(issue);} catch {return false;}
   }
   if (!r || r.fingerprint !== fingerprint(issue, project)) return false;
+  if(field.kind==='coverage') return r.decision==='covered';
   if (field.kind === 'post') return r.decision === 'covered' || (r.decision === 'extra' && validNumber(field.current, field) && r.value === field.current);
   if (field.kind === 'activity') return (r.decision === 'covered' && field.current === 0) || (r.decision === 'extra' && validNumber(field.current, field) && r.value === field.current);
-  if (field.kind === 'unsupported') return issue.kind === 'unmatched' && r.decision === 'ignore';
+  if (field.kind === 'unsupported') return issue.kind === 'unmatched' && !issue.required && r.decision === 'ignore';
   return r.decision === 'value' && r.value === field.current && (typeof field.current === 'string' ? !!field.current.trim() : validNumber(field.current, field));
 }
 

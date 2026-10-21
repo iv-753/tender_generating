@@ -1,5 +1,6 @@
 import { CITY_CATALOG_VERSION, normalizeCityLocation } from '../calculation/city-catalog.mjs';
 import { recognizeRevenue } from './revenue-import.mjs';
+import { createHash } from 'node:crypto';
 import { applyConfirmedProjectRule } from './confirmed-project-rules.mjs';
 import { readSecurityPosts } from '../calculation/security-roster.mjs';
 import { BASIC_IMPORT_FIELDS, BUILDING_IMPORT_FIELDS, ASSET_IMPORT_FIELDS, PLAN_IMPORT_FIELDS, SUPPLEMENT_FIELDS, GARAGE_ASSET_KEYS, normalizeLabel } from './zhujiang-import-fields.mjs';
@@ -65,7 +66,7 @@ export function recognizeZhujiangWorkbook(workbook, suggestions = []) {
   result.project.importedSecurityPosts = readSecurityPosts(posts);
   const addIssue = (key, label, kind, message, sources = []) => {
     result.issues = result.issues.filter(i => i.key !== key);
-    result.issues.push({ key, label, kind, message, sources });
+    result.issues.push({ key, label, kind, message, sources, classification:kind==='missing'?'missing':kind==='unmatched'?'unsupported':kind==='conflict'&&/相互矛盾|不能超过/.test(message)?'conflict':'scope', unit:SUPPLEMENT_FIELDS.find(d=>d.key===key)?.unit??'', ruleVersion:'review-v2' });
   };
   const put = (def, raw, source, unit = '', note = '', viaAI = false) => {
     const parsed = parseImportValue(raw, def, unit, note);
@@ -100,6 +101,11 @@ export function recognizeZhujiangWorkbook(workbook, suggestions = []) {
     if (label && hasValue(at(row, valueCol)?.value) && !/项目$|填写|怎么填|单位/.test(label) && !BASIC_IMPORT_FIELDS.some(d => matches(label, d))) {
       result.unmatchedRows.push({ label, ...ref(basic, row, valueCol), unit: at(row, 'B')?.value ?? '', note: noteOf(row, [noteCol]), section: '基础资料' });
     }
+  }
+  const totalGarage=basicRows.find(r=>normalizeLabel(at(r,'A')?.value)==='车库面积');
+  if(totalGarage) {
+    result.unmatchedRows=result.unmatchedRows.filter(r=>!(r.sheet===basic.name&&r.cell===`${valueCol}${totalGarage.row}`));
+    addIssue('garageFloorArea','车库总面积与分期口径','conflict','原表为车库全项目总面积，不能直接当作单层面积再乘层数。请核对各期范围，采用与层数配套的已确认面积参数。',[ref(basic,totalGarage,valueCol)]);
   }
   const excludedGarage = basicRows.find(r => /车库/.test(String(at(r, 'A')?.value)) && /不[在再属].*(?:管理|服务)范围|不纳入|不承担.*车库/.test(noteOf(r, [noteCol])));
   if (excludedGarage) {
@@ -153,6 +159,7 @@ export function recognizeZhujiangWorkbook(workbook, suggestions = []) {
     const row = unresolvedRows.find(r => r.sheet === suggestion.sheet && r.cell === suggestion.cell);
     const def = SUPPLEMENT_FIELDS.find(d => d.key === suggestion.key && d.section === row?.section);
     const existing = ruleEntries.get(def?.key);
+    if (row && /专变电房/.test(row.label)) continue;
     if (!row || !def || existing && (existing.sources.length || existing.kind !== 'missing') || !Number.isFinite(suggestion.confidence) || suggestion.confidence < .9) continue;
     if (excludedGarage && GARAGE_ASSET_KEYS.has(def.key)) continue;
     if (entries.get(def.key) === existing) { entries.delete(def.key); result.issues = result.issues.filter(i => i.key !== def.key); }
@@ -162,6 +169,10 @@ export function recognizeZhujiangWorkbook(workbook, suggestions = []) {
   for (const [asset, field] of [['grounds.entrancePlazaArea', 'perimeterEntrances'], ['grounds.roadArea', 'pavedRoadArea'], ['grounds.zoneArea', 'greenArea']]) {
     const basicEntry = entries.get(field), key = `zhuj.asset.${asset}`, assetEntry = entries.get(key);
     if (basicEntry?.kind || basicEntry?.value === undefined) continue;
+    if (basicEntry.value===0 && /市政道路/.test(basicEntry.note??'') && assetEntry?.value>=0) {
+      result.warnings.push(`${assetEntry.label}采用内部设备场地范围${assetEntry.value}㎡；外围市政道路不合并为同一面积。`);
+      continue;
+    }
     if (assetEntry && !assetEntry.kind && Math.abs(assetEntry.value - basicEntry.value) > .01) {
       addIssue(key, assetEntry.label, 'conflict', `基础资料为${basicEntry.value}㎡，设备场地表为${assetEntry.value}㎡，请核对服务范围。`, [...basicEntry.sources, ...assetEntry.sources]);
       assetEntry.value = undefined; assetEntry.kind = 'conflict';
@@ -179,13 +190,14 @@ export function recognizeZhujiangWorkbook(workbook, suggestions = []) {
     const pairs = result.project.buildings.map((_, i) => [entries.get(`buildings[${i}].${field}`), entries.get(`buildings[${i}].${multiplier}`)]);
     if (!pairs.length || pairs.some(pair => pair.some(e => !e || e.kind || e.value === undefined))) continue;
     const value = pairs.reduce((sum, [a, b]) => sum + a.value * b.value, 0);
+    const groupSum=pairs.reduce((sum,[a])=>sum+a.value,0);
     const key = `zhuj.asset.building.${asset}`;
     const sources = pairs.flatMap(pair => pair.flatMap(e => e.sources));
     const existing = entries.get(key);
     if (existing && !existing.kind && Math.abs(existing.value - value) > .01) {
       const original = existing.value;
       existing.value = undefined; existing.kind = 'conflict';
-      addIssue(key, existing.label, 'conflict', `设备表为${original}㎡，楼栋资料合计为${Number(value.toFixed(4))}㎡，请核对是否同一服务范围。`, [...existing.sources, ...sources]);
+      addIssue(key, existing.label, 'conflict', Math.abs(original-groupSum)<.01 ? `设备表为${original}㎡；楼栋各组直接相加为${Number(groupSum.toFixed(4))}㎡。原备注仍写每层或每栋，汇总层级需确认，不能因数值相等就自动再次乘算或全局采用组汇总。` : `设备表为${original}㎡；按原表每栋／每层说明推导为${Number(value.toFixed(4))}㎡，各组直接相加为${Number(groupSum.toFixed(4))}㎡。请核对服务范围和汇总层级。`, [...existing.sources, ...sources]);
     } else if (!existing || existing.kind === 'missing') {
       const def = ASSET_IMPORT_FIELDS.find(d => d.key === key);
       entries.set(key, { ...def, value, sources, note: '由楼栋资料按相同口径合计。', derived: true });
@@ -259,5 +271,14 @@ export function recognizeZhujiangWorkbook(workbook, suggestions = []) {
   }
   result.warnings.push('实际在岗人数、已发生费用不写入测算参数；表6收入单独用于结果页收费试算，不改变服务成本。');
   if (result.recognition.parameters.some(p => p.group === '合同服务计划' && p.value > 0)) result.warnings.push('已识别的合同频次按年度换算，采用后作为项目服务计划；请核对与所选服务档位的差异。');
+  result.project.importReviewIssues=result.issues;
+  const anchor=['projectName','region','city','district'].map(k=>result.project[k]);
+  anchor.push(groups.map(c=>String(c.value).trim()));
+  result.project.importIdentity=createHash('sha256').update(JSON.stringify(anchor)).digest('hex');
+  for(const issue of result.issues) {
+    const refs=issue.sources.flatMap(src=>{const sheet=workbook.sheets.find(s=>s.name===src.sheet),row=sheet?.rows.find(r=>r.row===Number(src.cell.match(/\d+/)?.[0]));return row?.cells.filter(c=>/基本情况/.test(src.sheet)?/^(A|B|O)\d+$/.test(c.address):/设备和场地/.test(src.sheet)?/^[BCE]\d+$/.test(c.address):false).map(c=>({sheet:src.sheet,cell:c.address,raw:c.value}))??[];});
+    issue.sources=[...new Map([...issue.sources,...refs].map(x=>[x.sheet+'!'+x.cell,x])).values()];
+    if(/专变电房/.test(issue.label)) {const related=equipment?.rows.filter(r=>['地下配电间数量','首层电房数量'].includes(String(at(r,'B')?.value))).flatMap(r=>r.cells.filter(c=>/^[BCDE]/.test(c.address)).map(c=>({sheet:equipment.name,cell:c.address,raw:c.value})))??[];issue.sources.push(...related);issue.required=true;issue.coverage=true;issue.classification='scope';issue.message='专变电房应核对地下配电间、首层电房服务范围；已包含时仅保存覆盖关系，不重复计费。未包含时须补齐独立设备映射，不能按充电设施导入。';}
+  }
   return applyConfirmedProjectRule(workbook, result);
 }

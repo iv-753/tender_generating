@@ -8,10 +8,10 @@ import { toBuildingTotalProject } from '../../scripts/calculation/building-area-
 import type { CostBand, ExcelRecognitionResult, RecognitionEvidence, RecognizedParameter, ProjectData, ServiceGrade } from '../types';
 import GenerationProgress from './GenerationProgress';
 import RecognitionIssues from './RecognitionIssues';
-import { unresolvedImportIssues } from '../../scripts/calculation/import-review.mjs';
+import { reuseImportReview, unresolvedImportIssues } from '../../scripts/calculation/import-review.mjs';
 
 type ImportStatus = 'idle' | 'recognizing' | 'review' | 'error' | 'applied';
-type Props = { onApply: (result: ExcelRecognitionResult) => void };
+type Props = { currentProject?: ProjectData; onApply: (result: ExcelRecognitionResult) => void };
 type FieldDefinition = { key: string; label: string; unit?: string; format?: 'ratio' | 'grade' | 'costBand' };
 
 const groups: Array<{ title: string; fields: FieldDefinition[] }> = [
@@ -59,13 +59,13 @@ function fieldTag(evidence?: RecognitionEvidence) {
   return <Tag color="green">已识别</Tag>;
 }
 
-export default function ExcelImportPanel({ onApply }: Props) {
+export default function ExcelImportPanel({ onApply, currentProject }: Props) {
   const [status, setStatus] = useState<ImportStatus>('idle');
   const [result, setResult] = useState<ExcelRecognitionResult>();
   const [fileName, setFileName] = useState('');
   const [error, setError] = useState('');
   const [recognitionStartedAt, setRecognitionStartedAt] = useState(0);
-  const pendingIssues = result?.project.confirmedConfiguration ? unresolvedImportIssues(result.project as ProjectData) : result?.issues ?? [];
+  const pendingIssues = result ? unresolvedImportIssues({...result.project,importReviewIssues:result.issues??[]} as ProjectData) : [];
   const recognizedCount = useMemo(() => {
     if (!result) return 0;
     const fields = Object.values(result.recognition.fields);
@@ -80,6 +80,10 @@ export default function ExcelImportPanel({ onApply }: Props) {
     setStatus('recognizing');
     try {
       const next = await recognizeExcelFile(file);
+      if(currentProject) {
+        const project=reuseImportReview(currentProject,toBuildingTotalProject({...next.project,importReviewIssues:next.issues??[]} as ProjectData));
+        next.project=project as ExcelRecognitionResult['project'];next.issues=project.importReviewIssues;
+      }
       setResult(next);
       setStatus('review');
     } catch (reason) {
