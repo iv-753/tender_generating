@@ -1,3 +1,4 @@
+import { staffingPlanFor } from '../../scripts/calculation/staffing-plan.mjs';
 import PearlRevenueScenarioPanel from '../components/PearlRevenueScenarioPanel';
 import ComparisonDataImport from '../components/ComparisonDataImport';
 import { ProjectResultComparison, ProjectResultBasis } from '../components/ProjectResultComparison';
@@ -185,6 +186,7 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
   const activeStandardActionCount = result.actions.filter((item) => item.source !== 'custom' && item.enabled !== false).length;
   const disabledActionCount = Math.max(0, standardActionCount - activeStandardActionCount);
   const staffing = staffingPresentation(result);
+  const staffingPlan = staffingPlanFor(result);
   const totalStaffingCount = staffing.headcount;
   const rawServiceCostPerSqmMonth = result.project.residentialChargeArea > 0 ? result.annualCost / result.project.residentialChargeArea / 12 : null;
   const serviceCostPerSqmMonth = rawServiceCostPerSqmMonth === null ? null : Math.round((rawServiceCostPerSqmMonth + Number.EPSILON) * 100) / 100;
@@ -300,11 +302,11 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
         if (next) { setSavedResult(next); setPreviewResult(next); }
       }}><ProjectResultComparison result={result} importControl={<ComparisonDataImport result={result} disabled={editing || parametersLoading || recalculation.loading} onSaved={next => { setSavedResult(next); setPreviewResult(next); }} />} /></PearlRevenueScenarioPanel>
       <ProjectResultBasis result={result} personnel={<>
-      {zhujiang && result.budgetComparison && <Collapse style={{marginTop:16}} items={[{key:'comparison',label:'查看人员配置参考',children:<>
+      {zhujiang && result.budgetComparison && <Collapse style={{marginTop:16}} items={[{key:'comparison',label:staffingPlan?'查看原模型人员配置参考':'查看人员配置参考',children:<>
         <Typography.Paragraph>两种估算均采用珠江服务要求：前者按服务面积、户数和岗位要求配置人员；后者按各项服务所需时间估算人员。{!result.standard?.complete&&'目前部分服务资料和用时缺失，按工作量估算的结果尚不完整，不能据此判断可以减少人员或降低收费。'}</Typography.Paragraph>
         <Table rowKey="basis" size="small" pagination={false} scroll={{ x: 640 }} dataSource={(['standard', 'workload'] as const).map(basis => ({ basis, ...result.budgetComparison![basis] }))} columns={[
           { title: '估算依据', key: 'basis', render: (_, row) => <>{estimateName(row.basis)}{row.basis==='workload'&&!result.standard?.complete&&<div><Tag>数据未齐，仅供参考</Tag></div>}</> },
-          { title: '预计人数', key: 'headcount', render: (_, row) => `${staffingPresentation(result,row.headcount).headcount} 人` },
+          { title: staffingPlan ? '原模型人数' : '预计人数', key: 'headcount', render: (_, row) => `${staffingPresentation(result,row.headcount).headcount} 人` },
           { title: '已估算年度费用', key: 'annualCost', render: (_, row) => currency.format(row.annualCost) },
           { title: '每月每平方米成本', key: 'unitPrice', render: (_, row) => row.unitPrice === null ? '—' : `${decimalNumber.format(row.unitPrice)} 元/㎡·月` },
           { title: '查看结果', key: 'selected', render: (_, row) => <Button type={result.budgetBasis === row.basis ? 'primary' : 'default'} disabled={parametersLoading || result.budgetBasis === row.basis} onClick={() => switchBudget(row.basis)}>{result.budgetBasis === row.basis ? '当前展示' : '查看此结果'}</Button> },
@@ -330,7 +332,7 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
           {!restored && <Checkbox checked={disabledOrCustomOnly} onChange={(event) => { setDisabledOrCustomOnly(event.target.checked); setAdjustedOnly(false); setPage(1); }}>只看已停用/自定义</Checkbox>}
           {editing && <Button icon={<ReloadOutlined />} onClick={() => setDraftAdjustments(structuredClone(EMPTY_ADJUSTMENTS))}>恢复原测算</Button>}
         </Space><Input allowClear prefix={<SearchOutlined />} placeholder="搜索服务内容或服务次数" value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} /></div>
-        <div className="category-summary"><span>{displayCategoryTitle(summary)}已计入 <strong>{summary.actionCount}</strong> 项</span><span>{category==='pestControl'||category==='engineeringOutsourced' ? '专业作业费用单列' : <>配置 <strong>{displayStaffingCount(summary.headcount)}</strong> 人</>}</span><span>年度预算 <strong>{currency.format(summary.annualCost)}</strong></span></div>
+        <div className="category-summary"><span>{displayCategoryTitle(summary)}已计入 <strong>{summary.actionCount}</strong> 项</span><span>{category==='pestControl'||category==='engineeringOutsourced' ? '专业作业费用单列' : <>{staffingPlan?'方案配置':'配置'} <strong>{displayStaffingCount(staffingPlan?.categories.find(c=>c.category===category)?.headcount ?? summary.headcount)}</strong> 人</>}</span><span>年度预算 <strong>{currency.format(summary.annualCost)}</strong></span></div>
         {category !== 'assistance' && <div className="cost-basis-note">{zhujiang ? '下表费用按各项服务用时估算；配置人员的全年费用还涉及完整岗位安排，可能与明细合计不同。' : restored ? '动作成本用于逐项核算；分类预算按原表工时折算、取整和附加比例计算，可能不同于明细成本之和。' : '动作工作量成本用于逐项核算；分类取整用工预算按汇总工时折算完整岗位，不能用表内行成本相加替代。'}{category === 'pestControl' && categoryActions.some(hasSharedWorkloadGroup) ? '四害消杀的共享工作量已按动作分摊。' : ''}</div>}
         {recalculation.loading && <div className="recalculation-state"><LoadingOutlined /> 正在重算</div>}
         {editing

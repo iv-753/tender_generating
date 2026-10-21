@@ -234,6 +234,7 @@ export interface CategorySummary {
 }
 
 interface CalculationResultBase {
+  staffingPlan?: {id:string;sourceId:string;baseline:string;totalHeadcount:number;categories:Array<{category:string;title:string;headcount:number}>};
   staffingScope?: 'onsite';
   securityRosterMode?: 'project' | 'reference';
   calculationModel?: ProjectData['calculationModel'];

@@ -1,3 +1,4 @@
+import { staffingPlanFor } from '../../scripts/calculation/staffing-plan.mjs';
 import { projectActualEvidence, projectActionInventory } from '../data/projectActualEvidence';
 import { Collapse, Table, Tabs } from 'antd';
 import type { ReactNode } from 'react';
@@ -13,6 +14,7 @@ export function ProjectResultComparison({ result, importControl }: { result: Cal
   const scenario = { ...emptyRevenueScenario(), ...result.project.revenueScenario };
   const prediction = calculateRevenueScenario(result.annualCost, result.project.residentialChargeArea, scenario, { allowMissingIncome: true });
   const staffing = staffingPresentation(result);
+  const plan = staffingPlanFor(result);
   const evidence = projectActualEvidence(result.project);
   const inventory = projectActionInventory(result);
   const financial=evidence.data?.financial;
@@ -20,7 +22,7 @@ export function ProjectResultComparison({ result, importControl }: { result: Cal
   const costError=evidence.costComparable && evidence.cost!=null && evidence.cost>0 && prediction.totalCost!=null ? Math.abs(prediction.totalCost-evidence.cost)/evidence.cost*100 : null;
   const rows = [
     { key: 'price', label: '住宅单价', unit: '元/㎡·月', actual: evidence.rate, model: prediction.breakEvenRate, comparable: evidence.rateComparable, digits: 2, actualNote: '', modelNote: '', reason: evidence.rateReason },
-    { key: 'people', label: '配置人员', unit: '人', actual: evidence.people, model: staffing.headcount, comparable: evidence.peopleComparable && result.staffingScope === 'onsite', digits: 0, actualNote: evidence.peopleLabel, modelNote: result.staffingScope === 'onsite' ? '模型驻场配置' : '模型配置／折算用工', reason: evidence.peopleReason },
+    { key: 'people', label: '配置人员', unit: '人', actual: evidence.people, model: plan?.totalHeadcount ?? staffing.headcount, comparable: evidence.peopleComparable && result.staffingScope === 'onsite', digits: 0, actualNote: evidence.peopleLabel, modelNote: plan ? '方案配置' : result.staffingScope === 'onsite' ? '模型驻场配置' : '模型配置／折算用工', reason: evidence.peopleReason },
     { key: 'items', label: '服务动作数量', unit: '条', actual: inventory.count, model: inventory.count, comparable: inventory.count !== null, digits: 0, actualNote: '', modelNote: '', reason: '两列共用本项目服务动作清单，数量一致，不代表实际执行情况已核验。' },
     { key: 'cost', label: '成本', unit: '万元', actual: evidence.cost === null ? null : evidence.cost / 10000, model: prediction.totalCost === null ? null : prediction.totalCost / 10000, comparable: evidence.costComparable, digits: 2, actualNote: evidence.costLabel, modelNote: '标准测算 · 12个月服务成本及补充费用', reason: evidence.finance },
   ];
@@ -39,12 +41,12 @@ export function ProjectResultComparison({ result, importControl }: { result: Cal
       {title:'标准测算',key:'model',width:'27%',align:'right',render:(_,row)=><>{cell(row,'model')}{row.model!==null && row.modelNote && <small className="hc-unit" style={{display:'block'}}>{row.modelNote}</small>}</>},
       {title:'差值',key:'delta',align:'right',render:(_,row)=>{const delta=comparable(row)?row.model!-row.actual!:null;return <span className={delta===null?'is-missing':''} title={row.reason}>{delta!==null&&delta>0?'+':''}{delta===null && row.actual!==null && row.model!==null ? '口径待核' : format(delta,row.digits)}</span>;}},
     ]}/>
-    <div className="comparison-footnote">差值＝测算－实际；范围、期间或数据性质不同则显示“口径待核”。两列共用本项目服务动作清单，数量一致，不代表实际执行情况已核验。</div>
+    <div className="comparison-footnote">{plan?'人数差值＝方案－实际，其他差值＝测算－实际':'差值＝测算－实际'}；范围、期间或数据性质不同则显示“口径待核”。两列共用本项目服务动作清单，数量一致，不代表实际执行情况已核验。</div>
     {financial && <p className="hc-muted">成本误差率：{format(costError)}{costError===null?'':'%'}；财务年化营收：{format(financialRevenue===null?null:financialRevenue/10000)} 万元；按财务营收口径的利润：{format(financialRevenue===null||prediction.totalCost===null?null:(financialRevenue-prediction.totalCost)/10000)} 万元。利润＝财务年化营收－测算成本，营收不是模型预测；与上方按现行收费测算的结余口径不同。</p>}
     <Collapse ghost items={[{key:'sources',label:'数据来源与口径',children:<div className="hc-source-notes">
       <p>期间：{evidence.period}。{evidence.source}</p><p>{evidence.finance}</p>{evidence.annualized && <p>年化估算：原金额 {evidence.originalCost?.toLocaleString('zh-CN',{maximumFractionDigits:2})} 元 ÷ {evidence.annualizationMonths} 个月 × 12 = {evidence.cost?.toLocaleString('zh-CN',{maximumFractionDigits:2})} 元。保留原统计期间，不作为全年已发生实际成本。</p>}
       <p>住宅单价：实际为现行收费，测算为抵扣已知其他收入后的保本价。只有已核对相同项目、面积和期间的数据才展示差值与对比条。</p>
-      <p>人员：{result.staffingScope==='onsite'?'模型为驻场人数，不含共享会计及工程外包折算用工。':'模型人数范围尚需与驻场口径对齐。'}{staffing.sharedText}实际在岗时点未核实时不计算差值。</p>
+      <p>人员：{plan?'方案配置为驻场人员，不含共享会计及工程外包折算用工；测算成本沿用原模型预算。':result.staffingScope==='onsite'?'模型为驻场人数，不含共享会计及工程外包折算用工。':'模型人数范围尚需与驻场口径对齐。'}{staffing.sharedText}实际在岗时点未核实时不计算差值。</p>
       <p>服务动作：{inventory.source}。{inventory.details}</p>
       <p>成本：模型为12个月已计服务费用及补充费用。不足12个月且期间明确时，按已填金额÷月份数×12换算为全年参考值，标注“年化估算”并保留原金额，不作为全年已发生实际；费用范围或性质待核时不计算差值。</p><p>{evidence.data?.personnel && <>自有人员 {evidence.data.personnel.own.value ?? '待补充'} 人，外包人员 {evidence.data.personnel.outsourced.value ?? '待补充'} 人。{evidence.peopleReason}</>}</p>{evidence.data?.cost && <details><summary>查看费用原值与来源</summary><p>{evidence.data.cost.own.method}；{evidence.data.cost.outsourced.method}</p>{[...evidence.data.cost.own.sources,...evidence.data.cost.outsourced.sources].map((source,i)=><p key={i}>{source.fileName} · {source.sheet}!{source.cell}：{String(source.raw ?? '待补充')} {i<evidence.data!.cost!.own.sources.length?evidence.data!.cost!.own.rawUnit:evidence.data!.cost!.outsourced.rawUnit}</p>)}</details>}
     </div>}]} />
@@ -53,9 +55,10 @@ export function ProjectResultComparison({ result, importControl }: { result: Cal
 
 export function ProjectResultBasis({result,children,personnel}:{result:CalculationResult;children:ReactNode;personnel?:ReactNode}) {
   const zhujiang=result.calculationModel==='zhujiang-v1';
+  const plan=staffingPlanFor(result);
   return <details className="pricing-basis"><summary>查看详细依据<span>服务标准、人员与成本、服务明细</span></summary><div className="pricing-basis-content"><Tabs defaultActiveKey="standards" items={[
     {key:'standards',label:'服务标准',children:<>
-      {result.project.confirmedConfiguration && <p className="hc-muted">人员配置采用项目提供的现有配置，费用按当前模型单价计算。{result.project.confirmedConfiguration.notes}</p>}
+      {!plan && result.project.confirmedConfiguration && <p className="hc-muted">人员配置采用项目提供的现有配置，费用按当前模型单价计算。{result.project.confirmedConfiguration.notes}</p>}
       <p className="hc-muted">当前档位：{gradeLabel(result.project.serviceGrade,result.calculationModel)}。{zhujiang?'标准调整建议暂未纳入本次测算。':'使用当前项目模型的服务标准，具体要求见服务明细。'}</p>
       {zhujiang && <Table rowKey="id" size="middle" dataSource={standards} pagination={{pageSize:8,showSizeChanger:false}} scroll={{x:1050}} columns={[
         {title:'类别',dataIndex:'category',width:110,filters:[...new Set(standards.map(row=>row.category))].map(value=>({text:value,value})),onFilter:(value,row)=>row.category===value},
@@ -64,10 +67,10 @@ export function ProjectResultBasis({result,children,personnel}:{result:Calculati
       ]}/>}
     </>},
     {key:'personnel',label:'人员与成本',children:<>
-      <p className="hc-muted">{result.staffingScope==='onsite'?'驻场配置':'模型配置'} {staffingPresentation(result).headcount} 人。分类人数含相应折算用工，不直接加总作为驻场人数。{staffingPresentation(result).sharedText}</p>
-      <Table rowKey="category" pagination={false} dataSource={result.categories} columns={[
+      <p className="hc-muted">{plan ? <>方案配置 {plan.totalHeadcount} 人，测算成本沿用原模型预算。{staffingPresentation(result).sharedText}</> : <>{result.staffingScope==='onsite'?'驻场配置':'模型配置'} {staffingPresentation(result).headcount} 人。分类人数含相应折算用工，不直接加总作为驻场人数。{staffingPresentation(result).sharedText}</>}</p>
+      <Table rowKey="category" pagination={false} dataSource={plan ? [...plan.categories.map(c=>({...c,annualCost:c.category==='management'?(result.version===2?result.management.annualCost:0):result.categories.find(item=>item.category===c.category)?.annualCost})),...result.categories.filter(c=>['pestControl','engineeringOutsourced'].includes(c.category)).map(c=>({...c,headcount:null}))] : result.categories} columns={[
         {title:'成本分类',dataIndex:'title'},
-        {title:'配置人数／折算用工',dataIndex:'headcount',align:'right',render:value=>format(value)},
+        {title:plan?'方案配置（人）':'配置人数／折算用工',dataIndex:'headcount',align:'right',render:value=>value===null?'专业作业费用单列':format(value)},
         {title:'模型年度成本（元）',dataIndex:'annualCost',align:'right',render:value=>format(value)},
       ]}/>{personnel}
     </>},

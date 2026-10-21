@@ -1,3 +1,4 @@
+import { staffingPlanFor } from './staffing-plan.mjs';
 import { calculateWorkbookProject, getWorkbookInputs, validateWorkbookOverrides, GUANGDONG_LOCATIONS } from './workbook-model.mjs';
 import { INPUT_DEFINITIONS } from './workbook-data.mjs';
 import { toPerFloorProject } from './building-area-basis.mjs';
@@ -435,5 +436,7 @@ export function calculateZhujiangProject(project) {
   }
   const missingInputs=[...missing.values()];
   const unreviewedActionCount=actions.filter(a=>a.ruleKind==='unreviewed').length;
-  return {...base,calculationModel:ZHUJIANG_VERSION,staffingScope:'onsite',securityRosterMode:rosterReady||declaredReady?'project':'reference',project:enteredProject,missingInputs,standard:{...STANDARD_SOURCE,revision:'2026-09-23-source-boundary',label:ZHUJIANG_GRADES[grade].label,mappedActionCount:mappedCount,referenceActionCount:actions.filter(a=>a.standardStatus==='reference').length,pendingActionCount:pendingCount,unreviewedActionCount,reviewedActionCount:actions.length-unreviewedActionCount,complete:missingInputs.length===0&&unreviewedActionCount===0,patrolReady},budgetComparison:comparison,budgetBasis:project.budgetBasis??'standard',categories,actions,warnings,totalActionCount:actions.length,standardActionCount:actions.length,activeActionCount:actions.filter(a=>a.enabled).length,totalHeadcount:chosen.headcount,annualCost:chosen.annualCost,unitPrice:chosen.unitPrice,workloadAnnualCost:sum(categories.map(c=>c.workloadAnnualCost))};
+  const result = {...base,calculationModel:ZHUJIANG_VERSION,staffingScope:'onsite',securityRosterMode:rosterReady||declaredReady?'project':'reference',project:enteredProject,missingInputs,standard:{...STANDARD_SOURCE,revision:'2026-09-23-source-boundary',label:ZHUJIANG_GRADES[grade].label,mappedActionCount:mappedCount,referenceActionCount:actions.filter(a=>a.standardStatus==='reference').length,pendingActionCount:pendingCount,unreviewedActionCount,reviewedActionCount:actions.length-unreviewedActionCount,complete:missingInputs.length===0&&unreviewedActionCount===0,patrolReady},budgetComparison:comparison,budgetBasis:project.budgetBasis??'standard',categories,actions,warnings,totalActionCount:actions.length,standardActionCount:actions.length,activeActionCount:actions.filter(a=>a.enabled).length,totalHeadcount:chosen.headcount,annualCost:chosen.annualCost,unitPrice:chosen.unitPrice,workloadAnnualCost:sum(categories.map(c=>c.workloadAnnualCost))};
+  const staffingPlan=staffingPlanFor(result);
+  return staffingPlan ? {...result,staffingPlan} : result;
 }
