@@ -70,6 +70,25 @@ function result(projectName: string, calculatedAt: string, annualCost = 481800):
 afterEach(() => localStorage.clear());
 
 describe('project storage', () => {
+  test('comparison-only updates preserve calculation and draft edits, replace data and remain project scoped', () => {
+    const first = storage.saveCalculatedProject(result('测试项目一', '2026-10-21T00:00:00Z'));
+    const baseline = storage.loadResult()!;
+    storage.saveDraft({ ...baseline.project, greenArea: 12345 });
+    const data = { version: 1 as const, fileName: '测试源表.xlsx', importedAt: '', period: { label: '2026年1月至9月', year: 2026, startMonth: 1, endMonth: 9, endYear: 2026, months: 9, annual: false }, warnings: [], personnel: null, cost: null, actions: null, rate: null };
+    storage.saveComparisonData(data, first.id);
+    storage.saveComparisonData(data, first.id);
+    const saved = storage.loadResult()!;
+    expect({ ...saved, project: baseline.project }).toEqual(baseline);
+    expect(storage.loadDraft()?.greenArea).toBe(12345);
+    expect(storage.loadProjects()).toHaveLength(1);
+    storage.startNewProject();
+    const second = storage.saveCalculatedProject(result('测试项目二', '2026-10-21T01:00:00Z'));
+    expect(() => storage.saveComparisonData(data, first.id)).toThrow('当前项目已切换');
+    expect(storage.loadResult()?.project.comparisonData).toBeUndefined();
+    storage.selectProject(first.id);
+    expect(storage.loadResult()?.project.comparisonData).toEqual(data);
+    expect(storage.loadProjects().find(p => p.id === second.id)?.result.project.comparisonData).toBeUndefined();
+  });
   test('revenue changes persist with the active project without replacing cost results or adjustments', () => {
     const first = storage.saveCalculatedProject(result('项目一', '2026-09-03T08:00:00.000Z'));
     storage.saveProjectAdjustments(first.id, adjustments, first.result);

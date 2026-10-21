@@ -1,3 +1,14 @@
+export interface ComparisonSource { fileName: string; sheet: string; cell: string; raw: unknown }
+export interface ComparisonPeriod { label: string; year: number|null; startMonth: number|null; endMonth: number|null; endYear: number|null; months: number|null; annual: boolean; sources?: ComparisonSource[] }
+export interface ComparisonAggregate { value: number|null; complete: boolean; sources: ComparisonSource[]; rawUnit: string; method: string; missing: ComparisonSource[] }
+export interface ProjectComparisonData {
+ version: 1; fileName: string; importedAt: string; period: ComparisonPeriod; warnings: string[];
+ personnel: { own: ComparisonAggregate; outsourced: ComparisonAggregate; total: number|null; kind: string; scope: string; scopeVerified: boolean; periodVerified: boolean; period: ComparisonPeriod; notes: string[]; sources: ComparisonSource[] } | null;
+ cost: { amount: number|null; currency: string; own: ComparisonAggregate; outsourced: ComparisonAggregate; kind: 'actual'|'budget'|'reported'; scope: string; scopeVerified: boolean; periodVerified: boolean; period: ComparisonPeriod; notes: string[]; sources: ComparisonSource[] } | null;
+ actions: { confirmed: boolean; items: Array<{id:string;label:string;applicable:boolean;mappingKeys:string[];source:ComparisonSource;frequencySource:ComparisonSource}> } | null;
+ rate: {value:number;area:number|null;period:ComparisonPeriod;source:string;fileName:string}|null;
+}
+
 export type ServiceGrade = 'A' | 'B' | 'C' | 'D';
 export type CostBand = 'high' | 'upper' | 'standard' | 'base';
 
@@ -28,6 +39,7 @@ export interface RevenueScenario {
 }
 
 export interface ProjectData {
+  comparisonData?: ProjectComparisonData;
   importedSecurityPosts?: SecurityPost[];
   revenueScenario?: RevenueScenario;
   stairAreaBasis?: 'per-building' | 'per-floor';
@@ -70,8 +82,9 @@ export interface SecurityPost {
 
 export type RecognizedBuildingData = { [Field in keyof BuildingTypeInput]: BuildingTypeInput[Field] | null };
 export type RecognizedProjectData = {
-  [Field in Exclude<keyof ProjectData, 'buildings' | 'advancedParameterOverrides' | 'calculationModel' | 'district' | 'workbookOverrides' | 'budgetBasis' | 'exampleDataVersion' | 'importReviewIssues' | 'stairAreaBasis' | 'revenueScenario' | 'importedSecurityPosts'>]: ProjectData[Field] | null;
+  [Field in Exclude<keyof ProjectData, 'buildings' | 'advancedParameterOverrides' | 'calculationModel' | 'district' | 'workbookOverrides' | 'budgetBasis' | 'exampleDataVersion' | 'importReviewIssues' | 'stairAreaBasis' | 'revenueScenario' | 'importedSecurityPosts' | 'comparisonData'>]: ProjectData[Field] | null;
 } & {
+  comparisonData?: ProjectComparisonData;
   importedSecurityPosts?: SecurityPost[];
   revenueScenario?: RevenueScenario;
   buildings: RecognizedBuildingData[];

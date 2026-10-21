@@ -52,7 +52,7 @@ export const WORKBOOK_GRADE_VALUES: Record<ServiceGrade, string> = {
 };
 
 export function gradeLabel(grade: ServiceGrade, model?: ProjectData['calculationModel']) {
-  return model === 'zhujiang-v1' ? zhujiangGrades[grade].label : model === 'workbook-v3' ? WORKBOOK_GRADE_VALUES[grade] : GRADE_LABELS[grade];
+  return model === 'zhujiang-v1' ? zhujiangGrades[grade].sourceLabel : model === 'workbook-v3' ? WORKBOOK_GRADE_VALUES[grade] : GRADE_LABELS[grade];
 }
 
 export function isCompleteModel(model?: string) {

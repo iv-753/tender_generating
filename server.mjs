@@ -1,3 +1,5 @@
+import { extractWorkbook } from './scripts/excel-recognition/extract-workbook.mjs';
+import { recognizeComparisonData } from './scripts/excel-recognition/comparison-import.mjs';
 import { createServer } from 'node:http';
 import { createReadStream } from 'node:fs';
 import { mkdir, readFile, stat, unlink, writeFile } from 'node:fs/promises';
@@ -290,10 +292,16 @@ const server = createServer(async (request, response) => {
         const remoteRecognize = process.env.DISABLE_REMOTE_EXCEL === '1'
           ? undefined
           : (workbookBytes) => recognizeExcelRemotely(workbookBytes, { fileName });
-        return json(response, 200, await recognizeExcelWithFallback(bytes, { remoteRecognize }));
+        const result = await recognizeExcelWithFallback(bytes, { remoteRecognize });
+        result.project.comparisonData = recognizeComparisonData(await extractWorkbook(bytes), {fileName,recognition:result});
+        result.ignoredSheets = result.ignoredSheets?.filter(name=>!/实际人数和费用/.test(name));
+        return json(response,200,result);
       }
       const config = await loadRecognitionConfig({ projectRoot: resolve(ROOT, '..') });
-      return json(response, 200, await recognizeExcelSmart(bytes, { config }));
+      const result = await recognizeExcelSmart(bytes, { config });
+      result.project.comparisonData = recognizeComparisonData(await extractWorkbook(bytes), {fileName,recognition:result});
+      result.ignoredSheets = result.ignoredSheets?.filter(name=>!/实际人数和费用/.test(name));
+      return json(response,200,result);
     }
     if (url.pathname === '/api/presentation/jobs') {
       if (request.method !== 'POST') return json(response, 405, { error: '仅支持 POST 请求' });

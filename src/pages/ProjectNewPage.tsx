@@ -25,7 +25,7 @@ const calculationStages = [
   { title: '校验项目参数', description: '核对面积、户数与服务等级' },
   { title: '匹配服务规则', description: '匹配项目适用的服务动作' },
   { title: '核算人员与成本', description: '汇总工时、岗位与年度预算' },
-  { title: '生成测算方案', description: '整理项目测算结果' },
+  { title: '汇总测算结果', description: '整理项目测算结果' },
 ] as const;
 const emptyBuilding: BuildingTypeInput = { buildingCount: 0, lobbyElevatorCount: 0, stiltFloorArea: 0, totalFloors: 0, standardLobbyArea: 0, evacuationStairArea: 0, rooftopArea: 0 };
 const numberRules = [{ required: true, message: '请填写数值' }, { type: 'number' as const, min: 0, message: '不能小于 0' }];
@@ -69,10 +69,11 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
   const [workbookOverrides, setWorkbookOverrides] = useState<Record<string, number | string>>(draft.workbookOverrides ?? {});
   const [importReviewIssues, setImportReviewIssues] = useState(draft.importReviewIssues ?? []);
   const [importedSecurityPosts, setImportedSecurityPosts] = useState(draft.importedSecurityPosts);
+  const [comparisonData, setComparisonData] = useState(draft.comparisonData);
   const [revenueScenario, setRevenueScenario] = useState(draft.revenueScenario);
   const [parameterFocus, setParameterFocus] = useState<string>();
   const watched = Form.useWatch([], form) as Partial<ProjectData> | undefined;
-  const reviewProject = { ...draft, ...watched, workbookOverrides, importReviewIssues, revenueScenario, importedSecurityPosts } as ProjectData;
+  const reviewProject = { ...draft, ...watched, workbookOverrides, importReviewIssues, revenueScenario, comparisonData, importedSecurityPosts } as ProjectData;
   const rosterPlan = importedSecurityRoster(reviewProject);
   const pendingReview = unresolvedImportIssues(reviewProject).filter(issue => issue.kind !== 'missing');
   const province = Form.useWatch('region', form);
@@ -94,6 +95,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
       importReviewIssues,
       importedSecurityPosts,
       revenueScenario,
+      comparisonData,
       advancedParameterOverrides: Object.keys(advancedParameterOverrides).length ? advancedParameterOverrides : undefined,
     };
     const errors = validateProjectData(project);
@@ -168,7 +170,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
       'zhuj.projectGatePosts': rosterPlan.gatePosts, 'zhuj.projectGateDailyHours': rosterPlan.gateHours,
       'zhuj.projectGatePeople': rosterPlan.gatePeople, 'zhuj.projectPatrolDailyHours': rosterPlan.patrolHours };
     setWorkbookOverrides(next);
-    storage.saveDraft({ ...reviewProject, ...form.getFieldsValue(true), workbookOverrides: next, importReviewIssues, importedSecurityPosts, exampleDataVersion });
+    storage.saveDraft({ ...reviewProject, ...form.getFieldsValue(true), workbookOverrides: next, importReviewIssues, importedSecurityPosts, comparisonData, exampleDataVersion });
     setError('');
     message.success('已采用本项目排班，可在项目服务设置中调整');
   };
@@ -181,7 +183,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
 
   const saveDraft = async () => {
     try {
-      const values = { ...reviewProject, ...form.getFieldsValue(true), workbookOverrides, importReviewIssues, importedSecurityPosts, revenueScenario, advancedParameterOverrides, exampleDataVersion };
+      const values = { ...reviewProject, ...form.getFieldsValue(true), workbookOverrides, importReviewIssues, importedSecurityPosts, revenueScenario, comparisonData, advancedParameterOverrides, exampleDataVersion };
       storage.saveDraft(values);
       message.success('草稿已保存');
     } catch (reason) {
@@ -192,7 +194,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
   const startCalculation = async () => {
     setError('');
     // Preserve partial input and confirmations even when validation fails.
-    storage.saveDraft({ ...reviewProject, ...form.getFieldsValue(true), workbookOverrides, importReviewIssues, importedSecurityPosts, revenueScenario, advancedParameterOverrides, exampleDataVersion });
+    storage.saveDraft({ ...reviewProject, ...form.getFieldsValue(true), workbookOverrides, importReviewIssues, importedSecurityPosts, revenueScenario, comparisonData, advancedParameterOverrides, exampleDataVersion });
     const startedAt = Date.now();
     try {
       const pending = unresolvedImportIssues({ ...reviewProject, ...form.getFieldsValue(true), workbookOverrides, importReviewIssues, importedSecurityPosts }).filter(i => i.kind !== 'missing');
@@ -224,6 +226,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
   };
 
   const applyRecognition = (result: ExcelRecognitionResult) => {
+    setComparisonData(result.project.comparisonData ? { ...result.project.comparisonData, actions: result.project.comparisonData.actions ? {...result.project.comparisonData.actions, confirmed:true} : null } : undefined);
     setImportedSecurityPosts(result.project.importedSecurityPosts ?? undefined);
     form.setFieldsValue(toBuildingTotalProject({ ...result.project, district: result.project.district ?? undefined, calculationModel: 'zhujiang-v1' } as ProjectData));
     setLegacyStairs(false);
@@ -247,6 +250,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
     form.setFieldsValue(example);
     setWorkbookOverrides(example.workbookOverrides ?? {});
     setRevenueScenario(undefined);
+    setComparisonData(undefined);
     setAdvancedParameterOverrides({});
     setExampleDataVersion(example.exampleDataVersion);
     setExampleGrade(example.serviceGrade);
@@ -261,9 +265,9 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
 
   return (
     <main className="workspace-page">
-      {model === 'zhujiang-v1' && <Alert type="info" showIcon title={exampleDataVersion ? '当前为示例项目 · 可直接测算' : '珠江四档测算 · 请核实项目数据'} description={exampleDataVersion ? '已载入示例设备、服务面积、作业用时和费用。示例值仅用于体验，不代表珠江实际项目；导入项目资料后使用实际数据。' : '先填基础资料，再确认设备数量、服务范围、作业时间和人工费用。服务次数按珠江标准带入；也可载入示例数据体验。'} style={{ marginBottom: 16 }} />}
+      {model === 'zhujiang-v1' && <Alert type="info" showIcon title={exampleDataVersion ? '当前为示例数据，仅供体验，请替换为项目实际资料。' : '珠江四档测算 · 请核实项目数据'} description={exampleDataVersion ? undefined : '先填基础资料，再确认设备数量、服务范围、作业时间和人工费用。服务次数按珠江标准带入；也可载入示例数据体验。'} style={{ marginBottom: 16 }} />}
       <div className="page-heading blueprint-rule">
-        <div><Typography.Title level={2}>新建物业测算项目</Typography.Title><Typography.Paragraph type="secondary">录入项目基础信息，生成服务方案、人员配置与成本测算。</Typography.Paragraph></div>
+        <div><Typography.Title level={2}>新建物业测算项目</Typography.Title></div>
         <Button onClick={loadExample} disabled={calculating || previewingAdvanced}>载入示例数据</Button>
       </div>
       <ExcelImportPanel onApply={applyRecognition} />
@@ -281,14 +285,14 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
             }}>
               <Form.Item name="calculationModel" hidden><Input /></Form.Item>
               <Form.Item name="stairAreaBasis" hidden><Input /></Form.Item>
-              <Typography.Paragraph type="secondary">按所选珠江服务等级和项目资料，估算所需人员与费用。</Typography.Paragraph>
+
               <section className={currentStep === 0 ? 'form-section' : 'form-section is-hidden'}>
                 <Typography.Title level={4}>01 / 项目概况</Typography.Title>
                 <Row gutter={16}>
                   <Col xs={24} md={12}><Form.Item name="projectName" label="项目名称" rules={[{ required: true, whitespace: true, message: '请填写项目名称' }]}><Input placeholder="例如：滨江花园" /></Form.Item></Col>
                   <Col xs={24} md={12}><Form.Item name="region" label="省份" rules={[{ required: true, message: '请选择省份' }]}><Select showSearch optionFilterProp="label" placeholder="请选择省份" options={restored ? [{ value: '广东省', label: '广东省' }] : provinceOptions} disabled={restored} onChange={() => form.setFieldsValue({ city: undefined, costBand: undefined, recommendedCostBand: undefined, costBandSourceVersion: undefined })} /></Form.Item></Col>
                   <Col xs={24} md={8}><Form.Item name="city" label="城市" rules={[{ required: true, message: '请选择城市' }]}><Select showSearch optionFilterProp="label" placeholder={province ? '请选择城市' : '请先选择省份'} disabled={!province} options={restored ? workbookCities : cityOptions(province)} onChange={(nextCity) => { const next = getCityRecommendation(province, nextCity); form.setFieldsValue({ district: undefined, costBand: next, recommendedCostBand: next, costBandSourceVersion: CITY_CATALOG_VERSION }); }} /></Form.Item></Col>
-                  {restored && <Col xs={24} md={8}><Form.Item name="district" label="区县" rules={[{ required: true, message: '请选择区县' }]} extra="采用参考价格库已收录的区县。"><Select showSearch optionFilterProp="label" options={workbookDistricts(city)} placeholder="请选择区县" /></Form.Item></Col>}
+                  {restored && <Col xs={24} md={8}><Form.Item name="district" label="区县" rules={[{ required: true, message: '请选择区县' }]}><Select showSearch optionFilterProp="label" options={workbookDistricts(city)} placeholder="请选择区县" /></Form.Item></Col>}
                   <Col xs={24} md={8}><NumberField name="totalBuildingArea" label="总建筑面积" suffix="㎡" /></Col>
                   <Col xs={24} md={8}><NumberField name="residentialChargeArea" label="住宅收费面积" suffix="㎡" /></Col>
                   <Col xs={24} md={8}><NumberField name="deliveredHouseholds" label="已交付户数" suffix="户" /></Col>
@@ -335,7 +339,7 @@ export default function ProjectNewPage({ onNavigate }: ProjectNewPageProps) {
           </Card>
           <aside className="profile-panel"><div className="profile-icon"><FileProtectOutlined /></div><Typography.Text className="panel-kicker">实时项目档案</Typography.Text><Typography.Title level={4}>{watched?.projectName || '未命名项目'}</Typography.Title><Typography.Text type="secondary">{[watched?.region, watched?.city, restored ? watched?.district : undefined].filter(Boolean).join(' / ') || '等待录入地区'}</Typography.Text><Divider /><dl className="profile-list"><div><dt>服务等级</dt><dd>{watched?.serviceGrade ? gradeLabel(watched.serviceGrade, model) : '—'}</dd></div><div><dt>{restored ? '采用单价' : '成本档位'}</dt><dd>{restored ? '项目所在地人工参考价' : watched?.costBand ? COST_BAND_LABELS[watched.costBand] : '待选择'}</dd></div><div><dt>总建筑面积</dt><dd>{profileNumber(watched?.totalBuildingArea)} ㎡</dd></div><div><dt>楼栋类型</dt><dd>{watched?.buildings?.length ?? 0} 类</dd></div><div><dt>常住户数</dt><dd>{profileNumber(watched?.occupiedHouseholds)} 户</dd></div></dl></aside>
         </div>
-      {restored ? <WorkbookParametersDrawer zhujiang={model === 'zhujiang-v1'} open={advancedOpen} loading={previewingAdvanced} error={advancedError} parameters={workbookInputs} overrides={workbookOverrides} focusKey={parameterFocus} reviewCount={pendingReview.length} onReview={() => { setAdvancedOpen(false); document.getElementById('import-review')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} onClose={() => setAdvancedOpen(false)} onSave={(next) => { setWorkbookOverrides(next); setAdvancedOpen(false); setError(''); storage.saveDraft({ ...reviewProject, ...form.getFieldsValue(true), workbookOverrides: next, importReviewIssues, importedSecurityPosts, exampleDataVersion }); message.success('计算参数已保存，将用于正式测算'); }} /> : <AdvancedParametersDrawer open={advancedOpen} loading={previewingAdvanced} error={advancedError} parameters={advancedParameters} overrides={advancedParameterOverrides} onClose={closeAdvancedParameters} onChange={changeAdvancedParameters} />}
+      {restored ? <WorkbookParametersDrawer zhujiang={model === 'zhujiang-v1'} open={advancedOpen} loading={previewingAdvanced} error={advancedError} parameters={workbookInputs} overrides={workbookOverrides} focusKey={parameterFocus} reviewCount={pendingReview.length} onReview={() => { setAdvancedOpen(false); document.getElementById('import-review')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} onClose={() => setAdvancedOpen(false)} onSave={(next) => { setWorkbookOverrides(next); setAdvancedOpen(false); setError(''); storage.saveDraft({ ...reviewProject, ...form.getFieldsValue(true), workbookOverrides: next, importReviewIssues, importedSecurityPosts, comparisonData, exampleDataVersion }); message.success('计算参数已保存，将用于正式测算'); }} /> : <AdvancedParametersDrawer open={advancedOpen} loading={previewingAdvanced} error={advancedError} parameters={advancedParameters} overrides={advancedParameterOverrides} onClose={closeAdvancedParameters} onChange={changeAdvancedParameters} />}
       <Modal className="generation-modal" open={calculating} title="正在生成测算方案" width={620} centered closable={false} mask={{ closable: false }} footer={null}>
         <GenerationProgress startedAt={calculationStartedAt} durationMs={CALCULATION_MINIMUM_MS} stages={calculationStages} subtitle={watched?.projectName || '当前项目'} />
       </Modal>

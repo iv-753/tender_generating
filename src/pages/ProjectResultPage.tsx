@@ -1,15 +1,19 @@
+import PearlRevenueScenarioPanel from '../components/PearlRevenueScenarioPanel';
+import ComparisonDataImport from '../components/ComparisonDataImport';
+import { ProjectResultComparison, ProjectResultBasis } from '../components/ProjectResultComparison';
+import { projectActualEvidence } from '../data/projectActualEvidence';
+import { SHOW_DELIVERABLE_FEATURES } from '../presentationFeatures';
 import { ArrowLeftOutlined, CloseOutlined, EditOutlined, FilePptOutlined, InfoCircleOutlined, LoadingOutlined, ReloadOutlined, SaveOutlined, SearchOutlined } from '@ant-design/icons';
-import { Alert, Button, Card, Checkbox, Collapse, Empty, Input, Modal, Result, Space, Statistic, Table, Tabs, Tag, Tooltip, Typography, message } from 'antd';
+import { Alert, Button, Card, Checkbox, Collapse, Empty, Input, Modal, Result, Space, Table, Tabs, Tag, Tooltip, Typography, message } from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { calculateAdjustedProject } from '../adjustedCalculator';
 import ActionEditor from '../components/ActionEditor';
-import RevenueScenarioPanel from '../components/RevenueScenarioPanel';
 import BidGenerationButton from '../components/BidGenerationButton';
 import GenerationProgress from '../components/GenerationProgress';
 import WorkbookParametersDrawer from '../components/WorkbookParametersDrawer';
 import { calculateProject, previewWorkbookInputs } from '../workbookCalculator';
-import { CATEGORY_ORDER, COST_BAND_LABELS, displayQuantity, displayStaffingCount, staffingPresentation, gradeLabel, isCompleteModel, showsActionHeadcount } from '../calculation';
+import { CATEGORY_ORDER, displayQuantity, displayStaffingCount, staffingPresentation, gradeLabel, isCompleteModel, showsActionHeadcount } from '../calculation';
 import { formatProjectLocation } from '../cityCatalog';
 import { storage } from '../storage';
 import { customerLabel, customerMissingReason, estimateName } from '../customerLanguage';
@@ -138,6 +142,7 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
   const result = previewResult;
   const restored = isCompleteModel(result.calculationModel);
   const zhujiang = result.calculationModel === 'zhujiang-v1';
+  const actualEvidence = projectActualEvidence(result.project);
   const openParameters = async (focusKey?: string) => {
     setParameterFocus(focusKey);
     setParametersOpen(true); setParametersLoading(true); setParametersError('');
@@ -278,32 +283,36 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
   const workloadDirection = workloadDelta < 0 ? '减少' : '增加';
   const budgetDirection = budgetDelta < 0 ? '减少' : '增加';
   return (
-    <main className="workspace-page">
-      <div className="result-heading blueprint-rule"><div><Typography.Title level={2}>{result.project.projectName}</Typography.Title><Typography.Paragraph type="secondary">{formatProjectLocation(result.project)} · {gradeLabel(result.project.serviceGrade, result.calculationModel)} · {zhujiang ? '珠江服务标准' : restored ? '原表完整算法 · 区级单价' : COST_BAND_LABELS[result.project.costBand]}</Typography.Paragraph></div><Space wrap>
+    <main className="workspace-page public-result pricing-page">
+      <div className="result-heading"><div><Typography.Title level={2}>{result.project.projectName}</Typography.Title><Typography.Paragraph type="secondary">{formatProjectLocation(result.project)} · {gradeLabel(result.project.serviceGrade,result.calculationModel)} · {result.project.exampleDataVersion ? '示例项目' : '年度测算'}</Typography.Paragraph><div className="hc-muted">数据期间：{actualEvidence.period} <Button type="link" size="small" onClick={()=>setDataReviewOpen(true)}>查看资料状态</Button></div></div><Space wrap>
         <Button icon={<ArrowLeftOutlined />} onClick={onNavigate}>返回修改</Button>
         {editing ? <>
           <Button icon={<CloseOutlined />} onClick={cancelEditing}>取消调整</Button>
           <Button type="primary" icon={<SaveOutlined />} disabled={recalculation.loading || Boolean(recalculation.error)} onClick={saveEditing}>保存调整</Button>
         </> : <>
           <Button disabled={parametersLoading} icon={<EditOutlined />} onClick={()=>restored ? openParameters() : enterEditing()}>{restored ? '调整项目资料' : '调整服务方案'}</Button>
-          <BidGenerationButton result={savedResult} />
-          <Button type="primary" icon={<FilePptOutlined />} loading={generation.status === 'running'} onClick={generatePresentation}>生成路演PPT</Button>
+          {SHOW_DELIVERABLE_FEATURES && <BidGenerationButton result={savedResult} />}
+          {SHOW_DELIVERABLE_FEATURES && <Button type="primary" icon={<FilePptOutlined />} loading={generation.status === 'running'} onClick={generatePresentation}>生成路演PPT</Button>}
         </>}
       </Space></div>
-      {zhujiang && <Alert type="info" showIcon title={result.standard?.complete ? '费用按已填写资料估算，尚未扣除停车等其他收入。' : '部分项目资料和服务用时尚未填写，以下费用尚不完整。'} action={<Button size="small" onClick={()=>setDataReviewOpen(true)}>查看待补资料</Button>} style={{marginBottom:16}} />}
-      {zhujiang && result.warnings?.some(w => w.startsWith('试算假设：')) && <Alert type="warning" showIcon title="当前为试算结果" description={result.warnings.filter(w => w.startsWith('试算假设：')).join(' ')} style={{ marginBottom: 16 }} />}
-      {zhujiang && <Typography.Paragraph type="secondary">当前结果：{result.securityRosterMode === 'project' ? '按所选预算口径与项目安保排班试算' : estimateName(result.budgetBasis)}{result.budgetBasis==='workload'&&!result.standard?.complete?'（数据未齐，仅供参考）':''}</Typography.Paragraph>}
-      <section className="metrics-grid">
-        <Card className="action-library-card"><Statistic title={zhujiang ? "已测算服务明细" : "标准动作库"} value={zhujiang ? activeActionCount : standardActionCount} suffix={zhujiang?'条':'项'} /><small>{zhujiang ? `另有 ${result.actions.filter(item=>item.standardStatus==='pending').length} 条待补资料` : `当前启用 ${activeActionCount} 项 · 停用 ${disabledActionCount} 项`}{customActionCount > 0 ? ` · 自定义 ${customActionCount} 项` : ''}</small></Card>
-        <Card><Statistic title={result.staffingScope === 'onsite' ? "项目驻场配置" : "配置人数"} value={totalStaffingCount} suffix="人" />{staffing.sharedText && <small>{staffing.sharedText}</small>}{result.staffingScope === 'onsite' && <small>；工程外包折算用工不计入驻场人数，费用保留。</small>}</Card>
-        <Card className="cost-card"><Statistic title={explainedTitle(zhujiang ? result.standard?.complete ? '预计年度费用' : '已估算年度费用' : '项目年度用工预算', zhujiang ? '包含当前可计算的人员及服务费用。待补资料涉及的费用尚未完整计入。' : restored ? '按原表各分类的工时、人员折算、取整和附加比例汇总。' : '汇总工作量后按完整岗位人数向上取整，小幅调整时预算可能暂时不变。')} value={result.annualCost} formatter={(value) => wholeNumber.format(Number(value))} prefix="¥" /></Card>
-        <Card><Statistic title={explainedTitle('服务成本单价', '当前年度费用除以住宅收费面积和12个月；未计项和其他收入尚未补全。')} value={serviceCostPerSqmMonth ?? '—'} precision={serviceCostPerSqmMonth === null ? undefined : 2} suffix={serviceCostPerSqmMonth === null ? undefined : '元/㎡·月'} /></Card>
-      </section>
-      <RevenueScenarioPanel result={result} disabled={editing || parametersLoading} onChange={scenario => {
+      <PearlRevenueScenarioPanel result={result} disabled={editing || parametersLoading} onChange={scenario => {
         const next = storage.saveRevenueScenario(scenario);
         if (next) { setSavedResult(next); setPreviewResult(next); }
-      }} />
-      {result.version === 2 && <Card className="management-cost-card" size="small"><div><strong>管理人员成本</strong><small>{zhujiang ? staffing.sharedText || '兼岗人员不重复计费' : '单独计入项目总人数和年度用工预算'}</small></div><span><strong>{staffingPresentation(result,result.management.headcount).headcount}人</strong><small>配置人数</small></span><span><strong>{currency.format(result.management.annualCost)}</strong><small>年度成本</small></span></Card>}
+      }}><ProjectResultComparison result={result} importControl={<ComparisonDataImport result={result} disabled={editing || parametersLoading || recalculation.loading} onSaved={next => { setSavedResult(next); setPreviewResult(next); }} />} /></PearlRevenueScenarioPanel>
+      <ProjectResultBasis result={result} personnel={<>
+      {zhujiang && result.budgetComparison && <Collapse style={{marginTop:16}} items={[{key:'comparison',label:'查看人员配置参考',children:<>
+        <Typography.Paragraph>两种估算均采用珠江服务要求：前者按服务面积、户数和岗位要求配置人员；后者按各项服务所需时间估算人员。{!result.standard?.complete&&'目前部分服务资料和用时缺失，按工作量估算的结果尚不完整，不能据此判断可以减少人员或降低收费。'}</Typography.Paragraph>
+        <Table rowKey="basis" size="small" pagination={false} scroll={{ x: 640 }} dataSource={(['standard', 'workload'] as const).map(basis => ({ basis, ...result.budgetComparison![basis] }))} columns={[
+          { title: '估算依据', key: 'basis', render: (_, row) => <>{estimateName(row.basis)}{row.basis==='workload'&&!result.standard?.complete&&<div><Tag>数据未齐，仅供参考</Tag></div>}</> },
+          { title: '预计人数', key: 'headcount', render: (_, row) => `${staffingPresentation(result,row.headcount).headcount} 人` },
+          { title: '已估算年度费用', key: 'annualCost', render: (_, row) => currency.format(row.annualCost) },
+          { title: '每月每平方米成本', key: 'unitPrice', render: (_, row) => row.unitPrice === null ? '—' : `${decimalNumber.format(row.unitPrice)} 元/㎡·月` },
+          { title: '查看结果', key: 'selected', render: (_, row) => <Button type={result.budgetBasis === row.basis ? 'primary' : 'default'} disabled={parametersLoading || result.budgetBasis === row.basis} onClick={() => switchBudget(row.basis)}>{result.budgetBasis === row.basis ? '当前展示' : '查看此结果'}</Button> },
+        ]} />
+        <Typography.Text type="secondary">两个结果用于比较，费用不相加，均尚未扣除停车等其他收入。</Typography.Text></>}]} />}
+</>}>
+      {zhujiang && result.warnings?.some(w => w.startsWith('试算假设：')) && <Alert type="warning" showIcon title="当前为试算结果" description={result.warnings.filter(w => w.startsWith('试算假设：')).join(' ')} style={{ marginBottom: 16 }} />}
+{result.version === 2 && <Card className="management-cost-card" size="small"><div><strong>管理人员成本</strong><small>{zhujiang ? staffing.sharedText || '兼岗人员不重复计费' : '单独计入项目总人数和年度用工预算'}</small></div><span><strong>{staffingPresentation(result,result.management.headcount).headcount}人</strong><small>配置人数</small></span><span><strong>{currency.format(result.management.annualCost)}</strong><small>年度成本</small></span></Card>}
       {!zhujiang && <div className="workload-cost-strip">
         <div><strong>工作量折算成本</strong><Tooltip title="全部有效动作的年工作量成本合计，修改动作后立即变化。"><InfoCircleOutlined aria-label="工作量折算成本说明" /></Tooltip></div>
         <span>{currency.format(currentWorkloadCost)}</span>
@@ -328,16 +337,7 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
           ? <ActionEditor key={`${category}-${showZeroValues}-${adjustedOnly}-${disabledOrCustomOnly}-${query}`} category={category} actions={actions} adjustments={draftAdjustments} onChange={setDraftAdjustments} />
           : <Table<ServiceActionResult> rowKey="id" size="middle" columns={columns} dataSource={actions} pagination={{ current: page, pageSize: 12, showSizeChanger: false, showTotal: (total) => '共 ' + total + ' 项', onChange: setPage }} scroll={{ x: 1100 }} locale={{ emptyText: '没有匹配的动作' }} />}
       </Card>
-      {zhujiang && result.budgetComparison && <Collapse style={{marginTop:16}} items={[{key:'comparison',label:'查看人员配置参考',children:<>
-        <Typography.Paragraph>两种估算均采用珠江服务要求：前者按服务面积、户数和岗位要求配置人员；后者按各项服务所需时间估算人员。{!result.standard?.complete&&'目前部分服务资料和用时缺失，按工作量估算的结果尚不完整，不能据此判断可以减少人员或降低收费。'}</Typography.Paragraph>
-        <Table rowKey="basis" size="small" pagination={false} scroll={{ x: 640 }} dataSource={(['standard', 'workload'] as const).map(basis => ({ basis, ...result.budgetComparison![basis] }))} columns={[
-          { title: '估算依据', key: 'basis', render: (_, row) => <>{estimateName(row.basis)}{row.basis==='workload'&&!result.standard?.complete&&<div><Tag>数据未齐，仅供参考</Tag></div>}</> },
-          { title: '预计人数', key: 'headcount', render: (_, row) => `${staffingPresentation(result,row.headcount).headcount} 人` },
-          { title: '已估算年度费用', key: 'annualCost', render: (_, row) => currency.format(row.annualCost) },
-          { title: '每月每平方米成本', key: 'unitPrice', render: (_, row) => row.unitPrice === null ? '—' : `${decimalNumber.format(row.unitPrice)} 元/㎡·月` },
-          { title: '查看结果', key: 'selected', render: (_, row) => <Button type={result.budgetBasis === row.basis ? 'primary' : 'default'} disabled={parametersLoading || result.budgetBasis === row.basis} onClick={() => switchBudget(row.basis)}>{result.budgetBasis === row.basis ? '当前展示' : '查看此结果'}</Button> },
-        ]} />
-        <Typography.Text type="secondary">两个结果用于比较，费用不相加，均尚未扣除停车等其他收入。</Typography.Text></>}]} />}
+      </ProjectResultBasis>
       <Modal title="待补资料与费用说明" open={dataReviewOpen} onCancel={()=>setDataReviewOpen(false)} footer={<Button onClick={()=>setDataReviewOpen(false)}>关闭</Button>} width={900}>
         <Typography.Paragraph>服务清单包含不同设施和细分作业，共{standardActionCount}条明细；目前已测算{activeActionCount}条，{result.actions.filter(item=>item.standardStatus==='pending').length}条待补资料，其余为不适用、未开展、已由其他服务或合同承担等情况。明细条数不代表服务档次，也不等于珠江标准条款数。</Typography.Paragraph>
         <Typography.Paragraph>请补充实际数量、作业用时和费用；同一数据只需填一次。确认服务范围后，可能还需补充对应作业时间。</Typography.Paragraph>

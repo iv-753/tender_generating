@@ -37,7 +37,7 @@ export default function RevenueScenarioPanel({ result, disabled, onChange }: Pro
   const sourceAreaMismatch = s.sourceResidentialArea !== undefined && Math.abs(s.sourceResidentialArea - result.project.residentialChargeArea) > 0.01;
 
   return <Card className="revenue-panel" id="revenue-scenario">
-    <div className="revenue-heading"><div><Typography.Title level={3}>住宅收费与利润试算</Typography.Title><p>先扣除其他收入，再看住宅物业费需要承担多少。</p></div>
+    <div className="revenue-heading"><div><Typography.Title level={3}>住宅收费与利润试算</Typography.Title><p>结合其他收入，测算住宅物业费的收支平衡水平。</p></div>
       <Upload accept=".xlsx" showUploadList={false} beforeUpload={importFile} disabled={disabled || uploading}>
         <Button icon={<UploadOutlined />} loading={uploading} disabled={disabled}>导入表6收入</Button>
       </Upload>

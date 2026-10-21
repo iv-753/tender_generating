@@ -1,3 +1,4 @@
+import { isRetainedRoute } from '../presentationFeatures';
 import { FileDoneOutlined, FilePptOutlined, FileTextOutlined, HistoryOutlined, ProjectOutlined } from '@ant-design/icons';
 import type { ReactNode } from 'react';
 
@@ -14,7 +15,7 @@ const items: { path: ProjectWorkspacePath; label: string; icon: ReactNode }[] = 
 export default function ProjectWorkspaceNav({ activePath, onNavigate }: { activePath: ProjectWorkspacePath; onNavigate: (path: ProjectWorkspacePath) => void }) {
   return (
     <nav className="project-workspace-nav" aria-label="项目工作区">
-      {items.map((item) => (
+      {items.filter(item => isRetainedRoute(item.path)).map((item) => (
         <a key={item.path} href={item.path} aria-label={item.label} className={activePath === item.path ? 'is-active' : ''} onClick={(event) => { event.preventDefault(); onNavigate(item.path); }}>
           {item.icon}<span>{item.label}</span>
         </a>

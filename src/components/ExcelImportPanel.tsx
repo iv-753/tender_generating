@@ -102,7 +102,7 @@ export default function ExcelImportPanel({ onApply }: Props) {
           ? <><strong>正在识别项目数据</strong><span>先按字段规则匹配，仅未匹配内容交由智能识别。</span></>
           : status === 'applied'
             ? <><strong>{fileName}</strong><span>识别结果已写入表单，请核对后开始测算。</span></>
-            : <span>自动识别基础资料、设备场地及服务计划，提示缺项与冲突；实际费用和收入不导入。</span>}
+            : <span>识别项目资料、服务计划、填报人数与费用；对比数据单独保存，不覆盖测算参数。</span>}
       </div>
       <div className="excel-import-action">
         {status === 'recognizing' ? <GenerationProgress
@@ -138,6 +138,7 @@ export default function ExcelImportPanel({ onApply }: Props) {
     >
       {result && <div className="recognition-review">
         <div className="recognition-summary"><div><FileExcelOutlined /><span><strong>{fileName}</strong><small>{result.provider === 'local-rules' ? '字段规则识别完成' : '字段规则与智能识别完成'}，请确认后写入测算表单</small></span></div><div><strong>{recognizedCount}</strong> 项已识别</div><div className={result.missingFields.length ? 'has-missing' : ''}><strong>{result.missingFields.length}</strong> 项待补充</div></div>
+        {result.project.comparisonData && <Collapse items={[{key:'comparison',label:'项目填报人数、费用及服务动作 · 仅用于对比',children:<><p>自有人员：{result.project.comparisonData.personnel?.own.value ?? '待补充'} 人；外包人员：{result.project.comparisonData.personnel?.outsourced.value ?? '待补充'} 人；已填合计：{result.project.comparisonData.personnel?.total ?? '待补充'} 人。</p><p>{result.project.comparisonData.personnel?.kind} · {result.project.comparisonData.period.label}</p><p>费用已填合计：{result.project.comparisonData.cost?.amount == null ? '待补充' : (result.project.comparisonData.cost.amount/10000).toFixed(2)+' 万元'}；{result.project.comparisonData.cost?.kind === 'actual' ? '实际发生' : result.project.comparisonData.cost?.kind === 'budget' ? '预算' : '项目填报'}。原金额与期间随项目保存，结果页按有效月份数展示年化估算。</p><p>采用识别结果即确认本次已映射的服务动作清单；明确不适用项不计入。两列共用清单，不代表实际执行已核验。</p></>}]} />}
         {result.project.revenueScenario && <Collapse items={[{ key: 'revenue', label: '表6收入已识别 · 用于结果页收费试算', children: <div>
           {REVENUE_FIELDS.filter(([key])=>key!=='otherAnnual').map(([key,label])=><p key={key}>{label}：{result.project.revenueScenario?.[key] ?? '待填写'} 元/年</p>)}
           <Typography.Text type="secondary">收入单独用于抵扣和利润试算，不会改变服务成本；可在测算结果页修改。</Typography.Text>

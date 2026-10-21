@@ -1,0 +1,36 @@
+
+.unified-shell {--ink:#18324A;--muted:#64748B;--line:#E2E8F0;--brand:#0057B8;background:#F3F6FA;font-family:"Microsoft YaHei","PingFang SC",sans-serif;color:var(--ink);}
+.unified-shell .app-header {height:56px;min-height:56px;padding:0 24px;background:white;border-bottom:1px solid var(--line);gap:24px;line-height:normal;}
+.unified-shell .brand.ant-typography {margin:0;color:var(--ink);font-size:20px;font-weight:600;letter-spacing:0;}
+.unified-shell .brand small {display:inline;margin-left:20px;font-size:12px;font-weight:400;color:var(--muted);letter-spacing:0;}
+.unified-shell .main-menu {display:none;}
+.unified-shell .account-chip {display:flex;margin-left:auto;font-size:14px;color:var(--ink);}
+.unified-shell .account-chip strong {color:#18324A;font-size:14px;}
+.unified-shell .account-chip small {display:none;}
+.unified-shell .app-content {width:100%;max-width:none;padding:0;margin:0;}
+.unified-shell .pearl-workbench {display:flex;min-height:calc(100vh - 56px);}
+.unified-shell .workbench-sidebar {width:184px;flex:0 0 184px;background:#173852;padding:24px 8px;color:#fff;min-width:0;}
+.workbench-sidebar button {display:flex;align-items:center;gap:12px;width:100%;border:0;background:transparent;padding:12px;color:#eef4fa;font-family:inherit;font-size:14px;line-height:1.6;text-align:left;border-radius:6px;cursor:pointer;}
+.workbench-sidebar button:hover {background:#ffffff12;}
+.workbench-sidebar button.sidebar-active {background:#0057B8;color:#fff;}
+.workbench-sidebar .anticon,.result-sidebar-label .anticon {font-size:18px;}
+.result-sidebar-label {display:flex;align-items:center;gap:12px;padding:12px;color:#e6eff7;font-size:14px;}
+.sidebar-recents button {display:block;padding:10px 12px;font-size:14px;overflow-wrap:anywhere;}
+.unified-shell .workbench-main {flex:1;min-width:0;padding:24px 28px;background:#F3F6FA;}
+.unified-shell .workspace-page {max-width:none;width:100%;margin:0;padding:0;}
+.result-breadcrumb {display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px;color:#64748B;font-size:12px;}
+.result-breadcrumb button {padding:0;border:0;background:none;color:inherit;cursor:pointer;}
+.unified-shell h1,.unified-shell .ant-typography h1 {font-size:28px;font-weight:600;}
+.unified-shell .ant-card {border:1px solid var(--line);border-radius:8px;box-shadow:none;}
+.unified-shell .ant-card-body {padding:24px;}
+.unified-shell .ant-btn {font-size:14px;height:36px;}
+.unified-shell .ant-btn-sm {height:28px;}
+.unified-shell .ant-table {font-size:14px;color:var(--ink);}
+.unified-shell .ant-input-number-input {text-align:right;font-variant-numeric:tabular-nums;}
+.unified-shell .ant-statistic-content {font-size:28px;font-variant-numeric:tabular-nums;}
+.unified-shell .workbench-title h1 {font-size:28px;font-weight:600;}
+.unified-shell .workbench-card {border:1px solid var(--line);border-radius:8px;padding:24px;}
+.unified-shell .workbench-card h2 {font-size:20px;font-weight:600;}
+.unified-shell .workbench-grid {grid-template-columns:minmax(0,68fr) minmax(300px,32fr);gap:16px;}
+@media(max-width:1050px){.unified-shell .workbench-grid{grid-template-columns:1fr;}.unified-shell .workbench-right{display:grid;grid-template-columns:1fr 1fr;}}
+@media(max-width:760px){.unified-shell .workbench-sidebar{width:64px;flex-basis:64px;padding:24px 4px;}.workbench-sidebar>button{font-size:0;gap:0;justify-content:center;}.workbench-sidebar .sidebar-recents,.result-sidebar-label{display:none;}.unified-shell .workbench-main{padding:24px 16px;}.unified-shell .brand small{display:none;}.unified-shell .workbench-right{grid-template-columns:1fr;}}

@@ -1,3 +1,5 @@
+import { extractWorkbook } from '../../scripts/excel-recognition/extract-workbook.mjs';
+import { recognizeComparisonData } from '../../scripts/excel-recognition/comparison-import.mjs';
 import { loadRecognitionConfig } from '../../scripts/excel-recognition/config.mjs';
 import { recognizeExcelSmart } from '../../scripts/excel-recognition/recognize-excel.mjs';
 import { errorMessage, json } from '../_lib/http.mjs';
@@ -23,7 +25,10 @@ export function createExcelRecognitionHandler({ recognize = recognizeExcelSmart,
         if (bytes.length > MAX_EXCEL_BYTES) return json({ error: '文件不能超过 4MB' }, 413);
         if (!isXlsx(bytes)) return json({ error: '文件不是有效的 .xlsx 工作簿' }, 400);
         const config = await loadConfig();
-        return json(await recognize(bytes, { config }));
+        const result = await recognize(bytes, { config });
+        result.project.comparisonData = recognizeComparisonData(await extractWorkbook(bytes), { fileName, recognition: result });
+        result.ignoredSheets = result.ignoredSheets?.filter(name => !/实际人数和费用/.test(name));
+        return json(result);
       } catch (error) {
         console.error(error);
         return json({ error: errorMessage(error, 'Excel识别失败') }, 500);

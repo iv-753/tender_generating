@@ -1,0 +1,17 @@
+.pearl-home-shell .workspace-page { color: #123454; }
+.pearl-home-shell .blueprint-rule::before { display: none; }
+.pearl-home-shell .blueprint-rule::after { background: #dce5ef; }
+.pearl-home-shell .project-workspace-nav { box-shadow: none; border-radius: 6px; border-color: #dce5ef; }
+.pearl-home-shell .project-workspace-nav a.is-active { background: #edf4fc; color: #004a98; border-bottom-color: #004a98; }
+.pearl-home-shell .ant-card, .pearl-home-shell .form-panel, .pearl-home-shell .profile-panel, .pearl-home-shell .step-rail { box-shadow: none; border-radius: 6px; }
+.pearl-home-shell .page-heading h2, .pearl-home-shell .result-heading h2 { font-size: 26px; line-height: 1.5; }
+.pearl-home-shell .project-stage-rail { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.pearl-home-shell .pearl-hero { min-height: 290px; }
+.pearl-home-shell .pearl-hero-copy { padding: 28px 40px; }
+.pearl-home-shell .pearl-hero h1 { font-size: 34px; margin: 0 0 16px; line-height: 1.5; }
+.pearl-home-shell .pearl-hero-actions { margin-bottom: 0; }
+@media (max-width: 650px) {
+  .pearl-home-shell .pearl-hero-copy { padding: 24px; }
+  .pearl-home-shell .pearl-hero h1 { font-size: 28px; }
+  .pearl-home-shell .page-heading h2, .pearl-home-shell .result-heading h2 { font-size: 22px; }
+}

@@ -1,4 +1,4 @@
-import type { BidDocumentRecord, CalculationAdjustments, CalculationResult, CompanyProfile, PresentationRecord, ProjectData, ProjectRecord, RevenueScenario } from './types';
+import type { BidDocumentRecord, CalculationAdjustments, CalculationResult, CompanyProfile, PresentationRecord, ProjectComparisonData, ProjectData, ProjectRecord, RevenueScenario } from './types';
 
 const DRAFT_KEY = 'property-calculator:draft:v1';
 const RESULT_KEY = 'property-calculator:result:v1';
@@ -98,6 +98,18 @@ export const storage = {
   loadCompanyProfile: () => load<CompanyProfile>(COMPANY_PROFILE_KEY),
   saveCompanyProfile: (data: CompanyProfile) => save(COMPANY_PROFILE_KEY, data),
   saveCalculatedProject,
+  saveComparisonData: (comparisonData: ProjectComparisonData, expectedProjectId: string | null) => {
+    if (localStorage.getItem(ACTIVE_PROJECT_KEY) !== expectedProjectId) throw new Error('当前项目已切换，请重新打开对比资料导入。');
+    const current = load<CalculationResult>(RESULT_KEY);
+    if (!current || current.project.exampleDataVersion) throw new Error('请在真实项目结果中更新对比资料。');
+    const next = { ...current, project: { ...current.project, comparisonData } };
+    if (expectedProjectId) saveProjects(loadStoredProjects().map(item => item.id === expectedProjectId
+      ? { ...item, result: next } : item));
+    save(RESULT_KEY, next);
+    const draft = load<ProjectData>(DRAFT_KEY);
+    save(DRAFT_KEY, { ...(draft ?? current.project), comparisonData });
+    return next;
+  },
   saveRevenueScenario: (revenueScenario: RevenueScenario) => {
     const current = load<CalculationResult>(RESULT_KEY);
     if (!current) return null;
