@@ -168,7 +168,7 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
     } catch (reason) { message.error(reason instanceof Error ? reason.message : '切换预算失败'); }
     finally { setParametersLoading(false); }
   };
-  const availableCategories = categoryOrder.filter((key) => result.categories.some((item) => item.category === key));
+  const availableCategories = categoryOrder.filter((key) => result.categories.some((item) => item.category === key && !(zhujiang && key === 'pestControl' && item.actionCount === 0)));
   const summary = result.categories.find((item) => item.category === category)!;
   const keyword = query.trim().toLowerCase();
   const categoryActions = result.actions.filter((item) => item.category === category);
@@ -314,7 +314,7 @@ export default function ProjectResultPage({ onNavigate }: ProjectResultPageProps
         <Typography.Text type="secondary">两个结果用于比较，费用不相加，均尚未扣除停车等其他收入。</Typography.Text></>}]} />}
 </>}>
       {zhujiang && result.warnings?.some(w => w.startsWith('试算假设：')) && <Alert type="warning" showIcon title="当前为试算结果" description={result.warnings.filter(w => w.startsWith('试算假设：')).join(' ')} style={{ marginBottom: 16 }} />}
-{result.version === 2 && <Card className="management-cost-card" size="small"><div><strong>管理人员成本</strong><small>{zhujiang ? staffing.sharedText || '兼岗人员不重复计费' : '单独计入项目总人数和年度用工预算'}</small></div><span><strong>{staffingPresentation(result,result.management.headcount).headcount}人</strong><small>配置人数</small></span><span><strong>{currency.format(result.management.annualCost)}</strong><small>年度成本</small></span></Card>}
+{result.version === 2 && <Card className="management-cost-card" size="small"><div><strong>管理人员成本</strong>{(!zhujiang || !staffing.sharedText) && <small>{zhujiang ? '兼岗人员不重复计费' : '单独计入项目总人数和年度用工预算'}</small>}</div><span><strong>{staffingPresentation(result,result.management.headcount).headcount}人</strong><small>配置人数</small></span><span><strong>{currency.format(result.management.annualCost)}</strong><small>年度成本</small></span></Card>}
       {!zhujiang && <div className="workload-cost-strip">
         <div><strong>工作量折算成本</strong><Tooltip title="全部有效动作的年工作量成本合计，修改动作后立即变化。"><InfoCircleOutlined aria-label="工作量折算成本说明" /></Tooltip></div>
         <span>{currency.format(currentWorkloadCost)}</span>
